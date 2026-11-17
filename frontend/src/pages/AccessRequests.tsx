@@ -101,24 +101,23 @@ export const AccessRequests = () => {
         description="Review controlled and restricted dataset applications, record decisions and keep an auditable rationale."
         actions={
           <Link to="/settings">
-            <Button variant="secondary" icon={<ShieldCheck size={16} />}>Demo role: {role}</Button>
+            <Button variant="secondary" icon={<ShieldCheck size={16} />}>Signed in as: {role}</Button>
           </Link>
         }
       />
 
-      <DemoNotice text="Requests and decisions live only in this browser session. Backend approval workflow, notifications and immutable audit logging arrive in PHASE 11." />
+      <DemoNotice text="Requests and decisions are persisted by the backend and written to the audit log. Access is limited to the requester, the dataset owner and administrators." />
 
       <div className="stats-grid">
         <StatCard label="Incoming pending" value={pendingIncoming} hint="Awaiting your decision" icon={<KeyRound size={20} />} tone={pendingIncoming > 0 ? 'warning' : 'success'} />
         <StatCard label="My pending requests" value={pendingOutgoing} hint="Outgoing access applications" icon={<ArrowRight size={20} />} tone="info" />
         <StatCard label="Approved" value={approved} hint="Across incoming and outgoing" icon={<CheckCircle2 size={20} />} tone="success" />
-        <StatCard label="Decision maker" value={role} hint="Demo role switch is not authentication" icon={<ShieldCheck size={20} />} tone="purple" />
+        <StatCard label="Signed-in role" value={role} hint="Server-side authorisation is enforced" icon={<ShieldCheck size={20} />} tone="purple" />
       </div>
 
-      <Alert tone="info" title="Role-aware controls (demo)">
-        Incoming requests can be reviewed from this session. Administrators can review governance queues; researchers
-        and contributors review requests for datasets they own. Switch the demo role in Settings to inspect the
-        different permission states. Real authentication and audit enforcement will be backend responsibilities.
+      <Alert tone="info" title="Role-aware controls">
+        Administrators can review every request; researchers and contributors review requests for datasets they own.
+        Decisions are checked by the backend and recorded with the authenticated reviewer identity.
       </Alert>
 
       <Card>
@@ -308,9 +307,8 @@ export const AccessRequests = () => {
                     placeholder="e.g. Approved under the controlled-access agreement; secure environment confirmed."
                   />
                 </Field>
-                <Alert tone="warning">
-                  This decision is browser-only. In the backend implementation it will be transactional and written to
-                  an immutable audit log with the reviewer identity.
+                <Alert tone="info">
+                  This decision is persisted transactionally and written to the audit log with your reviewer identity.
                 </Alert>
               </>
             ) : null}

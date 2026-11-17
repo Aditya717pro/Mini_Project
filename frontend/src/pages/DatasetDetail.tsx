@@ -16,6 +16,7 @@ import {
   BadgeCheck,
   BrainCircuit,
   CalendarDays,
+  CheckCircle2,
   Download,
   FileKey2,
   Globe2,
@@ -24,6 +25,7 @@ import {
   ShieldCheck,
   Users,
   Workflow,
+  XCircle,
 } from 'lucide-react';
 import {
   AccessBadge,
@@ -79,6 +81,10 @@ export const DatasetDetail = () => {
     requests,
     requestAccess,
     role,
+    user,
+    downloadDataset,
+    approveDataset,
+    rejectDataset,
   } = useDemo();
 
   const dataset = datasets.find((item) => item.id === datasetId);
@@ -92,6 +98,9 @@ export const DatasetDetail = () => {
   const [purpose, setPurpose] = useState('');
   const [agreement, setAgreement] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [decisionOpen, setDecisionOpen] = useState(false);
+  const [decision, setDecision] = useState<'Approved' | 'Rejected'>('Approved');
+  const [decisionReason, setDecisionReason] = useState('');
 
   const pendingRequest = useMemo(
     () =>
@@ -138,8 +147,25 @@ export const DatasetDetail = () => {
     { id: 'versions', label: 'Versions', count: dataset.versions.length },
   ];
 
-  const canRequest = dataset.access !== 'Open' && dataset.status === 'Available';
-  const submitRequest = (event: FormEvent) => {
+  const canRequest =
+    dataset.access !== 'Open' &&
+    dataset.status === 'Available' &&
+    dataset.owner !== user.name &&
+    role !== 'Administrator';
+  const approvedRequest = requests.some(
+    (request) =>
+      request.datasetId === dataset.id &&
+      request.direction === 'Outgoing' &&
+      request.status === 'Approved',
+  );
+  const canDownload =
+    dataset.status === 'Available' &&
+    (dataset.access === 'Open' ||
+      role === 'Administrator' ||
+      dataset.owner === user.name ||
+      approvedRequest);
+  const canGovern = role === 'Administrator' && (dataset.status === 'Pending review' || dataset.status === 'Changes requested');
+  const submitRequest = async (event: FormEvent) => {
     event.preventDefault();
     const next: Record<string, string> = {};
     if (projectTitle.trim().length < 5) next.projectTitle = 'Enter a project title.';
@@ -147,7 +173,7 @@ export const DatasetDetail = () => {
     if (!agreement) next.agreement = 'Accept the data-use terms to continue.';
     setErrors(next);
     if (Object.keys(next).length > 0) return;
-    const ok = requestAccess(dataset.id, { projectTitle, purpose });
+    const ok = await requestAccess(dataset.id, { projectTitle, purpose });
     if (ok) {
       setRequestOpen(false);
       setProjectTitle('');
@@ -155,6 +181,21 @@ export const DatasetDetail = () => {
       setAgreement(false);
       setErrors({});
     }
+  };
+  const submitDecision = async (event: FormEvent) => {
+    event.preventDefault();
+    if (decision === 'Rejected' && decisionReason.trim().length < 5) {
+      setErrors({ decision: 'Provide a reason of at least 5 characters.' });
+      return;
+    }
+    if (decision === 'Approved') {
+      await approveDataset(dataset.id, decisionReason.trim() || 'Approved after governance review.');
+    } else {
+      await rejectDataset(dataset.id, decisionReason.trim());
+    }
+    setDecisionOpen(false);
+    setDecisionReason('');
+    setErrors({});
   };
 
   return (
@@ -171,12 +212,39 @@ export const DatasetDetail = () => {
             </Link>
             <Button
               variant="secondary"
-              disabled
-              title="Secure signed downloads are implemented with the backend."
+              disabled={!canDownload}
+              title={canDownload ? 'Download the stored dataset file' : 'An approved access request is required'}
               icon={<Download size={16} />}
+              onClick={() => void downloadDataset(dataset)}
             >
               Download
             </Button>
+            {canGovern ? (
+              <>
+                <Button
+                  variant="success"
+                  icon={<CheckCircle2 size={16} />}
+                  onClick={() => {
+                    setDecision('Approved');
+                    setDecisionReason('');
+                    setDecisionOpen(true);
+                  }}
+                >
+                  Approve dataset
+                </Button>
+                <Button
+                  variant="secondary"
+                  icon={<XCircle size={16} />}
+                  onClick={() => {
+                    setDecision('Rejected');
+                    setDecisionReason('');
+                    setDecisionOpen(true);
+                  }}
+                >
+                  Request changes
+                </Button>
+              </>
+            ) : null}
             {canRequest ? (
               pendingRequest ? (
                 <Button disabled icon={<Lock size={16} />}>Request pending</Button>
@@ -602,13 +670,15 @@ export const DatasetDetail = () => {
               <Button className="full-width" onClick={() => setRequestOpen(true)} icon={<FileKey2 size={16} />}>
                 Request access
               </Button>
-            ) : dataset.access === 'Open' ? (
-              <Button className="full-width" variant="secondary" disabled>Open access · download not connected</Button>
+            ) : canDownload ? (
+              <Button className="full-width" variant="secondary" onClick={() => void downloadDataset(dataset)}>
+                Download dataset file
+              </Button>
             ) : (
               <Button className="full-width" variant="secondary" disabled>Access unavailable while {dataset.status.toLowerCase()}</Button>
             )}
             <p className="side-note">
-              Signed file downloads are not implemented in this demo. Metadata views do not grant record-level access.
+              Downloads are authorised server-side by ownership, administrator rights or an approved access request.
             </p>
           </Card>
 
@@ -694,8 +764,50 @@ export const DatasetDetail = () => {
           {errors.agreement ? <div className="field-error">{errors.agreement}</div> : null}
           <div className="modal-note">
             <AlertTriangle size={15} />
-            <span>This request is stored in the browser demo only. It does not create a backend record.</span>
+            <span>This request is stored by the backend and recorded in the audit log.</span>
           </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={decisionOpen}
+        title={decision === 'Approved' ? 'Approve dataset' : 'Request dataset changes'}
+        subtitle={dataset.title}
+        onClose={() => setDecisionOpen(false)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDecisionOpen(false)}>Cancel</Button>
+            <Button
+              type="submit"
+              form="dataset-decision-form"
+              variant={decision === 'Approved' ? 'success' : 'danger'}
+              icon={decision === 'Approved' ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+            >
+              {decision === 'Approved' ? 'Approve' : 'Request changes'}
+            </Button>
+          </>
+        }
+      >
+        <form id="dataset-decision-form" onSubmit={submitDecision} className="stack-sm">
+          <Alert tone={decision === 'Approved' ? 'info' : 'warning'}>
+            {decision === 'Approved'
+              ? 'Approval publishes the dataset metadata and permits downloads for approved access requests.'
+              : 'The contributor will see this rationale and must provide a corrected version.'}
+          </Alert>
+          <Field
+            label="Decision rationale"
+            error={errors.decision}
+            hint={decision === 'Rejected' ? 'Required for a change request.' : 'Optional for approval.'}
+            htmlFor="decision-reason"
+          >
+            <textarea
+              id="decision-reason"
+              className="input textarea"
+              rows={4}
+              value={decisionReason}
+              onChange={(event) => setDecisionReason(event.target.value)}
+            />
+          </Field>
         </form>
       </Modal>
     </>

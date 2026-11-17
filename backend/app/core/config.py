@@ -19,14 +19,16 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "MedDataHub API"
-    app_version: str = "0.1.0"
+    app_version: str = "0.2.0"
     environment: Literal["development", "test", "staging", "production"] = "development"
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
 
-    database_url: str = (
-        "mysql+pymysql://meddatahub:meddatahub@127.0.0.1:3306/meddatahub?charset=utf8mb4"
-    )
+    secret_key: str = "dev-only-insecure-secret-change-via-SECRET_KEY"
+    access_token_expire_minutes: int = 60
+    allow_registration: bool = True
+
+    database_url: str = "sqlite:///./meddatahub.db"
     database_connect_timeout: int = 5
     sql_echo: bool = False
 
@@ -34,6 +36,10 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
+
+    max_upload_bytes: int = 25 * 1024 * 1024
+    raw_storage_dir: Path = BACKEND_ROOT / "storage" / "raw"
+    processed_storage_dir: Path = BACKEND_ROOT / "storage" / "processed"
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
@@ -50,6 +56,16 @@ class Settings(BaseSettings):
     def parse_cors_origins(cls, value: object) -> object:
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
+
+    @field_validator("secret_key")
+    @classmethod
+    def validate_secret_key(cls, value: str, info) -> str:
+        environment = info.data.get("environment")
+        if environment == "production" and (
+            not value.strip() or value.startswith("dev-only-insecure-secret")
+        ):
+            raise ValueError("SECRET_KEY must be set to a strong value in production")
         return value
 
 

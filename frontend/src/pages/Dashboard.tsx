@@ -32,7 +32,6 @@ import {
   Button,
   Card,
   CardHeader,
-  DemoBadge,
   DemoNotice,
   PageHeader,
   ProgressBar,
@@ -40,7 +39,7 @@ import {
   StatusBadge,
 } from '../components/ui';
 import { useDemo } from '../store/DemoStore';
-import { activityFeed, domains, uploadsByMonth } from '../data/mockData';
+import { domains } from '../data/mockData';
 import { formatDate, formatNumber, relativeTime } from '../lib/format';
 
 const CHART_COLORS = ['#0f766e', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6'];
@@ -60,8 +59,10 @@ const activityIcon = {
   quality: <BadgeCheck size={15} />,
 };
 
+type ActivityType = keyof typeof activityIcon;
+
 export const Dashboard = () => {
-  const { datasets, jobs, requests } = useDemo();
+  const { datasets, jobs, requests, user } = useDemo();
 
   const available = datasets.filter((dataset) => dataset.status === 'Available');
   const totalRecords = datasets.reduce((sum, dataset) => sum + dataset.records, 0);
@@ -72,6 +73,46 @@ export const Dashboard = () => {
   const pendingRequests = requests.filter(
     (request) => request.direction === 'Incoming' && request.status === 'Pending',
   );
+
+  const monthlyData = Array.from({ length: 12 }, (_, index) => {
+    const point = new Date();
+    point.setDate(1);
+    point.setMonth(point.getMonth() - (11 - index));
+    const key = `${point.getFullYear()}-${String(point.getMonth() + 1).padStart(2, '0')}`;
+    return {
+      month: point.toLocaleDateString('en-GB', { month: 'short' }),
+      uploads: datasets.filter((dataset) => dataset.createdAt.slice(0, 7) === key).length,
+      published: datasets.filter(
+        (dataset) => dataset.status === 'Available' && dataset.updatedAt.slice(0, 7) === key,
+      ).length,
+    };
+  });
+
+  const activityFeed: { id: string; type: ActivityType; title: string; detail: string; time: string }[] = [
+    ...jobs.map((job) => ({
+      id: `job-${job.id}`,
+      type: 'processing' as ActivityType,
+      title: job.datasetTitle,
+      detail: `ETL ${job.status.toLowerCase()} with ${job.rowsIn.toLocaleString()} source rows`,
+      time: job.finishedAt ?? job.startedAt,
+    })),
+    ...requests.map((request) => ({
+      id: `request-${request.id}`,
+      type: 'request' as ActivityType,
+      title: `${request.direction} access request ${request.status.toLowerCase()}`,
+      detail: request.datasetTitle,
+      time: request.decidedAt ?? request.requestedAt,
+    })),
+    ...datasets.map((dataset) => ({
+      id: `dataset-${dataset.id}`,
+      type: (dataset.status === 'Available' ? 'publish' : 'upload') as ActivityType,
+      title: dataset.title,
+      detail: `${dataset.status} · ${dataset.records.toLocaleString()} records`,
+      time: dataset.updatedAt,
+    })),
+  ]
+    .sort((a, b) => b.time.localeCompare(a.time))
+    .slice(0, 6);
 
   const domainData = domains.map((domain) => ({
     name: domain,
@@ -94,7 +135,7 @@ export const Dashboard = () => {
     <>
       <PageHeader
         eyebrow="Research overview"
-        title="Good morning, Dr. Rahman"
+        title={`Welcome, ${user.name.replace(/^(Dr\.|Prof\.)\s/, '')}`}
         description="Monitor repository health, review pipeline activity and keep women's and paediatric datasets ready for reuse."
         actions={
           <>
@@ -117,7 +158,6 @@ export const Dashboard = () => {
           hint={`${formatNumber(datasets.length)} total in workspace`}
           icon={<Database size={20} />}
           tone="success"
-          trend="+3 this month"
         />
         <StatCard
           label="Records under management"
@@ -125,7 +165,6 @@ export const Dashboard = () => {
           hint="Synthetic records across all versions"
           icon={<FileText size={20} />}
           tone="info"
-          trend="+18.2% QoQ"
         />
         <StatCard
           label="Governance queue"
@@ -158,12 +197,11 @@ export const Dashboard = () => {
         <Card>
           <CardHeader
             title="Uploads and publications"
-            subtitle="Rolling 12 months · demo activity"
-            action={<DemoBadge label="Mock activity" />}
+            subtitle="Rolling 12 months from repository timestamps"
           />
           <div className="chart-box">
             <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={uploadsByMonth} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+              <AreaChart data={monthlyData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="uploadsFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#0f766e" stopOpacity={0.25} />
@@ -289,7 +327,7 @@ export const Dashboard = () => {
           </Card>
 
           <Card>
-            <CardHeader title="Activity" subtitle="Workspace audit trail (mock)" />
+            <CardHeader title="Activity" subtitle="Recent repository events" />
             <ul className="activity-list">
               {activityFeed.map((item) => (
                 <li key={item.id}>
@@ -310,7 +348,7 @@ export const Dashboard = () => {
         <Card>
           <CardHeader
             title="Pipeline activity"
-            subtitle="Live demo jobs · progress simulated in the browser"
+            subtitle="Active and review-stage jobs from the backend"
             action={<Link to="/etl" className="inline-link">ETL workspace <ArrowRight size={13} /></Link>}
           />
           <div className="job-mini-list">

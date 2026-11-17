@@ -27,7 +27,7 @@ def test_root_endpoint(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json() == {
         "service": "MedDataHub API",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "environment": "test",
         "docs": "/docs",
         "health": "/api/v1/health",
@@ -41,7 +41,7 @@ def test_liveness_does_not_require_database(client: TestClient) -> None:
     assert response.json() == {
         "status": "ok",
         "service": "MedDataHub API",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "environment": "test",
     }
 

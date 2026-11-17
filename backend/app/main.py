@@ -39,9 +39,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title=app_settings.app_name,
         version=app_settings.app_version,
         description=(
-            "API for an AI-ready medical dataset repository supporting women's and "
-            "paediatric health research. Phase 3 provides configuration, health checks "
-            "and database session scaffolding only."
+            "API for an AI-ready medical dataset repository supporting women's, "
+            "maternal and paediatric health research. Includes authentication, governed "
+            "uploads, guarded ETL, quality, readiness, representativeness and access workflows."
         ),
         debug=app_settings.debug,
         lifespan=lifespan,

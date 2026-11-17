@@ -6,6 +6,7 @@ import {
   Download,
   KeyRound,
   Lock,
+  LogOut,
   Save,
   Server,
   ShieldCheck,
@@ -17,7 +18,6 @@ import {
   Button,
   Card,
   CardHeader,
-  DemoBadge,
   DemoNotice,
   Field,
   PageHeader,
@@ -25,13 +25,9 @@ import {
 } from '../components/ui';
 import { useDemo } from '../store/DemoStore';
 import { roleDescriptions } from '../data/mockData';
-import { formatDateTime } from '../lib/format';
-import type { Role } from '../types';
-
-const ROLES: Role[] = ['Contributor', 'Researcher', 'Administrator'];
 
 export const SettingsPage = () => {
-  const { user, role, setRole, notify, datasets, requests, jobs } = useDemo();
+  const { user, role, notify, datasets, requests, jobs, logout, updateProfile, changePassword } = useDemo();
 
   const [profile, setProfile] = useState({
     name: user.name,
@@ -55,31 +51,35 @@ export const SettingsPage = () => {
 
   const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
-  const saveProfile = (event: FormEvent) => {
+  const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
     if (!profile.name.trim() || !profile.email.includes('@')) {
       notify('error', 'Profile not saved', 'Provide a name and a valid email address.');
       return;
     }
-    setProfileSaved(true);
-    notify('success', 'Profile updated locally', 'The demo does not persist profile changes to a backend.');
-    window.setTimeout(() => setProfileSaved(false), 4000);
+    try {
+      await updateProfile({
+        fullName: profile.name.trim(),
+        organisation: profile.organisation.trim(),
+        title: profile.title.trim(),
+      });
+      setProfileSaved(true);
+      window.setTimeout(() => setProfileSaved(false), 4000);
+    } catch (error) {
+      notify('error', 'Profile not saved', error instanceof Error ? error.message : 'Unexpected API error');
+    }
   };
 
-  const submitPassword = (event: FormEvent) => {
+  const submitPassword = async (event: FormEvent) => {
     event.preventDefault();
     const next: Record<string, string> = {};
     if (!password.current) next.current = 'Enter your current password.';
-    if (password.next.length < 12) next.next = 'Use at least 12 characters.';
+    if (password.next.length < 10) next.next = 'Use at least 10 characters.';
     if (password.next !== password.confirm) next.confirm = 'Passwords do not match.';
     setPasswordErrors(next);
     if (Object.keys(next).length > 0) return;
-    setPassword({ current: '', next: '', confirm: '' });
-    notify(
-      'info',
-      'Password change requires the backend',
-      'Client-side validation passed, but no credentials are stored or transmitted in this demo.',
-    );
+    const changed = await changePassword(password.current, password.next);
+    if (changed) setPassword({ current: '', next: '', confirm: '' });
   };
 
   const exportMetadata = () => {
@@ -118,10 +118,10 @@ export const SettingsPage = () => {
       <PageHeader
         eyebrow="Account"
         title="Settings"
-        description="Manage your demo profile, review role-based access, security preferences and API connection status."
+        description="Manage your profile, review authenticated role permissions, update security settings and inspect the API connection."
       />
 
-      <DemoNotice text="Settings are local to this browser session. Authentication, password storage, session management and audit logging are not implemented in the frontend demo." />
+      <DemoNotice text="Profile and password changes are sent to the FastAPI backend and recorded in the audit log. Notification preferences remain local to this browser." />
 
       <div className="settings-layout">
         <div className="stack">
@@ -136,14 +136,8 @@ export const SettingsPage = () => {
                   onChange={(event) => setProfile((prev) => ({ ...prev, name: event.target.value }))}
                 />
               </Field>
-              <Field label="Email" htmlFor="profile-email">
-                <input
-                  id="profile-email"
-                  className="input"
-                  type="email"
-                  value={profile.email}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, email: event.target.value }))}
-                />
+              <Field label="Email" hint="Managed by an administrator; contact support to change it." htmlFor="profile-email">
+                <input id="profile-email" className="input" type="email" readOnly value={profile.email} />
               </Field>
               <Field label="Organisation" htmlFor="profile-org">
                 <input
@@ -164,33 +158,26 @@ export const SettingsPage = () => {
               <div className="span-2 form-actions">
                 <Button type="submit" icon={<Save size={16} />}>Save profile</Button>
                 {profileSaved ? (
-                  <span className="saved-note"><CheckCircle2 size={15} /> Saved locally</span>
+                  <span className="saved-note"><CheckCircle2 size={15} /> Saved to backend</span>
                 ) : null}
               </div>
             </form>
           </Card>
 
           <Card>
-            <CardHeader title="Demo role" subtitle="Inspect role-aware UI states" action={<Badge tone="purple">{role}</Badge>} />
-            <div className="role-grid">
-              {ROLES.map((option) => (
-                <button
-                  key={option}
-                  className={`role-option ${role === option ? 'selected' : ''}`}
-                  onClick={() => setRole(option)}
-                  aria-pressed={role === option}
-                >
-                  <div className="role-head">
-                    <strong>{option}</strong>
-                    {role === option ? <Badge tone="success">Active</Badge> : null}
-                  </div>
-                  <p>{roleDescriptions[option]}</p>
-                </button>
-              ))}
+            <CardHeader title="Authenticated role" subtitle="Assigned by the backend" action={<Badge tone="purple">{role}</Badge>} />
+            <div className="role-grid single">
+              <div className="role-option selected">
+                <div className="role-head">
+                  <strong>{role}</strong>
+                  <Badge tone="success">Active session</Badge>
+                </div>
+                <p>{roleDescriptions[role]}</p>
+              </div>
             </div>
-            <Alert tone="warning" title="Role switching is not authentication">
-              This control only changes which demo controls are shown. It does not grant real permissions, and it must
-              not be carried into production. Backend RBAC will use signed tokens and server-side authorisation.
+            <Alert tone="info" title="Role changes require an administrator">
+              Permissions are enforced server-side from signed JWT claims and the current database role. Signing in with
+              a different seeded account is the only way to exercise another role.
             </Alert>
           </Card>
 
@@ -208,7 +195,7 @@ export const SettingsPage = () => {
                 />
               </Field>
               <div className="span-2" />
-              <Field label="New password" error={passwordErrors.next} hint="Minimum 12 characters. Validated locally only." htmlFor="new-password">
+              <Field label="New password" error={passwordErrors.next} hint="Minimum 10 characters. Stored as a PBKDF2 hash." htmlFor="new-password">
                 <input
                   id="new-password"
                   className="input"
@@ -237,7 +224,7 @@ export const SettingsPage = () => {
             <label className="toggle-row">
               <div>
                 <strong>Require an authenticator code</strong>
-                <span>Demo toggle only. TOTP enrolment must be implemented and verified server-side.</span>
+                <span>Not implemented. TOTP enrolment must be designed and verified server-side before production use.</span>
               </div>
               <input
                 type="checkbox"
@@ -251,17 +238,20 @@ export const SettingsPage = () => {
             <div className="session-row">
               <KeyRound size={16} />
               <div>
-                <strong>This browser</strong>
-                <span>Windows · demo session · started {formatDateTime(new Date().toISOString())}</span>
+                <strong>{user.email}</strong>
+                <span>Authenticated with a bearer token. Sign out to clear the token from this browser.</span>
               </div>
-              <DemoBadge label="Not authenticated" />
+              <Badge tone="success">Authenticated</Badge>
+            </div>
+            <div className="form-actions">
+              <Button variant="ghost" icon={<LogOut size={16} />} onClick={logout}>Sign out</Button>
             </div>
           </Card>
         </div>
 
         <div className="stack">
           <Card>
-            <CardHeader title="Notifications" subtitle="Applies to the current demo session" action={<Bell size={18} className="muted-icon" />} />
+            <CardHeader title="Notifications" subtitle="Stored in this browser only" action={<Bell size={18} className="muted-icon" />} />
             <div className="toggle-list">
               {([
                 ['accessRequests', 'Access request decisions', 'Notify me when an access request is approved or rejected.'],
@@ -290,10 +280,10 @@ export const SettingsPage = () => {
           <Card>
             <CardHeader title="API connection" subtitle="Frontend/backend integration status" action={<Server size={18} className="muted-icon" />} />
             <div className="api-status">
-              <span className="status-dot offline" />
+              <span className="status-dot" />
               <div>
-                <strong>Demo mode active</strong>
-                <span>No FastAPI backend is connected in this phase.</span>
+                <strong>Backend connected</strong>
+                <span>All data reads and mutations use the FastAPI API.</span>
               </div>
             </div>
             <div className="info-grid single">
@@ -302,43 +292,35 @@ export const SettingsPage = () => {
                 <span className="info-value"><code className="code small">{apiBase}</code></span>
               </div>
               <div className="info-row">
-                <span className="info-label">Environment</span>
-                <span className="info-value"><code className="code small">VITE_DEMO_MODE</code></span>
+                <span className="info-label">API prefix</span>
+                <span className="info-value"><code className="code small">/api/v1</code></span>
               </div>
               <div className="info-row">
                 <span className="info-label">Data source</span>
-                <span className="info-value">Local mock + browser extraction</span>
+                <span className="info-value">SQLAlchemy-backed dataset repository</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Persistence</span>
-                <span className="info-value">None (in-memory)</span>
+                <span className="info-value">MySQL in production; SQLite for local tests</span>
               </div>
             </div>
             <Alert tone="info">
-              PHASE 13 will replace mock reads with typed API calls and add loading, empty, success and error handling
-              per endpoint. Until then, no request is sent to {apiBase}.
+              The API connection status reflects the latest authenticated requests. A 401 response clears the local
+              token and returns to the sign-in screen.
             </Alert>
           </Card>
 
           <Card>
             <CardHeader title="Data & privacy" subtitle="Synthetic data only" action={<Database size={18} className="muted-icon" />} />
             <ul className="bullet-list">
-              <li>All datasets shown are synthetic and contain no real patient information.</li>
-              <li>Uploaded files are parsed in-browser and are not transmitted in this demo.</li>
-              <li>Record-level data is never included in repository metadata.</li>
+              <li>Seed datasets are synthetic and contain no real patient information.</li>
+              <li>Uploaded files are validated in-browser, then transmitted to the backend and stored with a SHA-256 checksum.</li>
+              <li>Record-level data is served only through authorised downloads and is never embedded in API metadata.</li>
               <li>No regulatory compliance or clinical safety is claimed.</li>
             </ul>
             <div className="form-actions">
               <Button variant="secondary" icon={<Download size={16} />} onClick={exportMetadata}>
-                Export demo metadata
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  window.location.reload();
-                }}
-              >
-                Reset demo session
+                Export repository metadata
               </Button>
             </div>
           </Card>

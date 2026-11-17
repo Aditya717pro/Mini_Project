@@ -1,5 +1,3 @@
-from sqlalchemy.orm import DeclarativeBase
+from app.database.base import Base, TimestampMixin
 
-
-class Base(DeclarativeBase):
-    """Declarative base for all ORM models (models arrive in Phase 4)."""
+__all__ = ["Base", "TimestampMixin"]

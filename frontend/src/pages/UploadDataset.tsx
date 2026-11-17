@@ -256,16 +256,27 @@ export const UploadDataset = () => {
           intendedTasks: form.intendedTasks,
           labelColumn: form.labelColumn,
         };
-        const id = uploadDataset(input);
-        setCreatedId(id);
-        setSubmitting(false);
-        setFile(null);
-        setPreview(null);
-        setFormat(null);
-        setChecksum('');
-        setForm(emptyForm);
-        setErrors({});
-        notify('success', 'Dataset queued for ETL', `${id} · governance review required before access is granted.`);
+        void (async () => {
+          try {
+            const id = await uploadDataset(input);
+            setCreatedId(id);
+            setSubmitting(false);
+            setFile(null);
+            setPreview(null);
+            setFormat(null);
+            setChecksum('');
+            setForm(emptyForm);
+            setErrors({});
+            notify(
+              'success',
+              'Dataset uploaded and queued for ETL',
+              'Review the suggested mappings in the ETL workspace before staging the processed output.',
+            );
+          } catch {
+            setSubmitting(false);
+            setSubmitProgress(0);
+          }
+        })();
       }
     }, 260);
   };
@@ -285,7 +296,7 @@ export const UploadDataset = () => {
         }
       />
 
-      <DemoNotice text="Files are parsed locally in your browser for this demo. No file is uploaded to a server yet; PHASE 5 adds secure backend storage, checksum persistence and MySQL records." />
+      <DemoNotice text="Files are parsed in your browser for immediate feedback, then uploaded to the FastAPI backend for secure storage, checksum persistence and server-side ETL." />
 
       {createdId ? (
         <Card className="success-panel">
@@ -293,8 +304,8 @@ export const UploadDataset = () => {
           <div>
             <h2>Dataset accepted for processing</h2>
             <p>
-              <strong>{createdId}</strong> was profiled locally and queued in the demo ETL workspace. The dataset is
-              marked <strong>Pending review</strong> and cannot be downloaded until governance approval.
+              <strong>{createdId}</strong> was stored by the backend and its ETL job is queued. Review the suggested
+              mappings, run the pipeline, then submit the processed output for governance review.
             </p>
             <div className="success-actions">
               <Link to={`/datasets/${createdId}`}>

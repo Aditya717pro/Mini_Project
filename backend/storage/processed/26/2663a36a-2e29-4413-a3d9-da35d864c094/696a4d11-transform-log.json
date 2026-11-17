@@ -1,0 +1,130 @@
+{
+  "dataset_id": "2663a36a-2e29-4413-a3d9-da35d864c094",
+  "version_id": "696a4d11-051d-49b8-b6c5-956f06bfcaf9",
+  "rows_in": 60,
+  "rows_out": 60,
+  "columns_in": 9,
+  "columns_out": 21,
+  "approved_mapping": {
+    "participant_id": "participant_id",
+    "age_years": "age_years",
+    "sex": "sex_at_birth",
+    "region": "region",
+    "gestational_age_weeks": "gestational_age_weeks",
+    "weight_kg": "weight_kg",
+    "height_cm": "height_cm",
+    "visit_date": "visit_date",
+    "outcome": "label"
+  },
+  "logs": [
+    {
+      "stage": "transform",
+      "action": "preserve_originals",
+      "field": "",
+      "detail": "Preserved 9 original columns without modification."
+    },
+    {
+      "stage": "transform",
+      "action": "duplicate_detection",
+      "field": "",
+      "detail": "Flagged 1 duplicate record(s). No rows were removed."
+    },
+    {
+      "stage": "transform",
+      "action": "common_schema_mapping",
+      "field": "participant_id",
+      "detail": "Mapped to 'mapped_participant_id' with 0 missing value(s)."
+    },
+    {
+      "stage": "transform",
+      "action": "common_schema_mapping",
+      "field": "age_years",
+      "detail": "Mapped to 'mapped_age_years' with 4 missing value(s)."
+    },
+    {
+      "stage": "transform",
+      "action": "category_normalisation",
+      "field": "sex",
+      "detail": "Normalised category values using sex_at_birth rules"
+    },
+    {
+      "stage": "transform",
+      "action": "common_schema_mapping",
+      "field": "sex",
+      "detail": "Mapped to 'sex_at_birth' with 0 missing value(s)."
+    },
+    {
+      "stage": "transform",
+      "action": "common_schema_mapping",
+      "field": "region",
+      "detail": "Mapped to 'mapped_region' with 0 missing value(s)."
+    },
+    {
+      "stage": "transform",
+      "action": "common_schema_mapping",
+      "field": "gestational_age_weeks",
+      "detail": "Mapped to 'mapped_gestational_age_weeks' with 0 missing value(s)."
+    },
+    {
+      "stage": "transform",
+      "action": "common_schema_mapping",
+      "field": "weight_kg",
+      "detail": "Mapped to 'mapped_weight_kg' with 0 missing value(s)."
+    },
+    {
+      "stage": "transform",
+      "action": "common_schema_mapping",
+      "field": "height_cm",
+      "detail": "Mapped to 'mapped_height_cm' with 5 missing value(s)."
+    },
+    {
+      "stage": "transform",
+      "action": "date_standardisation",
+      "field": "visit_date",
+      "detail": "Parsed date values to ISO format where possible; unparseable values retained unchanged."
+    },
+    {
+      "stage": "transform",
+      "action": "common_schema_mapping",
+      "field": "visit_date",
+      "detail": "Mapped to 'mapped_visit_date' with 0 missing value(s)."
+    },
+    {
+      "stage": "transform",
+      "action": "common_schema_mapping",
+      "field": "outcome",
+      "detail": "Mapped to 'label' with 0 missing value(s)."
+    },
+    {
+      "stage": "transform",
+      "action": "validation_summary",
+      "field": "",
+      "detail": "No values were imputed, removed or overwritten in the preserved source columns."
+    }
+  ],
+  "missing_counts": {
+    "participant_id": 0,
+    "age_years": 4,
+    "sex_at_birth": 0,
+    "region": 0,
+    "gestational_age_weeks": 0,
+    "weight_kg": 0,
+    "height_cm": 5,
+    "visit_date": 0,
+    "label": 0
+  },
+  "duplicate_count": 1,
+  "invalid_counts": {
+    "participant_id": 0,
+    "age_years": 0,
+    "sex_at_birth": 0,
+    "region": 0,
+    "gestational_age_weeks": 0,
+    "weight_kg": 0,
+    "height_cm": 0,
+    "visit_date": 0,
+    "label": 0
+  },
+  "review_count": 0,
+  "preservation_policy": "Original uploaded file retained; source values preserved in original__ columns."
+}

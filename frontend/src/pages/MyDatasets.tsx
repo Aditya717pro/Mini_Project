@@ -29,7 +29,7 @@ import { formatDate, formatNumber } from '../lib/format';
 const PAGE_SIZE = 7;
 
 export const MyDatasets = () => {
-  const { datasets, user, notify } = useDemo();
+  const { datasets, user, downloadDataset } = useDemo();
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
   const [domain, setDomain] = useState('all');
@@ -194,9 +194,9 @@ export const MyDatasets = () => {
                           </Link>
                           <button
                             className="icon-btn"
-                            disabled
-                            title="Secure downloads are not connected yet (Phase 5/11)."
-                            aria-label="Download unavailable in demo"
+                            title="Download the stored dataset file"
+                            aria-label={`Download ${dataset.title}`}
+                            onClick={() => void downloadDataset(dataset)}
                           >
                             <Download size={15} />
                           </button>
@@ -221,17 +221,11 @@ export const MyDatasets = () => {
         <Card className="callout">
           <div className="callout-icon"><Download size={18} /></div>
           <div>
-            <strong>Downloads are intentionally disabled</strong>
+            <strong>Downloads are authorised server-side</strong>
             <p>
-              File access will use authenticated, signed download URLs with role checks. This demo exposes metadata
-              only. Clicking the disabled icon is not a substitute for the backend access-control implementation.
+              Each request carries a signed access token. Dataset owners and administrators can download immediately;
+              other users need an approved access request.
             </p>
-            <button
-              className="inline-link button-link"
-              onClick={() => notify('info', 'Download not available', 'The demo has no file storage; signed downloads arrive with the FastAPI backend.')}
-            >
-              Why is this disabled?
-            </button>
           </div>
         </Card>
       </div>
