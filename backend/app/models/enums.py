@@ -29,10 +29,14 @@ class FileFormat(StrEnum):
 
 class JobStatus(StrEnum):
     QUEUED = "Queued"
-    RUNNING = "Running"
+    PROFILING = "Profiling"
     AWAITING_REVIEW = "Review required"
+    APPROVED = "Approved"
+    RUNNING = "Processing"
     COMPLETED = "Completed"
     FAILED = "Failed"
+    CANCELLED = "Cancelled"
+    REJECTED = "Rejected"
 
 
 class RequestStatus(StrEnum):

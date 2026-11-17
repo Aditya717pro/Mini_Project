@@ -4,6 +4,7 @@ import csv
 import io
 import json
 import zipfile
+from collections import Counter
 from pathlib import Path
 
 from app.models.enums import FileFormat
@@ -43,6 +44,14 @@ def _validate_csv(content: bytes) -> None:
         raise ValueError("CSV must contain a header row and at least one data row")
     if not any(cell.strip() for cell in rows[0]):
         raise ValueError("CSV header row is empty")
+    counts = Counter(name.strip() for name in rows[0])
+    duplicates = sorted(name for name, count in counts.items() if count > 1 and name)
+    if duplicates:
+        raise ValueError(f"Duplicate CSV column names are not supported: {', '.join(duplicates)}")
+    expected = len(rows[0])
+    for index, row in enumerate(rows[1:], start=2):
+        if len(row) != expected:
+            raise ValueError(f"Malformed CSV file: row {index} has {len(row)} columns; expected {expected}")
 
 
 def _json_records(content: bytes) -> list[dict]:

@@ -38,7 +38,7 @@ export const scoreTone = (score: number | null) => {
 };
 
 export const initials = (name: string) =>
-  name
+  (name || '')
     .replace(/^(Dr\.|Prof\.|Ms\.|Mr\.)\s+/i, '')
     .split(' ')
     .slice(0, 2)

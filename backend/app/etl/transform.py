@@ -5,9 +5,8 @@ from datetime import datetime
 from typing import Any
 
 import pandas as pd
-from dateutil import parser as date_parser
 
-from app.etl.extract import is_missing
+from app.etl.extract import AMBIGUOUS_DATE_PATTERN, is_missing
 
 COMMON_SCHEMA: dict[str, dict[str, Any]] = {
     "participant_id": {
@@ -63,7 +62,14 @@ REVIEW_RANGES: dict[str, tuple[float, float]] = {
     "gestational_age_weeks": (0, 45),
 }
 
-DATE_FORMATS = ("%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%m-%d-%Y")
+INVALID_RANGES: dict[str, tuple[float, float]] = {
+    "age_years": (0, 130),
+    "weight_kg": (0, 500),
+    "height_cm": (0, 300),
+    "gestational_age_weeks": (0, 50),
+}
+
+DATE_FORMATS = ("%Y-%m-%d", "%Y/%m/%d")
 
 
 @dataclass
@@ -73,12 +79,19 @@ class TransformResult:
     missing_counts: dict[str, int] = field(default_factory=dict)
     duplicate_count: int = 0
     invalid_counts: dict[str, int] = field(default_factory=dict)
+    error_counts: dict[str, int] = field(default_factory=dict)
+    warning_counts: dict[str, int] = field(default_factory=dict)
     review_count: int = 0
     mapped_columns: list[str] = field(default_factory=list)
+    row_issues: list[dict[str, Any]] = field(default_factory=list)
 
 
 def normalize_column_name(name: str) -> str:
-    return str(name).strip().lower().replace(" ", "_").replace("-", "_")
+    normalized = str(name).strip().lower()
+    normalized = "".join(character if character.isalnum() else "_" for character in normalized)
+    while "__" in normalized:
+        normalized = normalized.replace("__", "_")
+    return normalized.strip("_")
 
 
 def _tokens(name: str) -> set[str]:
@@ -96,7 +109,7 @@ def suggest_mappings(columns: list[str]) -> list[dict[str, Any]]:
             aliases = {normalize_column_name(alias) for alias in rule["aliases"]}
             if normalized in aliases or normalized == target:
                 confidence = 0.92
-                candidate_reason = "Exact match to an explicit common-schema alias"
+                candidate_reason = "Exact match to a published common-schema alias"
             else:
                 overlap = _tokens(normalized) & _tokens(target)
                 confidence = 0.55 if overlap else 0.0
@@ -112,7 +125,7 @@ def suggest_mappings(columns: list[str]) -> list[dict[str, Any]]:
                     "target": "",
                     "confidence": 0.0,
                     "status": "Unmapped",
-                    "note": "No reliable match. A contributor must supply an explicit mapping.",
+                    "note": "No reliable match. A reviewer must supply an explicit mapping.",
                 }
             )
         else:
@@ -122,37 +135,38 @@ def suggest_mappings(columns: list[str]) -> list[dict[str, Any]]:
                     "target": best_target,
                     "confidence": best_confidence,
                     "status": "Suggested",
-                    "note": f"{best_reason}. Suggestions are never auto-approved.",
+                    "note": f"{best_reason}. This is a suggestion, not an approval.",
                 }
             )
     return suggestions
 
 
-def _parse_date(value: Any) -> str | None:
+def parse_unambiguous_date(value: Any) -> str | None:
     text = str(value).strip()
+    if AMBIGUOUS_DATE_PATTERN.fullmatch(text):
+        return None
     for date_format in DATE_FORMATS:
         try:
             return datetime.strptime(text, date_format).date().isoformat()
         except ValueError:
             continue
-    try:
-        return date_parser.parse(text).date().isoformat()
-    except (ValueError, OverflowError, TypeError):
-        return None
+    return None
 
 
-def _convert_units(series: pd.Series, source: str, target: str) -> tuple[pd.Series, str | None]:
-    name = normalize_column_name(source)
-    numeric = pd.to_numeric(series, errors="coerce")
-    if target == "age_years" and ("month" in name or name.endswith("_mo")):
-        return numeric / 12, "Converted age from months to years"
-    if target == "weight_kg" and ("lb" in name or "pound" in name):
-        return numeric * 0.45359237, "Converted weight from pounds to kilograms"
-    if target == "height_cm" and ("meter" in name or name.endswith("_m")) and "cm" not in name:
-        return numeric * 100, "Converted height from metres to centimetres"
-    if target == "gestational_age_weeks" and "day" in name:
-        return numeric / 7, "Converted gestational age from days to weeks"
-    return series, None
+def _convert_units(series: pd.Series, source: str, target: str) -> tuple[pd.Series, str | None, str | None]:
+    tokens = _tokens(source)
+    numeric = pd.to_numeric(series.map(lambda value: str(value).replace(",", "")), errors="coerce")
+    if target == "age_years" and tokens & {"month", "months", "mo"}:
+        return numeric / 12, "Converted age from months to years (unit stated in the source column name)", None
+    if target == "weight_kg" and tokens & {"lb", "lbs", "pound", "pounds"}:
+        return numeric * 0.45359237, "Converted weight from pounds to kilograms (unit stated in the source name)", None
+    if target == "height_cm" and tokens & {"meter", "meters", "metre", "metres"}:
+        return numeric * 100, "Converted height from metres to centimetres (unit stated in the source name)", None
+    if target == "gestational_age_weeks" and tokens & {"day", "days"}:
+        return numeric / 7, "Converted gestational age from days to weeks (unit stated in the source name)", None
+    if COMMON_SCHEMA.get(target, {}).get("dtype") == "numeric" and target in REVIEW_RANGES:
+        return series, None, "No unit was stated in the source column name; no unit conversion was applied"
+    return series, None, None
 
 
 def _normalise_categories(series: pd.Series, target: str) -> tuple[pd.Series, str | None]:
@@ -160,29 +174,43 @@ def _normalise_categories(series: pd.Series, target: str) -> tuple[pd.Series, st
     if not rules:
         return series, None
     converted = series.map(lambda value: rules.get(str(value).strip().lower(), value))
-    return converted, f"Normalised category values using {target} rules"
+    return converted, f"Normalised known {target} category values; unknown values were left unchanged"
 
 
-def _validate_target(series: pd.Series, target: str) -> tuple[pd.Series, int]:
-    rule = COMMON_SCHEMA.get(target, {"dtype": "string"})
-    dtype = rule["dtype"]
+def _validate_target(series: pd.Series, target: str) -> tuple[pd.Series, pd.Series, pd.Series]:
+    dtype = COMMON_SCHEMA.get(target, {}).get("dtype", "string")
+    missing = series.map(is_missing)
+    errors = pd.Series(False, index=series.index)
+    warnings = pd.Series(False, index=series.index)
+    converted = series.copy()
+
     if dtype == "numeric":
-        invalid = series.map(
-            lambda value: pd.isna(pd.to_numeric([value], errors="coerce")[0]) and not is_missing(value)
-        )
-        return series, int(invalid.sum())
-    if dtype == "date":
-        return series, int(series.map(lambda value: _parse_date(value) is None and not is_missing(value)).sum())
-    return series, 0
+        numeric = pd.to_numeric(series.map(lambda value: str(value).replace(",", "")), errors="coerce")
+        errors = numeric.isna() & ~missing
+        converted = pd.Series([None if is_missing(value) else value for value in numeric], index=series.index)
+        if target in REVIEW_RANGES:
+            lower, upper = REVIEW_RANGES[target]
+            hard_lower, hard_upper = INVALID_RANGES.get(target, (lower, upper))
+            warnings = ((numeric < lower) | (numeric > upper)) & ~errors & ~missing
+            errors = errors | (((numeric <= hard_lower) | (numeric >= hard_upper)) & ~missing)
+            warnings = warnings & ~errors
+    elif dtype == "date":
+        parsed = series.map(lambda value: None if is_missing(value) else parse_unambiguous_date(value))
+        ambiguous = series.map(lambda value: bool(AMBIGUOUS_DATE_PATTERN.fullmatch(str(value).strip())))
+        errors = parsed.isna() & ~missing & ~ambiguous
+        warnings = ambiguous & ~missing
+        converted = pd.Series(parsed, index=series.index)
+    elif dtype == "category" and target in CATEGORY_RULES:
+        allowed = set(CATEGORY_RULES[target].values())
+        warnings = ~series.map(lambda value: str(value) in allowed) & ~missing
+
+    return converted, errors.fillna(False), warnings.fillna(False)
 
 
-def _review_values(series: pd.Series, target: str) -> int:
-    bounds = REVIEW_RANGES.get(target)
-    if bounds is None:
-        return 0
-    numeric = pd.to_numeric(series, errors="coerce")
-    lower, upper = bounds
-    return int(((numeric < lower) | (numeric > upper)).sum())
+def _log(result: TransformResult, action: str, field: str, detail: str, level: str = "INFO") -> None:
+    result.logs.append(
+        {"stage": "transform", "action": action, "field": field, "detail": detail, "level": level}
+    )
 
 
 def transform_dataset(
@@ -193,135 +221,129 @@ def transform_dataset(
 ) -> TransformResult:
     result = TransformResult(dataframe=dataframe.copy())
     notes = mapping_notes or {}
-
     original_columns: list[str] = []
+
     for index, column in enumerate(dataframe.columns):
         original_name = f"original__{index}__{normalize_column_name(str(column))}"
         result.dataframe[original_name] = dataframe[column]
         original_columns.append(original_name)
     result.dataframe = result.dataframe.drop(columns=list(dataframe.columns))
-    result.logs.append(
-        {
-            "stage": "transform",
-            "action": "preserve_originals",
-            "field": "",
-            "detail": f"Preserved {len(original_columns)} original columns without modification.",
-        }
+    _log(
+        result,
+        "preserve_originals",
+        "",
+        f"Preserved {len(original_columns)} original columns without modification.",
     )
 
     duplicate_mask = dataframe.duplicated(keep="first")
     result.duplicate_count = int(duplicate_mask.sum())
     result.dataframe["_source_row_number"] = range(1, len(dataframe) + 1)
     result.dataframe["_duplicate_record"] = duplicate_mask.to_numpy()
-    result.logs.append(
-        {
-            "stage": "transform",
-            "action": "duplicate_detection",
-            "field": "",
-            "detail": f"Flagged {result.duplicate_count} duplicate record(s). No rows were removed.",
-        }
+    _log(
+        result,
+        "duplicate_detection",
+        "",
+        f"Flagged {result.duplicate_count} duplicate record(s). No rows were removed.",
     )
 
     validation_flags: list[list[str]] = [[] for _ in range(len(dataframe))]
+    used_targets: set[str] = set()
 
     for source, target in approved_mapping.items():
-        if not target or source not in dataframe.columns:
-            result.logs.append(
-                {
-                    "stage": "transform",
-                    "action": "mapping_skipped",
-                    "field": str(source),
-                    "detail": notes.get(str(source), "Mapping was not approved; source value was preserved only."),
-                }
+        source_name = str(source)
+        if not target or source_name not in dataframe.columns:
+            _log(
+                result,
+                "mapping_skipped",
+                source_name,
+                notes.get(source_name, "No approved mapping; the source value was preserved only."),
+                level="WARN",
             )
             continue
         schema_target = str(target)
-        series = dataframe[source].copy()
+        if schema_target in used_targets:
+            _log(
+                result,
+                "duplicate_target",
+                source_name,
+                f"Target '{schema_target}' is already mapped from another source; this mapping was skipped.",
+                level="WARN",
+            )
+            continue
+        used_targets.add(schema_target)
+
+        series = dataframe[source_name].copy()
         result.missing_counts[schema_target] = int(series.map(is_missing).sum())
-        converted, conversion_note = _convert_units(series, str(source), schema_target)
+        converted, conversion_note, unit_warning = _convert_units(series, source_name, schema_target)
         if conversion_note:
-            result.logs.append(
-                {
-                    "stage": "transform",
-                    "action": "unit_conversion",
-                    "field": str(source),
-                    "detail": conversion_note,
-                }
-            )
+            _log(result, "unit_conversion", source_name, conversion_note)
+        if unit_warning:
+            _log(result, "unit_not_stated", source_name, unit_warning, level="WARN")
+
         if COMMON_SCHEMA.get(schema_target, {}).get("dtype") == "date":
-            parsed = converted.map(_parse_date)
-            converted = pd.Series(
-                [
-                    parsed_value if parsed_value is not None else original
-                    for parsed_value, original in zip(parsed, series, strict=True)
-                ],
-                index=dataframe.index,
-            )
-            result.logs.append(
-                {
-                    "stage": "transform",
-                    "action": "date_standardisation",
-                    "field": str(source),
-                    "detail": "Parsed date values to ISO format where possible; unparseable values retained unchanged.",
-                }
+            _log(
+                result,
+                "date_standardisation",
+                source_name,
+                "Only ISO and year-first dates are standardised; ambiguous values are left unchanged and flagged.",
             )
         converted, category_note = _normalise_categories(converted, schema_target)
         if category_note:
-            result.logs.append(
+            _log(result, "category_normalisation", source_name, category_note)
+
+        converted, errors, warnings = _validate_target(converted, schema_target)
+        result.error_counts[schema_target] = int(errors.sum())
+        result.invalid_counts[schema_target] = int(errors.sum())
+        result.warning_counts[schema_target] = int(warnings.sum())
+
+        for position, (is_error, is_warning) in enumerate(zip(errors, warnings, strict=True)):
+            if is_error:
+                validation_flags[position].append(f"{schema_target}:error")
+            if is_warning:
+                validation_flags[position].append(f"{schema_target}:review")
+
+        for position, (is_error, is_warning) in enumerate(zip(errors, warnings, strict=True)):
+            severity = "error" if is_error else "warning" if is_warning else None
+            if severity is None:
+                continue
+            original = dataframe[source_name].iloc[position]
+            result.row_issues.append(
                 {
-                    "stage": "transform",
-                    "action": "category_normalisation",
-                    "field": str(source),
-                    "detail": category_note,
-                }
-            )
-        converted, invalid_count = _validate_target(converted, schema_target)
-        result.invalid_counts[schema_target] = invalid_count
-        for position, value in enumerate(converted):
-            if invalid_count and not is_missing(value):
-                try:
-                    numeric_value = float(str(value).replace(",", ""))
-                except ValueError:
-                    numeric_value = None
-                if numeric_value is None or (
-                    schema_target in REVIEW_RANGES
-                    and not (REVIEW_RANGES[schema_target][0] <= numeric_value <= REVIEW_RANGES[schema_target][1])
-                ):
-                    validation_flags[position].append(f"{schema_target}:review")
-        mapped_target = f"mapped_{schema_target}" if schema_target in dataframe.columns else schema_target
-        result.dataframe[mapped_target] = converted
-        result.mapped_columns.append(mapped_target)
-        result.logs.append(
-            {
-                "stage": "transform",
-                "action": "common_schema_mapping",
-                "field": str(source),
-                "detail": f"Mapped to '{mapped_target}' with {result.missing_counts[schema_target]} missing value(s).",
-            }
-        )
-        review_count = _review_values(converted, schema_target)
-        result.review_count += review_count
-        if review_count:
-            result.logs.append(
-                {
-                    "stage": "transform",
-                    "action": "unusual_value_review",
-                    "field": str(source),
-                    "detail": (
-                        f"Flagged {review_count} value(s) for review using documented ranges; "
-                        "not treated as errors."
+                    "row": position + 1,
+                    "source": source_name,
+                    "target": schema_target,
+                    "severity": severity,
+                    "code": "invalid_value" if is_error else "review_value",
+                    "original": str(original),
+                    "converted": str(converted.iloc[position]),
+                    "message": (
+                        f"Invalid value for {schema_target}; original value preserved and flagged."
+                        if is_error
+                        else f"Value for {schema_target} requires manual review; no automatic correction was made."
                     ),
                 }
             )
 
-    validation_series = pd.Series([";".join(flags) for flags in validation_flags], index=dataframe.index)
-    result.dataframe["_validation_flags"] = validation_series
-    result.logs.append(
-        {
-            "stage": "transform",
-            "action": "validation_summary",
-            "field": "",
-            "detail": "No values were imputed, removed or overwritten in the preserved source columns.",
-        }
+        mapped_target = f"mapped_{schema_target}" if schema_target in dataframe.columns else schema_target
+        result.dataframe[mapped_target] = converted
+        result.mapped_columns.append(mapped_target)
+        _log(
+            result,
+            "common_schema_mapping",
+            source_name,
+            f"Mapped to '{mapped_target}' with {result.missing_counts[schema_target]} missing value(s); "
+            f"{result.error_counts[schema_target]} error(s) and {result.warning_counts[schema_target]} warning(s).",
+        )
+
+    result.review_count = len(result.row_issues)
+    result.dataframe["_validation_flags"] = pd.Series(
+        [";".join(flags) for flags in validation_flags], index=dataframe.index
+    )
+    _log(
+        result,
+        "validation_summary",
+        "",
+        f"Recorded {result.review_count} row-level finding(s). No values were imputed or rows removed; "
+        "source values remain in original__ columns.",
     )
     return result

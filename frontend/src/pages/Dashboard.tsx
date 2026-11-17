@@ -42,13 +42,20 @@ import { useDemo } from '../store/DemoStore';
 import { domains } from '../data/mockData';
 import { formatDate, formatNumber, relativeTime } from '../lib/format';
 
-const CHART_COLORS = ['#0f766e', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6'];
+const CHART_COLORS = [
+  'var(--primary)',
+  'var(--accent)',
+  'var(--purple)',
+  'var(--amber)',
+  'var(--purple)',
+  'var(--primary-dark)',
+];
 
 const tooltipStyle = {
   borderRadius: 10,
-  border: '1px solid #e2e8e8',
+  border: '1px solid var(--border)',
   fontSize: 12,
-  boxShadow: '0 8px 24px rgba(15, 43, 42, 0.08)',
+  boxShadow: 'var(--shadow)',
 };
 
 const activityIcon = {
@@ -69,7 +76,9 @@ export const Dashboard = () => {
   const pending = datasets.filter(
     (dataset) => dataset.status === 'Pending review' || dataset.status === 'Changes requested',
   );
-  const activeJobs = jobs.filter((job) => job.status === 'Running' || job.status === 'Queued');
+  const activeJobs = jobs.filter((job) =>
+    ['Queued', 'Profiling', 'Review required', 'Approved', 'Processing', 'Running'].includes(job.status),
+  );
   const pendingRequests = requests.filter(
     (request) => request.direction === 'Incoming' && request.status === 'Pending',
   );
@@ -111,7 +120,7 @@ export const Dashboard = () => {
       time: dataset.updatedAt,
     })),
   ]
-    .sort((a, b) => b.time.localeCompare(a.time))
+    .sort((a, b) => (b.time || '').localeCompare(a.time || ''))
     .slice(0, 6);
 
   const domainData = domains.map((domain) => ({
@@ -126,7 +135,7 @@ export const Dashboard = () => {
     { name: 'Not assessed', value: datasets.filter((d) => d.qualityScore == null).length },
   ];
 
-  const recent = [...datasets].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
+  const recent = [...datasets].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 5);
   const activeJobList = jobs
     .filter((job) => job.status !== 'Completed')
     .slice(0, 3);
@@ -204,20 +213,20 @@ export const Dashboard = () => {
               <AreaChart data={monthlyData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="uploadsFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0f766e" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#0f766e" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.02} />
                   </linearGradient>
                   <linearGradient id="publishedFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.18} />
-                    <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.18} />
+                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eef2f2" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7c7b' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#6b7c7b' }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Area type="monotone" dataKey="uploads" stroke="#0f766e" strokeWidth={2} fill="url(#uploadsFill)" name="Uploaded" />
-                <Area type="monotone" dataKey="published" stroke="#0ea5e9" strokeWidth={2} fill="url(#publishedFill)" name="Published" />
+                <Area type="monotone" dataKey="uploads" stroke="var(--primary)" strokeWidth={2} fill="url(#uploadsFill)" name="Uploaded" />
+                <Area type="monotone" dataKey="published" stroke="var(--accent)" strokeWidth={2} fill="url(#publishedFill)" name="Published" />
                 <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: 12 }} />
               </AreaChart>
             </ResponsiveContainer>
@@ -236,7 +245,7 @@ export const Dashboard = () => {
                   innerRadius={58}
                   outerRadius={92}
                   paddingAngle={3}
-                  stroke="#fff"
+                  stroke="var(--surface)"
                   strokeWidth={2}
                 >
                   {domainData.map((entry, index) => (
@@ -260,7 +269,7 @@ export const Dashboard = () => {
           <CardHeader
             title="Recent uploads"
             subtitle="Latest synthetic datasets added to the workspace"
-            action={<Link to="/datasets" className="inline-link">View all <ArrowRight size={13} /></Link>}
+            action={<Link to="/repository" className="inline-link">View all <ArrowRight size={13} /></Link>}
           />
           <div className="table-wrap">
             <table className="table">
@@ -309,13 +318,13 @@ export const Dashboard = () => {
             <div className="chart-box compact">
               <ResponsiveContainer width="100%" height={150}>
                 <BarChart data={qualityBuckets} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eef2f2" horizontal={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
                   <XAxis type="number" hide />
-                  <YAxis type="category" dataKey="name" width={84} tick={{ fontSize: 11, fill: '#4b5b5a' }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={84} tick={{ fontSize: 11, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={16} name="Datasets">
                     {qualityBuckets.map((entry, index) => (
-                      <Cell key={entry.name} fill={['#0f766e', '#14b8a6', '#f59e0b', '#cbd5d5'][index]} />
+                      <Cell key={entry.name} fill={['var(--primary)', 'var(--accent)', 'var(--amber)', 'var(--border-strong)'][index]} />
                     ))}
                   </Bar>
                 </BarChart>

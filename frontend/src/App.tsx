@@ -5,7 +5,6 @@ import { AppLayout } from './layouts/AppLayout';
 
 const Dashboard = lazy(() => import('./pages/Dashboard').then((module) => ({ default: module.Dashboard })));
 const UploadDataset = lazy(() => import('./pages/UploadDataset').then((module) => ({ default: module.UploadDataset })));
-const MyDatasets = lazy(() => import('./pages/MyDatasets').then((module) => ({ default: module.MyDatasets })));
 const DatasetDetail = lazy(() => import('./pages/DatasetDetail').then((module) => ({ default: module.DatasetDetail })));
 const EtlProcessing = lazy(() => import('./pages/EtlProcessing').then((module) => ({ default: module.EtlProcessing })));
 const DataQuality = lazy(() => import('./pages/DataQuality').then((module) => ({ default: module.DataQuality })));
@@ -25,7 +24,6 @@ export const App = () => (
         <Route element={<AppLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="upload" element={<UploadDataset />} />
-          <Route path="datasets" element={<MyDatasets />} />
           <Route path="datasets/:datasetId" element={<DatasetDetail />} />
           <Route path="etl" element={<EtlProcessing />} />
           <Route path="quality" element={<DataQuality />} />

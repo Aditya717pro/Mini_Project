@@ -9,6 +9,11 @@ class MappingSuggestionResponse(BaseModel):
     confidence: float
     status: str
     note: str
+    inferredType: str = ""
+    proposedTarget: str = ""
+    decision: str | None = None
+    decidedBy: str | None = None
+    decidedAt: str | None = None
 
 
 class EtlLogResponse(BaseModel):
@@ -16,6 +21,7 @@ class EtlLogResponse(BaseModel):
     level: str
     stage: str
     message: str
+    details: dict = Field(default_factory=dict)
 
 
 class EtlStageResponse(BaseModel):
@@ -32,6 +38,7 @@ class EtlJobResponse(BaseModel):
     datasetId: str
     datasetTitle: str
     status: JobStatus
+    currentStage: str
     progress: int
     stages: list[EtlStageResponse]
     logs: list[EtlLogResponse]
@@ -40,10 +47,27 @@ class EtlJobResponse(BaseModel):
     rowsIn: int
     rowsOut: int
     mappings: list[MappingSuggestionResponse]
+    profile: dict = Field(default_factory=dict)
+    errorMessage: str | None = None
+    approvedAt: str | None = None
+    approvedBy: str | None = None
+    rejectionReason: str | None = None
+    transformationSummary: dict = Field(default_factory=dict)
 
 
 class MappingDecisionInput(BaseModel):
-    decision: str = Field(pattern="^(Approved|Unmapped)$")
+    source: str = Field(min_length=1, max_length=255)
+    decision: str = Field(pattern="^(Approved|Rejected|Unmapped)$")
+    target: str | None = Field(default=None, max_length=120)
+    note: str = Field(default="", max_length=500)
+
+
+class MappingApprovalInput(BaseModel):
+    note: str = Field(default="", max_length=500)
+
+
+class JobDecisionInput(BaseModel):
+    reason: str = Field(default="", max_length=1000)
 
 
 class RunJobResponse(BaseModel):

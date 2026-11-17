@@ -1,21 +1,22 @@
 # MedDataHub backend
 
-FastAPI service for the MedDataHub medical dataset repository. This is the Phase 3 skeleton: configuration, application factory, health/readiness endpoints and database session scaffolding. Domain models, migrations, authentication, storage and ETL are not implemented yet.
+FastAPI service for the MedDataHub dataset repository. It provides JWT authentication, RBAC, persistent SQLAlchemy models, Alembic migrations, secure file storage, upload APIs, a governed ETL engine and rule-based assessment reports.
 
 ## Requirements
 
-- Python 3.12 or newer (verified with 3.14.7)
-- MySQL 8.x for the planned persistent database (not required for liveness tests)
+- Python 3.12 or newer
+- MySQL 8.x for normal persistent operation (tests use SQLite)
+- Node.js 20+ only for the unified root scripts
 
 ## Setup
 
-From the repository root, the unified npm workflow installs the backend into `backend/.venv` and creates `backend/.env` from the example:
+From the repository root:
 
 ```powershell
 npm install
 ```
 
-To work on the backend alone:
+Or work on the backend alone:
 
 ```powershell
 cd backend
@@ -26,7 +27,7 @@ pip install -e ".[dev]"
 Copy-Item .env.example .env
 ```
 
-Edit `.env` for your local MySQL credentials. Never commit `.env` or real patient data.
+Edit `.env` for local database settings. Never commit `.env` or real patient data.
 
 ## Run
 
@@ -36,7 +37,7 @@ From the repository root:
 npm run dev:backend
 ```
 
-Or run Uvicorn directly from `backend`:
+Or from `backend`:
 
 ```powershell
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
@@ -46,7 +47,43 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 - Liveness: http://127.0.0.1:8000/api/v1/health
 - Readiness: http://127.0.0.1:8000/api/v1/health/ready
 
-The readiness endpoint returns HTTP 503 while MySQL is unavailable. Liveness does not require a database.
+## Migrations
+
+Apply schema changes with Alembic:
+
+```powershell
+alembic upgrade head
+```
+
+Roll back the latest migration:
+
+```powershell
+alembic downgrade -1
+```
+
+The `b7c4e1d9a3f2_etl_governance` migration adds ETL approval/decision columns and the `etl_mapping_decisions` table, and migrates the previous `Running` status to `Processing`.
+
+## ETL API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/v1/etl/jobs` | List accessible jobs |
+| `GET` | `/api/v1/etl/jobs/{job_id}` | Job detail with profile, mappings, logs and report |
+| `POST` | `/api/v1/etl/jobs/{job_id}/profile` | Extract/profile raw data and generate suggestions |
+| `POST` | `/api/v1/etl/jobs/{job_id}/mappings` | Record all mapping decisions |
+| `POST` | `/api/v1/etl/jobs/{job_id}/approve` | Approve the reviewed mapping set |
+| `POST` | `/api/v1/etl/jobs/{job_id}/run` | Run ETL with conditional status locking |
+| `POST` | `/api/v1/etl/jobs/{job_id}/cancel` | Cancel a cancellable job |
+| `POST` | `/api/v1/etl/jobs/{job_id}/reject` | Administrator-only rejection |
+
+Example mapping decision payload:
+
+```json
+[
+  { "source": "age", "decision": "Approved", "target": "age_years", "note": "Unit declared in years" },
+  { "source": "notes", "decision": "Unmapped", "target": null }
+]
+```
 
 ## Verify
 
@@ -57,30 +94,34 @@ npm test
 npm run lint:backend
 ```
 
-Or inside `backend`:
+Or from `backend`:
 
 ```powershell
 pytest
 ruff check .
 ```
 
-Tests override the database dependency, so they do not require a running MySQL instance.
+Tests override the database and storage dependencies, so a running MySQL instance is not required.
 
 ## Layout
 
-```
+```text
 app/
-  api/v1/        Versioned API routes
-  core/          Settings and logging
-  db/            SQLAlchemy base and session scaffolding
-  schemas/       Pydantic response models
-  main.py        Application factory and middleware
-tests/           API tests
+  api/routes/     Versioned API routes
+  core/           Settings and logging
+  db/             SQLAlchemy engine, session and base
+  etl/            Extract, transform, load and pipeline modules
+  models/         Domain models
+  schemas/        Pydantic request/response models
+  services/       Business services
+  utils/          Upload validation helpers
+migrations/       Alembic environment and revisions
+tests/            API, workflow and ETL governance tests
 ```
 
 ## Boundaries
 
-- No authentication or role enforcement yet.
-- No tables, models or migrations yet (Phase 4).
-- No file storage or upload APIs yet (Phase 6).
-- Simulated frontend ETL and assessment output must not be treated as validated production results.
+- Quality, readiness and representativeness scores are rule-based, not clinically validated.
+- Only synthetic data should be used.
+- Ambiguous dates are never inferred; missing values are never imputed; invalid rows are flagged and retained.
+- Raw files are immutable and processed outputs are atomically replaced with rollback on validation failure.

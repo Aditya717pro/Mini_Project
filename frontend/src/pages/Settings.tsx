@@ -7,9 +7,13 @@ import {
   KeyRound,
   Lock,
   LogOut,
+  Monitor,
+  Moon,
+  Palette,
   Save,
   Server,
   ShieldCheck,
+  Sun,
   UserCog,
 } from 'lucide-react';
 import {
@@ -25,9 +29,11 @@ import {
 } from '../components/ui';
 import { useDemo } from '../store/DemoStore';
 import { roleDescriptions } from '../data/mockData';
+import type { ThemeMode } from '../types';
 
 export const SettingsPage = () => {
-  const { user, role, notify, datasets, requests, jobs, logout, updateProfile, changePassword } = useDemo();
+  const { user, role, theme, setTheme, notify, datasets, requests, jobs, logout, updateProfile, changePassword } =
+    useDemo();
 
   const [profile, setProfile] = useState({
     name: user.name,
@@ -50,6 +56,27 @@ export const SettingsPage = () => {
   });
 
   const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+
+  const themeOptions = [
+    {
+      value: 'default',
+      label: 'Default',
+      description: 'The original teal brand palette.',
+      icon: <Monitor size={16} />,
+    },
+    {
+      value: 'light',
+      label: 'Light',
+      description: 'A neutral, high-contrast light theme.',
+      icon: <Sun size={16} />,
+    },
+    {
+      value: 'dark',
+      label: 'Dark',
+      description: 'Low-light surfaces with teal accents.',
+      icon: <Moon size={16} />,
+    },
+  ] as const;
 
   const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
@@ -118,10 +145,10 @@ export const SettingsPage = () => {
       <PageHeader
         eyebrow="Account"
         title="Settings"
-        description="Manage your profile, review authenticated role permissions, update security settings and inspect the API connection."
+        description="Manage your profile, appearance, authenticated role permissions, security settings and API connection."
       />
 
-      <DemoNotice text="Profile and password changes are sent to the FastAPI backend and recorded in the audit log. Notification preferences remain local to this browser." />
+      <DemoNotice text="Profile and password changes are sent to the FastAPI backend and recorded in the audit log. Theme and notification preferences remain local to this browser." />
 
       <div className="settings-layout">
         <div className="stack">
@@ -250,6 +277,30 @@ export const SettingsPage = () => {
         </div>
 
         <div className="stack">
+          <Card>
+            <CardHeader title="Appearance" subtitle="Stored in this browser only" action={<Palette size={18} className="muted-icon" />} />
+            <div className="theme-grid">
+              {themeOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`theme-option ${theme === option.value ? 'selected' : ''}`}
+                  onClick={() => setTheme(option.value as ThemeMode)}
+                  aria-pressed={theme === option.value}
+                >
+                  <span className={`theme-preview ${option.value}`} aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                  <strong>{option.icon} {option.label}</strong>
+                  <small>{option.description}</small>
+                </button>
+              ))}
+            </div>
+            <p className="field-hint">Default keeps the teal brand palette. Light uses neutral greys. Dark uses low-light surfaces.</p>
+          </Card>
+
           <Card>
             <CardHeader title="Notifications" subtitle="Stored in this browser only" action={<Bell size={18} className="muted-icon" />} />
             <div className="toggle-list">

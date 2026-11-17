@@ -6,6 +6,15 @@
     <meta name="description" content="MedDataHub - AI-ready medical dataset repository for women's and paediatric health research." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>MedDataHub</title>
+    <script>
+      try {
+        var storedTheme = localStorage.getItem('meddatahub.theme');
+        document.documentElement.dataset.theme =
+          storedTheme === 'default' || storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'default';
+      } catch (error) {
+        document.documentElement.dataset.theme = 'default';
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

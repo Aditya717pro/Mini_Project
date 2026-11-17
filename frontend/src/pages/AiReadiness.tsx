@@ -42,9 +42,9 @@ import { formatDateTime, scoreTone } from '../lib/format';
 
 const tooltipStyle = {
   borderRadius: 10,
-  border: '1px solid #e2e8e8',
+  border: '1px solid var(--border)',
   fontSize: 12,
-  boxShadow: '0 8px 24px rgba(15, 43, 42, 0.08)',
+  boxShadow: 'var(--shadow)',
 };
 
 const verdictTone = (verdict: string): Tone =>
@@ -177,13 +177,13 @@ export const AiReadiness = () => {
                 <div className="chart-box">
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 24, left: 16, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#eef2f2" horizontal={false} />
-                      <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} />
-                      <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 10, fill: '#4b5b5a' }} axisLine={false} tickLine={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                      <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 10, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={tooltipStyle} />
                       <Bar dataKey="score" name="Readiness" radius={[0, 5, 5, 0]} barSize={13}>
                         {chartData.map((entry) => (
-                          <Cell key={entry.name} fill={entry.score >= 85 ? '#0f766e' : entry.score >= 70 ? '#f59e0b' : '#dc2626'} />
+                          <Cell key={entry.name} fill={entry.score >= 85 ? 'var(--primary)' : entry.score >= 70 ? 'var(--amber)' : 'var(--red)'} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -261,12 +261,12 @@ export const AiReadiness = () => {
             <div className="chart-box">
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={comparison} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eef2f2" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="quality" name="Quality" fill="#93c5c0" radius={[4, 4, 0, 0]} barSize={16} />
-                  <Bar dataKey="readiness" name="AI readiness" fill="#0f766e" radius={[4, 4, 0, 0]} barSize={16} />
+                  <Bar dataKey="quality" name="Quality" fill="var(--primary-soft)" radius={[4, 4, 0, 0]} barSize={16} />
+                  <Bar dataKey="readiness" name="AI readiness" fill="var(--primary)" radius={[4, 4, 0, 0]} barSize={16} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

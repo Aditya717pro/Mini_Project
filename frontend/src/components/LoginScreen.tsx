@@ -35,9 +35,30 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
     setError('');
     setBusy(true);
     try {
-      await onLogin(loginForm.email.trim(), loginForm.password);
+      const email = loginForm.email.trim();
+      const password = loginForm.password;
+      await onLogin(email, password);
+
+      if (typeof window !== 'undefined' && 'PasswordCredential' in window && navigator.credentials?.store) {
+        try {
+          const CredentialConstructor = (window as unknown as { PasswordCredential: new (init: Record<string, unknown>) => unknown }).PasswordCredential;
+          const cred = new CredentialConstructor({
+            id: email,
+            password: password,
+          });
+          void navigator.credentials.store(cred as Credential);
+        } catch {
+          // Ignore
+        }
+      }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Sign in failed.');
+      setError(
+        caught instanceof Error && caught.message.toLowerCase().includes('failed to fetch')
+          ? `Cannot reach backend API at ${apiBase}. Please ensure the FastAPI server is running (e.g. run "npm run dev" or "npm run dev:backend").`
+          : caught instanceof Error
+            ? caught.message
+            : 'Sign in failed.',
+      );
     } finally {
       setBusy(false);
     }
@@ -56,15 +77,39 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
     }
     setBusy(true);
     try {
+      const email = registerForm.email.trim();
+      const password = registerForm.password;
+      const fullName = registerForm.fullName.trim();
+
       await onRegister({
-        email: registerForm.email.trim(),
-        password: registerForm.password,
-        fullName: registerForm.fullName.trim(),
+        email,
+        password,
+        fullName,
         organisation: registerForm.organisation.trim() || 'Independent',
         title: registerForm.title.trim() || 'Researcher',
       });
+
+      if (typeof window !== 'undefined' && 'PasswordCredential' in window && navigator.credentials?.store) {
+        try {
+          const CredentialConstructor = (window as unknown as { PasswordCredential: new (init: Record<string, unknown>) => unknown }).PasswordCredential;
+          const cred = new CredentialConstructor({
+            id: email,
+            password: password,
+            name: fullName,
+          });
+          void navigator.credentials.store(cred as Credential);
+        } catch {
+          // Ignore
+        }
+      }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Registration failed.');
+      setError(
+        caught instanceof Error && caught.message.toLowerCase().includes('failed to fetch')
+          ? `Cannot reach backend API at ${apiBase}. Please ensure the FastAPI server is running (e.g. run "npm run dev" or "npm run dev:backend").`
+          : caught instanceof Error
+            ? caught.message
+            : 'Registration failed.',
+      );
     } finally {
       setBusy(false);
     }
@@ -94,10 +139,11 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
         {error ? <Alert tone="danger" title="Authentication error">{error}</Alert> : null}
 
         {mode === 'login' ? (
-          <form className="auth-form" onSubmit={submitLogin}>
+          <form key="login-form" className="auth-form" onSubmit={submitLogin} autoComplete="on">
             <Field label="Email" htmlFor="login-email">
               <input
                 id="login-email"
+                name="username"
                 className="input"
                 type="email"
                 autoComplete="username"
@@ -109,6 +155,7 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
             <Field label="Password" htmlFor="login-password">
               <input
                 id="login-password"
+                name="password"
                 className="input"
                 type="password"
                 autoComplete="current-password"
@@ -122,11 +169,19 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
             </Button>
           </form>
         ) : (
-          <form className="auth-form" onSubmit={submitRegister}>
+          <form key="register-form" className="auth-form" onSubmit={submitRegister} autoComplete="off">
+            {/* Decoy hidden inputs to prevent browser autofill heuristics from targeting registration fields */}
+            <div style={{ display: 'none', position: 'absolute', opacity: 0, pointerEvents: 'none' }} aria-hidden="true">
+              <input type="text" name="fake_username_prevent_autofill" tabIndex={-1} autoComplete="off" />
+              <input type="password" name="fake_password_prevent_autofill" tabIndex={-1} autoComplete="off" />
+            </div>
+
             <Field label="Full name" htmlFor="register-name">
               <input
                 id="register-name"
+                name="signup_fullname"
                 className="input"
+                autoComplete="off"
                 required
                 value={registerForm.fullName}
                 onChange={(event) => setRegisterForm((prev) => ({ ...prev, fullName: event.target.value }))}
@@ -135,9 +190,10 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
             <Field label="Email" htmlFor="register-email">
               <input
                 id="register-email"
+                name="signup_email"
                 className="input"
                 type="email"
-                autoComplete="username"
+                autoComplete="off"
                 required
                 value={registerForm.email}
                 onChange={(event) => setRegisterForm((prev) => ({ ...prev, email: event.target.value }))}
@@ -147,7 +203,9 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
               <Field label="Organisation" htmlFor="register-org">
                 <input
                   id="register-org"
+                  name="signup_organisation"
                   className="input"
+                  autoComplete="off"
                   value={registerForm.organisation}
                   onChange={(event) => setRegisterForm((prev) => ({ ...prev, organisation: event.target.value }))}
                 />
@@ -155,7 +213,9 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
               <Field label="Job title" htmlFor="register-title">
                 <input
                   id="register-title"
+                  name="signup_title"
                   className="input"
+                  autoComplete="off"
                   value={registerForm.title}
                   onChange={(event) => setRegisterForm((prev) => ({ ...prev, title: event.target.value }))}
                 />
@@ -165,6 +225,7 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
               <Field label="Password" hint="At least 10 characters." htmlFor="register-password">
                 <input
                   id="register-password"
+                  name="signup_password"
                   className="input"
                   type="password"
                   autoComplete="new-password"
@@ -176,6 +237,7 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
               <Field label="Confirm password" htmlFor="register-confirm">
                 <input
                   id="register-confirm"
+                  name="signup_confirm_password"
                   className="input"
                   type="password"
                   autoComplete="new-password"
@@ -194,17 +256,26 @@ export const LoginScreen = ({ apiBase, onLogin, onRegister }: LoginScreenProps) 
         <button
           className="auth-switch button-link inline-link"
           onClick={() => {
-            setMode((current) => (current === 'login' ? 'register' : 'login'));
+            setMode((current) => {
+              const next = current === 'login' ? 'register' : 'login';
+              if (next === 'register') {
+                setRegisterForm({
+                  fullName: '',
+                  email: '',
+                  organisation: '',
+                  title: '',
+                  password: '',
+                  confirm: '',
+                });
+              }
+              return next;
+            });
             setError('');
           }}
         >
           {mode === 'login' ? 'Need an account? Register as a contributor' : 'Already registered? Sign in'}
           <ArrowRight size={14} />
         </button>
-
-        <p className="auth-footnote">
-          API: <code>{apiBase}</code>. Synthetic data only. Do not upload identifiable patient records.
-        </p>
       </div>
     </div>
   );

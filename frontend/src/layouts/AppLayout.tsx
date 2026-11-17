@@ -6,7 +6,6 @@ import {
   Bell,
   BrainCircuit,
   Database,
-  FolderOpen,
   KeyRound,
   LayoutDashboard,
   Menu,
@@ -30,7 +29,6 @@ const navGroups = [
     label: 'Data',
     items: [
       { to: '/upload', label: 'Upload Dataset', icon: UploadCloud, end: false },
-      { to: '/datasets', label: 'My Datasets', icon: FolderOpen, end: false },
       { to: '/repository', label: 'Dataset Repository', icon: Database, end: false },
     ],
   },
@@ -53,14 +51,18 @@ const navGroups = [
 ];
 
 export const AppLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth > 1024 : true,
+  );
   const [search, setSearch] = useState('');
   const { user, role, requests, jobs, datasets } = useDemo();
   const navigate = useNavigate();
   const location = useLocation();
 
   const pendingIncoming = requests.filter((request) => request.direction === 'Incoming' && request.status === 'Pending').length;
-  const activeJobs = jobs.filter((job) => job.status === 'Running' || job.status === 'Queued').length;
+  const activeJobs = jobs.filter((job) =>
+    ['Queued', 'Profiling', 'Review required', 'Approved', 'Processing', 'Running'].includes(job.status),
+  ).length;
   const badgeFor = (to: string) => {
     if (to === '/access-requests') return pendingIncoming;
     if (to === '/etl') return activeJobs;
@@ -80,7 +82,7 @@ export const AppLayout = () => {
       )?.label ?? 'MedDataHub';
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${sidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
       <div
         className={`sidebar-overlay ${sidebarOpen ? 'visible' : ''}`}
         onClick={() => setSidebarOpen(false)}
@@ -95,7 +97,12 @@ export const AppLayout = () => {
             <div className="brand-name">MedDataHub</div>
             <div className="brand-sub">Research Data Platform</div>
           </div>
-          <button className="icon-btn sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close navigation">
+          <button
+            type="button"
+            className="icon-btn sidebar-close"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close navigation"
+          >
             <X size={18} />
           </button>
         </div>
@@ -113,7 +120,11 @@ export const AppLayout = () => {
                     to={item.to}
                     end={item.end}
                     className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
-                    onClick={() => setSidebarOpen(false)}
+                    onClick={() => {
+                      if (window.innerWidth <= 1024) {
+                        setSidebarOpen(false);
+                      }
+                    }}
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
@@ -143,9 +154,16 @@ export const AppLayout = () => {
 
       <div className="main">
         <header className="topbar">
-          <button className="icon-btn menu-btn" onClick={() => setSidebarOpen(true)} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
+          {!sidebarOpen ? (
+            <button
+              type="button"
+              className="icon-btn menu-btn"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation"
+            >
+              <Menu size={20} />
+            </button>
+          ) : null}
           <span className="topbar-title">{currentTitle}</span>
 
           <form className="topbar-search" onSubmit={submitSearch} role="search">

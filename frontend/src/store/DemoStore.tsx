@@ -20,11 +20,13 @@ import type {
   EtlJob,
   ExtractPreview,
   FileFormat,
+  MappingDecisionInput,
   QualityReport,
   ReadinessReport,
   RepresentativenessReport,
   RequestStatus,
   Role,
+  ThemeMode,
   ToastMessage,
 } from '../types';
 
@@ -56,6 +58,8 @@ export interface AccessRequestInput {
 interface DemoStore {
   user: CurrentUser;
   role: Role;
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
   datasets: Dataset[];
   jobs: EtlJob[];
   requests: AccessRequest[];
@@ -70,8 +74,13 @@ interface DemoStore {
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   refresh: () => Promise<void>;
   uploadDataset: (input: UploadInput) => Promise<string>;
-  resolveMapping: (jobId: string, source: string, decision: 'Approved' | 'Unmapped') => Promise<void>;
+  refreshJob: (jobId: string) => Promise<void>;
+  profileJob: (jobId: string) => Promise<void>;
+  recordMappingDecisions: (jobId: string, decisions: MappingDecisionInput[]) => Promise<void>;
+  approveMappings: (jobId: string, note?: string) => Promise<void>;
   publishJob: (jobId: string) => Promise<void>;
+  cancelJob: (jobId: string) => Promise<void>;
+  rejectJob: (jobId: string, reason: string) => Promise<void>;
   decideRequest: (
     requestId: string,
     status: Exclude<RequestStatus, 'Pending' | 'Withdrawn'>,
@@ -86,10 +95,23 @@ interface DemoStore {
 
 const DemoContext = createContext<DemoStore | null>(null);
 
+const THEME_STORAGE_KEY = 'meddatahub.theme';
+
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : 'Unexpected API error');
+
+const initialTheme = (): ThemeMode => {
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === 'default' || stored === 'light' || stored === 'dark') return stored;
+  } catch {
+    return 'default';
+  }
+  return 'default';
+};
 
 export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [theme, setThemeState] = useState<ThemeMode>(initialTheme);
   const [booting, setBooting] = useState(true);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [jobs, setJobs] = useState<EtlJob[]>([]);
@@ -124,6 +146,23 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     [],
   );
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      return;
+    }
+  }, [theme]);
+
+  const setTheme = useCallback(
+    (next: ThemeMode) => {
+      setThemeState(next);
+      notify('info', 'Theme updated', `Using the ${next} theme.`);
+    },
+    [notify],
+  );
+
   const resetWorkspace = useCallback(() => {
     setDatasets([]);
     setJobs([]);
@@ -134,30 +173,40 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const loadWorkspace = useCallback(async () => {
-    const [datasetList, jobList, requestList] = await Promise.all([
-      api.listDatasets(),
-      api.listJobs(),
-      api.listAccessRequests(),
-    ]);
-    const reportBundles = await Promise.all(
-      datasetList.map(async (dataset) => {
-        try {
-          return await api.getReports(dataset.id);
-        } catch (error) {
-          if (error instanceof ApiError && error.status === 404) {
+    try {
+      const [datasetList, jobList, requestList] = await Promise.all([
+        api.listDatasets().catch((err) => {
+          console.error('Failed to list datasets:', err);
+          return [];
+        }),
+        api.listJobs().catch((err) => {
+          console.error('Failed to list jobs:', err);
+          return [];
+        }),
+        api.listAccessRequests().catch((err) => {
+          console.error('Failed to list access requests:', err);
+          return [];
+        }),
+      ]);
+      const reportBundles = await Promise.all(
+        datasetList.map(async (dataset) => {
+          try {
+            return await api.getReports(dataset.id);
+          } catch {
             return { quality: null, readiness: null, representativeness: null };
           }
-          throw error;
-        }
-      }),
-    );
-    const maps = reportMaps.from(reportBundles);
-    setDatasets(datasetList);
-    setJobs(jobList);
-    setRequests(requestList);
-    setQualityReports(maps.qualityReports);
-    setReadinessReports(maps.readinessReports);
-    setRepresentativenessReports(maps.representativenessReports);
+        }),
+      );
+      const maps = reportMaps.from(reportBundles);
+      setDatasets(datasetList);
+      setJobs(jobList);
+      setRequests(requestList);
+      setQualityReports(maps.qualityReports);
+      setReadinessReports(maps.readinessReports);
+      setRepresentativenessReports(maps.representativenessReports);
+    } catch (error) {
+      console.error('Failed to load workspace:', error);
+    }
   }, []);
 
   const logout = useCallback(() => {
@@ -184,8 +233,11 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
         if (cancelled) return;
         setUser(current);
         await loadWorkspace();
-      } catch {
-        tokenStore.clear();
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          tokenStore.clear();
+          setUser(null);
+        }
       } finally {
         if (!cancelled) setBooting(false);
       }
@@ -199,15 +251,23 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const login = useCallback(
     async (email: string, password: string) => {
       const current = await api.login(email, password);
-      setUser(current);
-      try {
-        await loadWorkspace();
-      } catch (error) {
-        logout();
-        throw error;
+      if (typeof window !== 'undefined' && 'PasswordCredential' in window && navigator.credentials?.store) {
+        try {
+          const CredentialConstructor = (window as unknown as { PasswordCredential: new (init: Record<string, unknown>) => unknown }).PasswordCredential;
+          const cred = new CredentialConstructor({
+            id: email,
+            password: password,
+            name: current.name || email,
+          });
+          void navigator.credentials.store(cred as Credential);
+        } catch {
+          // ignore
+        }
       }
+      setUser(current);
+      await loadWorkspace();
     },
-    [loadWorkspace, logout],
+    [loadWorkspace],
   );
 
   const register = useCallback(
@@ -219,15 +279,23 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       title: string;
     }) => {
       const current = await api.register(input);
-      setUser(current);
-      try {
-        await loadWorkspace();
-      } catch (error) {
-        logout();
-        throw error;
+      if (typeof window !== 'undefined' && 'PasswordCredential' in window && navigator.credentials?.store) {
+        try {
+          const CredentialConstructor = (window as unknown as { PasswordCredential: new (init: Record<string, unknown>) => unknown }).PasswordCredential;
+          const cred = new CredentialConstructor({
+            id: input.email,
+            password: input.password,
+            name: input.fullName,
+          });
+          void navigator.credentials.store(cred as Credential);
+        } catch {
+          // ignore
+        }
       }
+      setUser(current);
+      await loadWorkspace();
     },
-    [loadWorkspace, logout],
+    [loadWorkspace],
   );
 
   const updateProfile = useCallback(
@@ -309,29 +377,55 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     [notify],
   );
 
-  const resolveMapping = useCallback(
-    async (jobId: string, source: string, decision: 'Approved' | 'Unmapped') => {
-      const job = jobs.find((item) => item.id === jobId);
-      if (!job) return;
-      const mapping: Record<string, string | null> = {};
-      for (const item of job.mappings) {
-        if (item.status === 'Approved' && item.target) mapping[item.source] = item.target;
-        if (item.status === 'Unmapped') mapping[item.source] = null;
-      }
-      mapping[source] = decision === 'Approved' ? job.mappings.find((item) => item.source === source)?.target ?? null : null;
+  const replaceJob = useCallback((updated: EtlJob) => {
+    setJobs((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+  }, []);
+
+  const refreshJob = useCallback(
+    async (jobId: string) => {
       try {
-        const updated = await api.saveMappings(jobId, mapping);
-        setJobs((prev) => prev.map((item) => (item.id === jobId ? updated : item)));
-        notify(
-          decision === 'Approved' ? 'success' : 'info',
-          `Mapping ${decision.toLowerCase()}`,
-          'The decision was saved to the ETL job.',
-        );
+        replaceJob(await api.getJob(jobId));
       } catch (error) {
-        notify('error', 'Mapping not saved', errorMessage(error));
+        notify('error', 'Could not refresh job', errorMessage(error));
       }
     },
-    [jobs, notify],
+    [notify, replaceJob],
+  );
+
+  const profileJob = useCallback(
+    async (jobId: string) => {
+      try {
+        replaceJob(await api.profileJob(jobId));
+        notify('info', 'Profiling complete', 'Review every column mapping before approving the set.');
+      } catch (error) {
+        notify('error', 'Profiling failed', errorMessage(error));
+      }
+    },
+    [notify, replaceJob],
+  );
+
+  const recordMappingDecisions = useCallback(
+    async (jobId: string, decisions: MappingDecisionInput[]) => {
+      try {
+        replaceJob(await api.recordMappingDecisions(jobId, decisions));
+        notify('success', 'Mapping decisions saved', 'Decisions are attributed to the signed-in reviewer.');
+      } catch (error) {
+        notify('error', 'Mapping decisions not saved', errorMessage(error));
+      }
+    },
+    [notify, replaceJob],
+  );
+
+  const approveMappings = useCallback(
+    async (jobId: string, note = '') => {
+      try {
+        replaceJob(await api.approveMappings(jobId, note));
+        notify('success', 'Mappings approved', 'The job is ready to run.');
+      } catch (error) {
+        notify('error', 'Mappings not approved', errorMessage(error));
+      }
+    },
+    [notify, replaceJob],
   );
 
   const publishJob = useCallback(
@@ -348,7 +442,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
           api.getReports(job.datasetId),
         ]);
         const { quality, readiness, representativeness } = reports;
-        setJobs((prev) => prev.map((item) => (item.id === jobId ? updatedJob : item)));
+        replaceJob(updatedJob);
         setDatasets((prev) => prev.map((item) => (item.id === updatedDataset.id ? updatedDataset : item)));
         if (quality) setQualityReports((prev) => ({ ...prev, [updatedDataset.id]: quality }));
         if (readiness) setReadinessReports((prev) => ({ ...prev, [updatedDataset.id]: readiness }));
@@ -362,13 +456,34 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
         );
       } catch (error) {
         notify('error', 'ETL failed', errorMessage(error));
-        await Promise.allSettled([
-          api.getJob(jobId).then((updated) => setJobs((prev) => prev.map((item) => (item.id === jobId ? updated : item)))),
-          refreshDataset(job.datasetId),
-        ]);
+        await Promise.allSettled([refreshJob(jobId), refreshDataset(job.datasetId)]);
       }
     },
-    [datasets, jobs, notify, refreshDataset],
+    [datasets, jobs, notify, refreshDataset, refreshJob, replaceJob],
+  );
+
+  const cancelJob = useCallback(
+    async (jobId: string) => {
+      try {
+        replaceJob(await api.cancelJob(jobId));
+        notify('info', 'Job cancelled', 'No processed output was written.');
+      } catch (error) {
+        notify('error', 'Job not cancelled', errorMessage(error));
+      }
+    },
+    [notify, replaceJob],
+  );
+
+  const rejectJob = useCallback(
+    async (jobId: string, reason: string) => {
+      try {
+        replaceJob(await api.rejectJob(jobId, reason));
+        notify('info', 'Job rejected', 'The rejection was recorded in the audit log.');
+      } catch (error) {
+        notify('error', 'Job not rejected', errorMessage(error));
+      }
+    },
+    [notify, replaceJob],
   );
 
   const decideRequest = useCallback(
@@ -454,6 +569,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     return {
       user,
       role: user.role,
+      theme,
+      setTheme,
       datasets,
       jobs,
       requests,
@@ -468,8 +585,13 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       changePassword,
       refresh,
       uploadDataset,
-      resolveMapping,
+      refreshJob,
+      profileJob,
+      recordMappingDecisions,
+      approveMappings,
       publishJob,
+      cancelJob,
+      rejectJob,
       decideRequest,
       withdrawRequest,
       requestAccess,
@@ -479,6 +601,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [
     user,
+    theme,
+    setTheme,
     datasets,
     jobs,
     requests,
@@ -493,8 +617,13 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     changePassword,
     refresh,
     uploadDataset,
-    resolveMapping,
+    refreshJob,
+    profileJob,
+    recordMappingDecisions,
+    approveMappings,
     publishJob,
+    cancelJob,
+    rejectJob,
     decideRequest,
     withdrawRequest,
     requestAccess,

@@ -9,9 +9,10 @@ from app.core.config import Settings
 from app.etl.pipeline import run_pipeline
 from app.models.dataset import DatasetVersion
 from app.models.enums import DatasetStatus, JobStatus
-from app.models.etl import ETLJob, ETLJobLog
+from app.models.etl import ETLJob
 from app.models.user import User
 from app.services.audit_service import log_audit
+from app.services.job_service import claim_job, fail_job, log_job
 from app.services.quality_service import assess_quality, persist_quality_report
 from app.services.readiness_service import assess_readiness, persist_readiness_report
 from app.services.representativeness_service import (
@@ -19,18 +20,6 @@ from app.services.representativeness_service import (
     persist_representativeness_report,
 )
 from app.services.storage_service import StorageService
-
-
-def _log(db: Session, job: ETLJob, stage: str, message: str, level: str = "INFO", **details: object) -> None:
-    db.add(
-        ETLJobLog(
-            job_id=job.id,
-            stage=stage,
-            level=level,
-            message=message,
-            details_json=details,
-        )
-    )
 
 
 def run_etl(
@@ -43,10 +32,11 @@ def run_etl(
     research_task: str | None = None,
     request: Request | None = None,
 ) -> ETLJob:
-    if job.status == JobStatus.RUNNING:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="ETL job is already running")
-    if job.status == JobStatus.COMPLETED:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="ETL job is already completed")
+    if job.status != JobStatus.APPROVED or not approved_mapping:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="ETL can only run for an approved job with reviewed mappings",
+        )
 
     dataset = job.dataset
     version = db.get(DatasetVersion, job.dataset_version_id)
@@ -55,20 +45,27 @@ def run_etl(
     if research_task:
         dataset.research_task = research_task.strip()
 
-    job.status = JobStatus.RUNNING
-    job.current_stage = "transform"
-    job.progress = 35
     job.approved_mapping_json = approved_mapping
-    job.started_at = job.started_at or datetime.now(UTC)
-    job.error_message = None
-    _log(
+    log_job(
         db,
         job,
         "transform",
-        "Approved mapping received. Starting extraction, transformation and report generation.",
+        "Starting extraction, transformation, validation and report generation.",
         mappings=len([value for value in approved_mapping.values() if value]),
     )
-    db.commit()
+    if not claim_job(
+        db,
+        job,
+        expected={JobStatus.APPROVED},
+        next_status=JobStatus.RUNNING,
+        stage="extract",
+        progress=20,
+        started=True,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="ETL job is no longer approved; it may already be running or completed",
+        )
 
     try:
         storage = StorageService(settings)
@@ -82,7 +79,7 @@ def run_etl(
         )
         job.progress = 65
         job.current_stage = "quality"
-        _log(
+        log_job(
             db,
             job,
             "transform",
@@ -94,7 +91,7 @@ def run_etl(
         quality = assess_quality(pipeline.extracted.dataframe, pipeline.extracted.profile)
         quality_report = persist_quality_report(db, dataset=dataset, version=version, job=job, assessment=quality)
         db.flush()
-        _log(
+        log_job(
             db,
             job,
             "quality",
@@ -105,7 +102,7 @@ def run_etl(
         persist_representativeness_report(
             db, dataset=dataset, version=version, assessment=representativeness
         )
-        _log(
+        log_job(
             db,
             job,
             "representativeness",
@@ -128,7 +125,7 @@ def run_etl(
             quality_report_id=quality_report.id,
             assessment=readiness,
         )
-        _log(
+        log_job(
             db,
             job,
             "readiness",
@@ -153,7 +150,7 @@ def run_etl(
         job.rows_in = len(pipeline.extracted.dataframe)
         job.rows_out = len(pipeline.transformed.dataframe)
         job.completed_at = datetime.now(UTC)
-        _log(
+        log_job(
             db,
             job,
             "complete",
@@ -179,27 +176,13 @@ def run_etl(
         db.refresh(job)
         return job
     except Exception as exc:
-        db.rollback()
-        failed_job = db.get(ETLJob, job.id)
-        if failed_job is not None:
-            failed_job.status = JobStatus.FAILED
-            failed_job.current_stage = "failed"
-            failed_job.progress = 100
-            failed_job.error_message = str(exc)[:2000]
-            failed_job.completed_at = datetime.now(UTC)
-            failed_dataset = failed_job.dataset
-            if failed_dataset is not None:
-                failed_dataset.status = DatasetStatus.FAILED
-            _log(
-                db,
-                failed_job,
-                "failed",
-                "ETL failed. Original file remains stored; no processed output is treated as valid.",
-                level="ERROR",
-                error=str(exc),
-            )
-            db.commit()
+        fail_job(
+            db,
+            job,
+            exc,
+            message="ETL failed. The original file and previous successful outputs remain available.",
+        )
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"ETL processing failed: {exc}",
         ) from exc

@@ -1,5 +1,7 @@
 export type Role = 'Administrator' | 'Researcher' | 'Contributor';
 
+export type ThemeMode = 'default' | 'light' | 'dark';
+
 export type AccessLevel = 'Open' | 'Controlled' | 'Restricted';
 
 export type DatasetStatus =
@@ -132,6 +134,18 @@ export interface RepresentativenessReport {
   assessedAt: string;
 }
 
+export type JobStatus =
+  | 'Queued'
+  | 'Profiling'
+  | 'Review required'
+  | 'Approved'
+  | 'Processing'
+  | 'Running'
+  | 'Completed'
+  | 'Failed'
+  | 'Cancelled'
+  | 'Rejected';
+
 export type StageState = 'Queued' | 'Running' | 'Completed' | 'Failed' | 'Awaiting review';
 
 export interface EtlStage {
@@ -141,27 +155,106 @@ export interface EtlStage {
   detail: string;
 }
 
+export type MappingDecisionType = 'Approved' | 'Rejected' | 'Unmapped';
+
+export interface MappingDecisionInput {
+  source: string;
+  decision: MappingDecisionType;
+  target?: string | null;
+  note?: string;
+}
+
 export interface MappingSuggestion {
   source: string;
   target: string;
   confidence: number;
-  status: 'Approved' | 'Suggested' | 'Unmapped';
+  status: string;
   note: string;
+  inferredType?: string;
+  proposedTarget?: string;
+  decision?: MappingDecisionType | null;
+  decidedBy?: string | null;
+  decidedAt?: string | null;
+}
+
+export interface EtlLog {
+  time: string;
+  level: string;
+  stage: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+export interface EtlProfileIssue {
+  code: string;
+  field?: string;
+  severity?: string;
+  message: string;
+  affected?: number;
+  detail?: string;
+}
+
+export interface EtlProfileColumn {
+  name: string;
+  inferred_type: string;
+  missing: number;
+  missing_pct: number;
+  unique_sample: number;
+  sample_values: string[];
+}
+
+export interface EtlProfile {
+  row_count?: number;
+  column_count?: number;
+  missing_cells?: number;
+  missing_pct?: number;
+  duplicate_rows?: number;
+  duplicate_pct?: number;
+  columns?: EtlProfileColumn[];
+  issues?: EtlProfileIssue[];
+  preview_rows?: Record<string, unknown>[];
+}
+
+export interface EtlRowIssue {
+  row?: number;
+  source?: string;
+  target?: string;
+  severity?: string;
+  code?: string;
+  value?: unknown;
+  message?: string;
+}
+
+export interface EtlTransformationSummary {
+  rowsIn?: number | null;
+  rowsOut?: number | null;
+  errors?: Record<string, number>;
+  warnings?: Record<string, number>;
+  duplicates?: number | null;
+  rowIssues?: EtlRowIssue[];
+  profileIssues?: EtlProfileIssue[];
 }
 
 export interface EtlJob {
   id: string;
   datasetId: string;
   datasetTitle: string;
-  status: 'Queued' | 'Running' | 'Completed' | 'Failed' | 'Review required';
+  status: JobStatus;
   progress: number;
   stages: EtlStage[];
-  logs: { time: string; level: 'INFO' | 'WARN' | 'ERROR'; stage: string; message: string }[];
+  logs: EtlLog[];
   startedAt: string;
   finishedAt: string | null;
   rowsIn: number;
   rowsOut: number;
   mappings: MappingSuggestion[];
+  currentStage?: string;
+  profile?: EtlProfile;
+  errorMessage?: string | null;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  rejectionReason?: string | null;
+  transformationSummary?: EtlTransformationSummary;
 }
 
 export type RequestStatus = 'Pending' | 'Approved' | 'Rejected' | 'Withdrawn';

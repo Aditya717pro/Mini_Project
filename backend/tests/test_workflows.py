@@ -1,10 +1,12 @@
 import json
+from pathlib import Path
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
-from app.models import User
+from app.models import DatasetVersion, User
 from app.models.enums import UserRole
 
 
@@ -102,6 +104,19 @@ def test_upload_etl_reports_and_access_flow(
     job = client.get(f"/api/v1/etl/jobs/{job_id}", headers=contributor_headers)
     assert job.status_code == 200, job.text
     assert job.json()["status"] == "Queued"
+    assert all(item["decision"] is None for item in job.json()["mappings"])
+
+    blocked = client.post(
+        f"/api/v1/etl/jobs/{job_id}/run",
+        headers=contributor_headers,
+        json={"task": "Readmission risk modelling"},
+    )
+    assert blocked.status_code == 409
+
+    profiled = client.post(f"/api/v1/etl/jobs/{job_id}/profile", headers=contributor_headers)
+    assert profiled.status_code == 200, profiled.text
+    assert profiled.json()["status"] == "Review required"
+    assert profiled.json()["profile"]["row_count"] == 5
 
     mappings = {
         "participant_id": "participant_id",
@@ -113,12 +128,28 @@ def test_upload_etl_reports_and_access_flow(
         "weight_kg": "weight_kg",
         "notes": None,
     }
+    decisions = [
+        {
+            "source": source,
+            "decision": "Approved" if target else "Unmapped",
+            "target": target,
+            "note": "Synthetic fixture decision",
+        }
+        for source, target in mappings.items()
+    ]
     saved = client.post(
         f"/api/v1/etl/jobs/{job_id}/mappings",
         headers=contributor_headers,
-        json=mappings,
+        json=decisions,
     )
     assert saved.status_code == 200, saved.text
+    assert all(item["decision"] for item in saved.json()["mappings"])
+    assert all(item["decidedBy"] for item in saved.json()["mappings"])
+
+    approved = client.post(f"/api/v1/etl/jobs/{job_id}/approve", headers=contributor_headers, json={})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["status"] == "Approved"
+    assert approved.json()["approvedBy"] == contributor.email
 
     run = client.post(
         f"/api/v1/etl/jobs/{job_id}/run",
@@ -126,6 +157,13 @@ def test_upload_etl_reports_and_access_flow(
         json={"task": "Readmission risk modelling"},
     )
     assert run.status_code == 200, run.text
+    finished_job = client.get(f"/api/v1/etl/jobs/{job_id}", headers=contributor_headers)
+    assert finished_job.json()["status"] == "Completed"
+    assert finished_job.json()["transformationSummary"]["errors"].get("visit_date") == 1
+    assert any(
+        issue["severity"] == "error" and issue["target"] == "visit_date"
+        for issue in finished_job.json()["transformationSummary"]["rowIssues"]
+    )
 
     detail = client.get(f"/api/v1/datasets/{dataset_id}", headers=contributor_headers)
     assert detail.status_code == 200, detail.text
@@ -180,3 +218,13 @@ def test_upload_etl_reports_and_access_flow(
     download = client.get(f"/api/v1/datasets/{dataset_id}/download", headers=researcher_headers)
     assert download.status_code == 200
     assert download.content
+
+    version = db_session.scalar(select(DatasetVersion).where(DatasetVersion.dataset_id == dataset_id))
+    assert version is not None
+    raw = Path(version.raw_file_path)
+    processed = Path(version.processed_file_path)
+    assert raw.exists() and raw.read_bytes().startswith(b"participant_id,")
+    assert processed.exists()
+    processed_text = processed.read_text(encoding="utf-8")
+    assert "original__7__notes" in processed_text
+    assert "visit_date:error" in processed_text

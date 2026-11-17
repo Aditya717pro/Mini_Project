@@ -63,9 +63,9 @@ const severityTone: Record<string, Tone> = { High: 'danger', Medium: 'warning', 
 
 const chartTooltip = {
   borderRadius: 10,
-  border: '1px solid #e2e8e8',
+  border: '1px solid var(--border)',
   fontSize: 12,
-  boxShadow: '0 8px 24px rgba(15, 43, 42, 0.08)',
+  boxShadow: 'var(--shadow)',
 };
 
 const verdictTone = (verdict: ReadinessReport['verdict']): Tone =>
@@ -532,12 +532,12 @@ export const DatasetDetail = () => {
                     <div className="chart-box">
                       <ResponsiveContainer width="100%" height={230}>
                         <BarChart data={representativeness.ageBands} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f2" vertical={false} />
-                          <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={48} />
-                          <YAxis tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                          <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={48} />
+                          <YAxis tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
                           <Tooltip contentStyle={chartTooltip} />
                           <Bar dataKey="value" name="Records" radius={[5, 5, 0, 0]}>
-                            {representativeness.ageBands.map((entry) => <Cell key={entry.label} fill="#0f766e" />)}
+                            {representativeness.ageBands.map((entry) => <Cell key={entry.label} fill="var(--primary)" />)}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -548,11 +548,11 @@ export const DatasetDetail = () => {
                     <div className="chart-box">
                       <ResponsiveContainer width="100%" height={230}>
                         <BarChart data={representativeness.geography} layout="vertical" margin={{ top: 8, right: 16, left: 12, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f2" horizontal={false} />
-                          <XAxis type="number" tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} />
-                          <YAxis type="category" dataKey="label" width={96} tick={{ fontSize: 10, fill: '#4b5b5a' }} axisLine={false} tickLine={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                          <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
+                          <YAxis type="category" dataKey="label" width={96} tick={{ fontSize: 10, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
                           <Tooltip contentStyle={chartTooltip} />
-                          <Bar dataKey="value" name="Records" radius={[0, 5, 5, 0]} fill="#0ea5e9" />
+                          <Bar dataKey="value" name="Records" radius={[0, 5, 5, 0]} fill="var(--accent)" />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -565,11 +565,11 @@ export const DatasetDetail = () => {
                       <div className="chart-box">
                         <ResponsiveContainer width="100%" height={220}>
                           <BarChart data={representativeness.pregnancyStages} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#eef2f2" vertical={false} />
-                            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} interval={0} />
-                            <YAxis tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                            <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} interval={0} />
+                            <YAxis tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
                             <Tooltip contentStyle={chartTooltip} />
-                            <Bar dataKey="value" name="Records" radius={[5, 5, 0, 0]} fill="#8b5cf6" />
+                            <Bar dataKey="value" name="Records" radius={[5, 5, 0, 0]} fill="var(--purple)" />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -583,11 +583,11 @@ export const DatasetDetail = () => {
                       <div className="chart-box">
                         <ResponsiveContainer width="100%" height={220}>
                           <BarChart data={representativeness.paediatricGroups} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#eef2f2" vertical={false} />
-                            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} interval={0} />
-                            <YAxis tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                            <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} interval={0} />
+                            <YAxis tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
                             <Tooltip contentStyle={chartTooltip} />
-                            <Bar dataKey="value" name="Records" radius={[5, 5, 0, 0]} fill="#f59e0b" />
+                            <Bar dataKey="value" name="Records" radius={[5, 5, 0, 0]} fill="var(--amber)" />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>

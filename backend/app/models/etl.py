@@ -44,12 +44,21 @@ class ETLJob(Base, TimestampMixin):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     dataset: Mapped[Dataset] = relationship(back_populates="etl_jobs")
     dataset_version: Mapped[DatasetVersion] = relationship(back_populates="etl_jobs")
     initiator: Mapped[User] = relationship(back_populates="etl_jobs", foreign_keys=[initiated_by_id])
+    approver: Mapped[User | None] = relationship(foreign_keys=[approved_by_id])
     logs: Mapped[list[ETLJobLog]] = relationship(
         back_populates="job", cascade="all, delete-orphan", order_by="ETLJobLog.created_at"
+    )
+    mapping_decisions: Mapped[list[ETLMappingDecision]] = relationship(
+        back_populates="job", cascade="all, delete-orphan", order_by="ETLMappingDecision.decided_at"
     )
 
     __table_args__ = (
@@ -77,3 +86,29 @@ class ETLJobLog(Base):
     job: Mapped[ETLJob] = relationship(back_populates="logs")
 
     __table_args__ = (Index("ix_etl_job_logs_job_created", "job_id", "created_at"),)
+
+
+class ETLMappingDecision(Base):
+    __tablename__ = "etl_mapping_decisions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    job_id: Mapped[str] = mapped_column(ForeignKey("etl_jobs.id", ondelete="CASCADE"), nullable=False)
+    source: Mapped[str] = mapped_column(String(255), nullable=False)
+    proposed_target: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    target: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    decision: Mapped[str] = mapped_column(String(20), nullable=False)
+    confidence: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    decided_by_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    decided_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
+
+    job: Mapped[ETLJob] = relationship(back_populates="mapping_decisions")
+    decided_by: Mapped[User] = relationship()
+
+    __table_args__ = (
+        Index("ix_etl_mapping_decisions_job", "job_id"),
+        Index("uq_etl_mapping_decisions_job_source", "job_id", "source", unique=True),
+    )
+

@@ -6,6 +6,7 @@ import type {
   Domain,
   EtlJob,
   FileFormat,
+  MappingDecisionInput,
   QualityReport,
   ReadinessReport,
   RepresentativenessReport,
@@ -270,18 +271,35 @@ export const api = {
 
   getJob: async (jobId: string): Promise<EtlJob> => request<EtlJob>(`/etl/jobs/${encodeURIComponent(jobId)}`),
 
-  saveMappings: async (jobId: string, mappings: Record<string, string | null>): Promise<EtlJob> =>
+  profileJob: async (jobId: string): Promise<EtlJob> =>
+    request<EtlJob>(`/etl/jobs/${encodeURIComponent(jobId)}/profile`, { method: 'POST' }),
+
+  recordMappingDecisions: async (jobId: string, decisions: MappingDecisionInput[]): Promise<EtlJob> =>
     request<EtlJob>(`/etl/jobs/${encodeURIComponent(jobId)}/mappings`, {
       method: 'POST',
-      body: JSON.stringify(mappings),
+      body: JSON.stringify(decisions),
     }),
 
-  runJob: async (jobId: string, task: string): Promise<void> => {
-    await request<{ jobId: string; status: string; message: string }>(
+  approveMappings: async (jobId: string, note = ''): Promise<EtlJob> =>
+    request<EtlJob>(`/etl/jobs/${encodeURIComponent(jobId)}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+
+  runJob: async (jobId: string, task: string): Promise<{ jobId: string; status: string; message: string }> =>
+    request<{ jobId: string; status: string; message: string }>(
       `/etl/jobs/${encodeURIComponent(jobId)}/run`,
       { method: 'POST', body: JSON.stringify({ task }) },
-    );
-  },
+    ),
+
+  cancelJob: async (jobId: string): Promise<EtlJob> =>
+    request<EtlJob>(`/etl/jobs/${encodeURIComponent(jobId)}/cancel`, { method: 'POST' }),
+
+  rejectJob: async (jobId: string, reason: string): Promise<EtlJob> =>
+    request<EtlJob>(`/etl/jobs/${encodeURIComponent(jobId)}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
 
   getReports: async (datasetId: string): Promise<ApiReportsResponse> =>
     request<ApiReportsResponse>(`/datasets/${encodeURIComponent(datasetId)}/reports`),

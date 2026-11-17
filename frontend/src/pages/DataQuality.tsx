@@ -58,9 +58,9 @@ const severityTone: Record<string, Tone> = { High: 'danger', Medium: 'warning', 
 
 const tooltipStyle = {
   borderRadius: 10,
-  border: '1px solid #e2e8e8',
+  border: '1px solid var(--border)',
   fontSize: 12,
-  boxShadow: '0 8px 24px rgba(15, 43, 42, 0.08)',
+  boxShadow: 'var(--shadow)',
 };
 
 export const DataQuality = () => {
@@ -203,10 +203,10 @@ export const DataQuality = () => {
               <div className="chart-box">
                 <ResponsiveContainer width="100%" height={330}>
                   <RadarChart data={radarData} outerRadius="72%">
-                    <PolarGrid stroke="#e2e8e8" />
-                    <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: '#4b5b5a' }} />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 9, fill: '#93a3a2' }} />
-                    <Radar name="Score" dataKey="score" stroke="#0f766e" fill="#0f766e" fillOpacity={0.22} strokeWidth={2} />
+                    <PolarGrid stroke="var(--border)" />
+                    <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: 'var(--text-2)' }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 9, fill: 'var(--text-3)' }} />
+                    <Radar name="Score" dataKey="score" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.22} strokeWidth={2} />
                     <Tooltip contentStyle={tooltipStyle} />
                   </RadarChart>
                 </ResponsiveContainer>
@@ -292,13 +292,13 @@ export const DataQuality = () => {
               <div className="chart-box">
                 <ResponsiveContainer width="100%" height={Math.max(220, portfolio.length * 38)}>
                   <BarChart data={portfolio} layout="vertical" margin={{ top: 0, right: 24, left: 8, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eef2f2" horizontal={false} />
-                    <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: '#6b7c7b' }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="name" width={96} tick={{ fontSize: 10, fill: '#4b5b5a' }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                    <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="name" width={96} tick={{ fontSize: 10, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={tooltipStyle} />
                     <Bar dataKey="score" name="Quality score" radius={[0, 5, 5, 0]} barSize={14}>
                       {portfolio.map((entry) => (
-                        <Cell key={entry.name} fill={entry.score >= 85 ? '#0f766e' : entry.score >= 70 ? '#f59e0b' : '#dc2626'} />
+                        <Cell key={entry.name} fill={entry.score >= 85 ? 'var(--primary)' : entry.score >= 70 ? 'var(--amber)' : 'var(--red)'} />
                       ))}
                     </Bar>
                   </BarChart>

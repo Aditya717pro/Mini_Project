@@ -10,6 +10,7 @@ import {
   Info,
   Loader2,
   Lock,
+  LogOut,
   RotateCcw,
   ShieldCheck,
   UploadCloud,
@@ -103,7 +104,7 @@ const formatIcon = (format: FileFormat) => {
 };
 
 export const UploadDataset = () => {
-  const { uploadDataset, notify } = useDemo();
+  const { uploadDataset, notify, logout, user } = useDemo();
   const inputRef = useRef<HTMLInputElement>(null);
   const submitTimer = useRef<number | null>(null);
 
@@ -290,8 +291,8 @@ export const UploadDataset = () => {
         title="Upload dataset"
         description="Validate a CSV, XLSX or JSON file locally, describe the dataset and queue it for the ETL pipeline."
         actions={
-          <Link to="/datasets">
-            <Button variant="secondary">My datasets</Button>
+          <Link to="/repository">
+            <Button variant="secondary">Dataset repository</Button>
           </Link>
         }
       />
@@ -657,6 +658,17 @@ export const UploadDataset = () => {
           </Card>
         </aside>
       </form>
+      {user ? (
+        <Button
+          type="button"
+          variant="ghost"
+          icon={<LogOut size={16} />}
+          onClick={() => logout()}
+          style={{ marginTop: 16 }}
+        >
+          Sign out
+        </Button>
+      ) : null}
     </>
   );
 };

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from app.etl.extract import ExtractResult, extract_dataset
-from app.etl.load import write_processed_csv, write_transformation_log
+from app.etl.load import publish_processed_output
 from app.etl.transform import TransformResult, transform_dataset
 from app.models.enums import FileFormat
 from app.services.storage_service import StorageService
@@ -31,7 +31,6 @@ def run_pipeline(
 ) -> PipelineResult:
     extracted = extract_dataset(raw_path, file_format)
     transformed = transform_dataset(extracted.dataframe, approved_mapping)
-    processed_path = write_processed_csv(transformed.dataframe, storage, dataset_id, version_id)
     transformation_log = {
         "dataset_id": dataset_id,
         "version_id": version_id,
@@ -44,10 +43,21 @@ def run_pipeline(
         "missing_counts": transformed.missing_counts,
         "duplicate_count": transformed.duplicate_count,
         "invalid_counts": transformed.invalid_counts,
+        "error_counts": transformed.error_counts,
+        "warning_counts": transformed.warning_counts,
+        "row_issues": transformed.row_issues,
         "review_count": transformed.review_count,
+        "profile_issues": extracted.profile.issues,
+        "ambiguous_date_columns": extracted.profile.ambiguous_date_columns,
         "preservation_policy": "Original uploaded file retained; source values preserved in original__ columns.",
     }
-    log_path = write_transformation_log(transformation_log, storage, dataset_id, version_id)
+    processed_path, log_path = publish_processed_output(
+        dataframe=transformed.dataframe,
+        transformation_log=transformation_log,
+        storage=storage,
+        dataset_id=dataset_id,
+        version_id=version_id,
+    )
     return PipelineResult(
         extracted=extracted,
         transformed=transformed,

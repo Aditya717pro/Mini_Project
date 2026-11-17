@@ -41,7 +41,7 @@ def register(
     full_name = payload.full_name.strip()
     if not full_name:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Full name cannot be blank or whitespace only.",
         )
 
@@ -133,7 +133,7 @@ def change_password(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Current password is incorrect")
     if payload.current_password == payload.new_password:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="New password must differ from the current password",
         )
     user.hashed_password = hash_password(payload.new_password)

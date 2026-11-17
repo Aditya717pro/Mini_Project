@@ -10,7 +10,7 @@ from app.models.enums import (
     RequestStatus,
     UserRole,
 )
-from app.models.etl import ETLJob, ETLJobLog
+from app.models.etl import ETLJob, ETLJobLog, ETLMappingDecision
 from app.models.reports import QualityReport, ReadinessReport, RepresentativenessReport
 from app.models.user import User
 
@@ -25,6 +25,7 @@ __all__ = [
     "DatasetVersion",
     "ETLJob",
     "ETLJobLog",
+    "ETLMappingDecision",
     "FileFormat",
     "JobStatus",
     "QualityReport",
