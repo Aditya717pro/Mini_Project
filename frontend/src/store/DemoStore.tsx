@@ -70,8 +70,10 @@ interface DemoStore {
   notify: (type: ToastMessage['type'], title: string, message?: string) => void;
   dismissToast: (id: string) => void;
   logout: () => void;
-  updateProfile: (input: { fullName: string; organisation: string; title: string }) => Promise<void>;
+  updateProfile: (input: { fullName: string; phoneNumber?: string; organisation: string; title: string }) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  requestPasswordReset: (email: string) => Promise<string>;
+  verifyPasswordReset: (email: string, otp: string, newPassword: string) => Promise<void>;
   refresh: () => Promise<void>;
   uploadDataset: (input: UploadInput) => Promise<string>;
   refreshJob: (jobId: string) => Promise<void>;
@@ -275,6 +277,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       email: string;
       password: string;
       fullName: string;
+      phoneNumber?: string;
       organisation: string;
       title: string;
     }) => {
@@ -299,7 +302,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const updateProfile = useCallback(
-    async (input: { fullName: string; organisation: string; title: string }) => {
+    async (input: { fullName: string; phoneNumber?: string; organisation: string; title: string }) => {
       const updated = await api.updateProfile(input);
       setUser(updated);
       notify('success', 'Profile updated', 'Your account details were saved by the backend.');
@@ -319,6 +322,15 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       }
     },
     [notify],
+  );
+
+  const requestPasswordReset = useCallback(async (email: string) => api.requestPasswordReset(email), []);
+
+  const verifyPasswordReset = useCallback(
+    async (email: string, otp: string, newPassword: string) => {
+      await api.verifyPasswordReset(email, otp, newPassword);
+    },
+    [],
   );
 
   const refresh = useCallback(async () => {
@@ -583,6 +595,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       logout,
       updateProfile,
       changePassword,
+      requestPasswordReset,
+      verifyPasswordReset,
       refresh,
       uploadDataset,
       refreshJob,
@@ -615,6 +629,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     logout,
     updateProfile,
     changePassword,
+    requestPasswordReset,
+    verifyPasswordReset,
     refresh,
     uploadDataset,
     refreshJob,
@@ -646,6 +662,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
         apiBase={import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'}
         onLogin={login}
         onRegister={register}
+        onRequestPasswordReset={requestPasswordReset}
+        onVerifyPasswordReset={verifyPasswordReset}
       />
     );
   }

@@ -13,7 +13,9 @@ import type {
   Role,
 } from '../types';
 
-const RAW_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000').replace(/\/+$/, '');
+const RAW_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000')
+  .replace(/\/+$/, '')
+  .replace(/^http:\/\/localhost:8000$/i, 'http://127.0.0.1:8000');
 const API_ROOT = RAW_BASE.endsWith('/api/v1') ? RAW_BASE : `${RAW_BASE}/api/v1`;
 const TOKEN_KEY = 'meddatahub.access_token';
 
@@ -71,6 +73,7 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
 interface ApiUser {
   id: string;
   email: string;
+  phone_number: string | null;
   full_name: string;
   role: Role;
   organisation: string;
@@ -154,6 +157,7 @@ export interface UploadPayload {
 export const toCurrentUser = (user: ApiUser): CurrentUser => ({
   name: user.full_name,
   email: user.email,
+  phone: user.phone_number,
   role: user.role,
   organisation: user.organisation,
   title: user.title,
@@ -178,6 +182,7 @@ export const api = {
     email: string;
     password: string;
     fullName: string;
+    phoneNumber?: string;
     organisation: string;
     title: string;
   }): Promise<CurrentUser> => {
@@ -187,6 +192,7 @@ export const api = {
         email: input.email,
         password: input.password,
         full_name: input.fullName,
+        phone_number: input.phoneNumber?.trim() || null,
         organisation: input.organisation,
         title: input.title,
       }),
@@ -198,6 +204,7 @@ export const api = {
 
   updateProfile: async (input: {
     fullName: string;
+    phoneNumber?: string;
     organisation: string;
     title: string;
   }): Promise<CurrentUser> =>
@@ -206,6 +213,7 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({
           full_name: input.fullName,
+          phone_number: input.phoneNumber?.trim() || null,
           organisation: input.organisation,
           title: input.title,
         }),
@@ -216,6 +224,21 @@ export const api = {
     await request<void>('/auth/me/password', {
       method: 'POST',
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+  },
+
+  requestPasswordReset: async (email: string): Promise<string> => {
+    const response = await request<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+    return response.message;
+  },
+
+  verifyPasswordReset: async (email: string, otp: string, newPassword: string): Promise<void> => {
+    await request<void>('/auth/forgot-password/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, new_password: newPassword }),
     });
   },
 

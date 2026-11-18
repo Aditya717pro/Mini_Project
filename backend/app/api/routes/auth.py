@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -12,6 +13,7 @@ from app.db.session import get_db
 from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.auth import (
+    ForgotPasswordRequest,
     LoginRequest,
     PasswordChangeRequest,
     ProfileUpdateRequest,
@@ -19,9 +21,13 @@ from app.schemas.auth import (
     RoleUpdateRequest,
     TokenResponse,
     UserResponse,
+    VerifyOtpRequest,
 )
 from app.services.audit_service import log_audit
+from app.services.mail_service import send_password_reset_email
+from app.services.otp_service import issue_otp, verify_otp
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
@@ -45,8 +51,10 @@ def register(
             detail="Full name cannot be blank or whitespace only.",
         )
 
+    phone_number = payload.phone_number.strip() if payload.phone_number else None
     user = User(
         email=email,
+        phone_number=phone_number or None,
         full_name=full_name,
         hashed_password=hash_password(payload.password),
         role=UserRole.CONTRIBUTOR,
@@ -106,6 +114,7 @@ def update_profile(
     user: CurrentUser,
 ) -> User:
     user.full_name = payload.full_name.strip()
+    user.phone_number = payload.phone_number.strip() if payload.phone_number else None
     user.organisation = payload.organisation.strip() or "Independent"
     user.title = payload.title.strip() or "Researcher"
     log_audit(
@@ -140,6 +149,60 @@ def change_password(
     log_audit(
         db,
         action="user.password_changed",
+        resource_type="user",
+        resource_id=user.id,
+        actor_id=user.id,
+        details={},
+        request=request,
+    )
+    db.commit()
+
+
+@router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
+def forgot_password(
+    payload: ForgotPasswordRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> dict[str, str]:
+    email = payload.email.strip().lower()
+    user = db.scalar(select(User).where(User.email == email))
+    if user is not None and user.is_active:
+        otp = issue_otp(db, settings=settings, user=user)
+        if otp is not None:
+            try:
+                send_password_reset_email(settings=settings, to_email=user.email, otp=otp)
+            except Exception:
+                logger.exception("Could not send password reset email to %s", user.email)
+            log_audit(
+                db,
+                action="user.password_reset_requested",
+                resource_type="user",
+                resource_id=user.id,
+                actor_id=user.id,
+                details={},
+                request=request,
+            )
+    return {"message": "If the email is registered, a reset code has been sent."}
+
+
+@router.post("/forgot-password/verify", status_code=status.HTTP_204_NO_CONTENT)
+def verify_password_reset(
+    payload: VerifyOtpRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> None:
+    email = payload.email.strip().lower()
+    user = db.scalar(select(User).where(User.email == email))
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset code")
+
+    verify_otp(db, settings=settings, user=user, otp=payload.otp)
+    user.hashed_password = hash_password(payload.new_password)
+    log_audit(
+        db,
+        action="user.password_reset",
         resource_type="user",
         resource_id=user.id,
         actor_id=user.id,

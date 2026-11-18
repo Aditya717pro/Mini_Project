@@ -18,8 +18,11 @@ from app.models.dataset import Dataset
 from app.models.enums import AccessClassification, DatasetStatus, UserRole
 from app.models.user import User
 from app.schemas.dataset import DatasetMetadataInput
+from app.schemas.etl import MappingDecisionInput
 from app.services.dataset_service import approve_dataset
 from app.services.etl_service import run_etl
+from app.services.mapping_service import approve_mappings, record_mapping_decisions
+from app.services.profiling_service import profile_job
 from app.services.upload_service import create_upload
 
 
@@ -278,19 +281,30 @@ def _seed_datasets(db, settings: Settings, owner: User, admin: User) -> list[Dat
             request=None,
         )
         dataset.metadata_record.collection_period = spec.collection_period
-        suggestions = job.suggested_mapping_json or []
-        mapping = {
-            str(item["source"]): str(item["target"])
-            for item in suggestions
-            if item.get("target")
-        }
         db.commit()
+        profile_job(db, settings=settings, job=job)
+        decisions = [
+            MappingDecisionInput(
+                source=str(item["source"]),
+                decision="Approved" if item.get("target") else "Unmapped",
+                target=str(item["target"]) if item.get("target") else None,
+                note="Synthetic seed dataset mapping.",
+            )
+            for item in job.suggested_mapping_json or []
+        ]
+        record_mapping_decisions(db, job=job, decisions=decisions, actor=owner)
+        approve_mappings(
+            db,
+            job=job,
+            actor=admin,
+            note="Synthetic seed dataset approved for development use.",
+        )
         run_etl(
             db,
             settings=settings,
             job=job,
             actor=owner,
-            approved_mapping=mapping,
+            approved_mapping=dict(job.approved_mapping_json or {}),
             research_task=spec.research_task,
             request=None,
         )

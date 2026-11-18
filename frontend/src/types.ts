@@ -316,6 +316,7 @@ export interface UploadMetadata {
 export interface CurrentUser {
   name: string;
   email: string;
+  phone?: string | null;
   role: Role;
   organisation: string;
   title: string;

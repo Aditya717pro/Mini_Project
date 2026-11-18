@@ -28,6 +28,7 @@ class User(Base, TimestampMixin):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True, index=True)
+    phone_number: Mapped[str | None] = mapped_column(String(32), nullable=True)
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(500), nullable=False)
     role: Mapped[UserRole] = mapped_column(ROLE_ENUM, nullable=False, default=UserRole.CONTRIBUTOR)

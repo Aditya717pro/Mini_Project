@@ -11,6 +11,7 @@ from app.models.enums import (
     UserRole,
 )
 from app.models.etl import ETLJob, ETLJobLog, ETLMappingDecision
+from app.models.password_reset import PasswordResetOTP
 from app.models.reports import QualityReport, ReadinessReport, RepresentativenessReport
 from app.models.user import User
 
@@ -28,6 +29,7 @@ __all__ = [
     "ETLMappingDecision",
     "FileFormat",
     "JobStatus",
+    "PasswordResetOTP",
     "QualityReport",
     "ReadinessReport",
     "RepresentativenessReport",

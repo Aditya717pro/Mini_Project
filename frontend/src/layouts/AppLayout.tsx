@@ -1,17 +1,20 @@
-import { Suspense, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
   BadgeCheck,
   Bell,
   BrainCircuit,
+  Check,
   Database,
   KeyRound,
   LayoutDashboard,
   Menu,
+  Monitor,
+  Moon,
   Search,
   Settings,
-  UploadCloud,
+  Sun,
   Users,
   Workflow,
   X,
@@ -19,6 +22,13 @@ import {
 import { useDemo } from '../store/DemoStore';
 import { formatNumber, initials } from '../lib/format';
 import { LoadingState, ToastViewport } from '../components/ui';
+import type { ThemeMode } from '../types';
+
+const THEME_OPTIONS: { value: ThemeMode; label: string; icon: typeof Monitor }[] = [
+  { value: 'default', label: 'Default', icon: Monitor },
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'dark', label: 'Dark', icon: Moon },
+];
 
 const navGroups = [
   {
@@ -27,10 +37,7 @@ const navGroups = [
   },
   {
     label: 'Data',
-    items: [
-      { to: '/upload', label: 'Upload Dataset', icon: UploadCloud, end: false },
-      { to: '/repository', label: 'Dataset Repository', icon: Database, end: false },
-    ],
+    items: [{ to: '/repository', label: 'Dataset Repository', icon: Database, end: false }],
   },
   {
     label: 'Assessment',
@@ -55,9 +62,31 @@ export const AppLayout = () => {
     typeof window !== 'undefined' ? window.innerWidth > 1024 : true,
   );
   const [search, setSearch] = useState('');
-  const { user, role, requests, jobs, datasets } = useDemo();
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
+  const { user, role, theme, setTheme, requests, jobs, datasets } = useDemo();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (!themeMenuOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
+        setThemeMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setThemeMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [themeMenuOpen]);
+
+  const ActiveThemeIcon = THEME_OPTIONS.find((option) => option.value === theme)?.icon ?? Monitor;
 
   const pendingIncoming = requests.filter((request) => request.direction === 'Incoming' && request.status === 'Pending').length;
   const activeJobs = jobs.filter((job) =>
@@ -182,6 +211,44 @@ export const AppLayout = () => {
               <Database size={14} />
               {formatNumber(datasets.length)} datasets
             </span>
+            <div className="theme-menu" ref={themeMenuRef}>
+              <button
+                type="button"
+                className={`icon-btn theme-trigger ${themeMenuOpen ? 'icon-btn-active' : ''}`}
+                onClick={() => setThemeMenuOpen((open) => !open)}
+                aria-label="Change theme"
+                aria-haspopup="menu"
+                aria-expanded={themeMenuOpen}
+                title={`Theme: ${theme}`}
+              >
+                <ActiveThemeIcon size={18} />
+              </button>
+              {themeMenuOpen ? (
+                <div className="theme-dropdown" role="menu" aria-label="Theme options">
+                  {THEME_OPTIONS.map((option) => {
+                    const Icon = option.icon;
+                    const active = theme === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={active}
+                        className={`theme-dropdown-item ${active ? 'active' : ''}`}
+                        onClick={() => {
+                          setTheme(option.value);
+                          setThemeMenuOpen(false);
+                        }}
+                      >
+                        <Icon size={15} />
+                        <span>{option.label}</span>
+                        {active ? <Check size={14} className="theme-check" /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
             <button className="icon-btn bell" onClick={() => navigate('/access-requests')} aria-label="Pending access requests">
               <Bell size={18} />
               {pendingIncoming > 0 ? <span className="bell-dot">{pendingIncoming}</span> : null}

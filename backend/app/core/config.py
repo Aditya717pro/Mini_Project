@@ -28,6 +28,16 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     allow_registration: bool = True
 
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = "no-reply@meddatahub.local"
+    smtp_use_tls: bool = True
+    otp_ttl_seconds: int = 600
+    otp_max_attempts: int = 5
+    otp_request_cooldown_seconds: int = 60
+
     database_url: str = "sqlite:///./meddatahub.db"
     database_connect_timeout: int = 5
     sql_echo: bool = False
