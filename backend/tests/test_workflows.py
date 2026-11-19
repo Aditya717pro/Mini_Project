@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.models import DatasetVersion, User
 from app.models.enums import UserRole
+from app.services.storage_service import StorageService
 
 
 def create_user(db: Session, email: str, role: UserRole) -> User:
@@ -57,6 +58,7 @@ def test_register_login_and_me(client: TestClient, db_session: Session) -> None:
 def test_upload_etl_reports_and_access_flow(
     client: TestClient,
     db_session: Session,
+    tmp_path: Path,
 ) -> None:
     contributor = create_user(db_session, "contributor@example.org", UserRole.CONTRIBUTOR)
     researcher = create_user(db_session, "researcher@example.org", UserRole.RESEARCHER)
@@ -221,10 +223,26 @@ def test_upload_etl_reports_and_access_flow(
 
     version = db_session.scalar(select(DatasetVersion).where(DatasetVersion.dataset_id == dataset_id))
     assert version is not None
-    raw = Path(version.raw_file_path)
-    processed = Path(version.processed_file_path)
+    storage = StorageService(client.app.state.settings)
+    raw = storage.resolve(version.raw_file_path, kind="raw")
+    processed = storage.resolve(version.processed_file_path or "", kind="processed")
     assert raw.exists() and raw.read_bytes().startswith(b"participant_id,")
     assert processed.exists()
     processed_text = processed.read_text(encoding="utf-8")
     assert "original__7__notes" in processed_text
     assert "visit_date:error" in processed_text
+
+    outside = tmp_path / "outside.csv"
+    outside.write_text("secret,not,a,dataset\n", encoding="utf-8")
+    version.processed_file_path = None
+    version.raw_file_path = str(outside)
+    db_session.commit()
+    rejected = client.get(f"/api/v1/datasets/{dataset_id}/download", headers=contributor_headers)
+    assert rejected.status_code == 404
+    assert b"secret" not in rejected.content
+
+    version.raw_file_path = str(raw)
+    db_session.commit()
+    legacy = client.get(f"/api/v1/datasets/{dataset_id}/download", headers=contributor_headers)
+    assert legacy.status_code == 200
+    assert legacy.content.startswith(b"participant_id,")

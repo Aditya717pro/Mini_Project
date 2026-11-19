@@ -5,7 +5,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.security import hash_password
 from app.models.audit import AuditLog
+from app.models.enums import UserRole
+from app.models.user import User
 from app.synthmed.models import SynthMedGenerationJob
 
 REGISTER = "/api/v1/auth/register"
@@ -227,3 +230,34 @@ def test_generation_authentication_ownership_and_failure(client: TestClient, db_
     )
     assert failed["status"] == "Failed"
     assert "No modelable columns remain" in failed["error"]
+
+
+def test_admin_can_view_and_list_other_users_generation_jobs(
+    client: TestClient, db_session: Session
+) -> None:
+    assert UserRole.ADMINISTRATOR.value == "Administrator"
+    register_user(client, "ctgan-admin-owner@example.test")
+    owner_headers = auth_headers(client, "ctgan-admin-owner@example.test")
+    source_id = upload(client, owner_headers, FICTIONAL_CSV)
+    job = start_job(client, owner_headers, source_id)
+
+    admin = User(
+        email="ctgan-admin@example.test",
+        full_name="CTGAN Administrator",
+        hashed_password=hash_password("SynthMedTest!42"),
+        role=UserRole.ADMINISTRATOR,
+        organisation="Test Lab",
+        title="Administrator",
+    )
+    db_session.add(admin)
+    db_session.commit()
+    db_session.refresh(admin)
+    admin_headers = auth_headers(client, "ctgan-admin@example.test")
+
+    detail = client.get(f"{API}/generation/jobs/{job['id']}", headers=admin_headers)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["id"] == job["id"]
+
+    jobs = client.get(f"{API}/generation/jobs", headers=admin_headers)
+    assert jobs.status_code == 200, jobs.text
+    assert job["id"] in [item["id"] for item in jobs.json()]

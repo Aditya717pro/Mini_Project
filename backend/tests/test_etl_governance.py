@@ -206,7 +206,9 @@ def test_ambiguous_dates_are_flagged_and_not_parsed(client: TestClient, db_sessi
         select(DatasetVersion).join(Dataset).where(Dataset.title == "Synthetic date cohort")
     )
     assert version is not None and version.processed_file_path
-    processed = Path(version.processed_file_path).read_text(encoding="utf-8")
+    processed = StorageService(client.app.state.settings).resolve(
+        version.processed_file_path, kind="processed"
+    ).read_text(encoding="utf-8")
     assert "03/04/2025" in processed
     assert "visit_date:review" in processed
     assert "2025-01-02" in processed
@@ -352,7 +354,9 @@ def test_duplicate_records_and_missing_values_are_preserved(client: TestClient, 
 
     version = db_session.scalar(select(DatasetVersion).where(DatasetVersion.dataset_id == dataset_id))
     assert version is not None and version.processed_file_path
-    lines = Path(version.processed_file_path).read_text(encoding="utf-8").splitlines()
+    lines = StorageService(client.app.state.settings).resolve(
+        version.processed_file_path, kind="processed"
+    ).read_text(encoding="utf-8").splitlines()
     assert len(lines) == 4
     assert "_duplicate_record" in lines[0]
     assert "_validation_flags" in lines[0]

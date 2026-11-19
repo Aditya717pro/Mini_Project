@@ -168,21 +168,24 @@ def forgot_password(
     email = payload.email.strip().lower()
     user = db.scalar(select(User).where(User.email == email))
     if user is not None and user.is_active:
-        otp = issue_otp(db, settings=settings, user=user)
+        otp = issue_otp(db, settings=settings, user=user, commit=False)
         if otp is not None:
             try:
                 send_password_reset_email(settings=settings, to_email=user.email, otp=otp)
             except Exception:
+                db.rollback()
                 logger.exception("Could not send password reset email to %s", user.email)
-            log_audit(
-                db,
-                action="user.password_reset_requested",
-                resource_type="user",
-                resource_id=user.id,
-                actor_id=user.id,
-                details={},
-                request=request,
-            )
+            else:
+                log_audit(
+                    db,
+                    action="user.password_reset_requested",
+                    resource_type="user",
+                    resource_id=user.id,
+                    actor_id=user.id,
+                    details={},
+                    request=request,
+                )
+                db.commit()
     return {"message": "If the email is registered, a reset code has been sent."}
 
 

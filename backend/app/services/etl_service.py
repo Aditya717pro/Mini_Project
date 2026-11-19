@@ -45,6 +45,15 @@ def run_etl(
     if research_task:
         dataset.research_task = research_task.strip()
 
+    storage = StorageService(settings)
+    try:
+        raw_path = storage.resolve(version.raw_file_path, kind="raw")
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dataset raw file not found on disk",
+        ) from error
+
     job.approved_mapping_json = approved_mapping
     log_job(
         db,
@@ -68,9 +77,8 @@ def run_etl(
         )
 
     try:
-        storage = StorageService(settings)
         pipeline = run_pipeline(
-            raw_path=version.raw_file_path,
+            raw_path=raw_path,
             file_format=dataset.format,
             approved_mapping=approved_mapping,
             storage=storage,
@@ -132,7 +140,7 @@ def run_etl(
             f"Readiness verdict: {readiness.verdict} ({readiness.overall}/100) for '{readiness.task}'.",
         )
 
-        version.processed_file_path = str(pipeline.processed_path)
+        version.processed_file_path = storage.relative_path(pipeline.processed_path, kind="processed")
         version.transformation_log_json = pipeline.transformation_log
         version.record_count = len(pipeline.transformed.dataframe)
         version.column_count = len(pipeline.transformed.dataframe.columns)

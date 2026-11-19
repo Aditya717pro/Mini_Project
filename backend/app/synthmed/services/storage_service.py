@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from app.core.config import Settings
+from app.services.storage_paths import resolve_within_root
 
 
 def _safe_component(value: str) -> str:
@@ -20,6 +21,17 @@ def _safe_filename(filename: str) -> str:
         suffix = Path(cleaned).suffix
         cleaned = cleaned[: 180 - len(suffix)] + suffix
     return cleaned
+
+
+def _within_category(stored_path: str, category: str) -> str:
+    candidate = Path(stored_path)
+    if candidate.is_absolute():
+        return stored_path
+    parts = candidate.parts
+    if not parts or parts[0] != category:
+        raise ValueError("Stored path is outside the expected storage category")
+    return str(Path(*parts[1:]))
+
 
 
 class SynthMedStorageService:
@@ -45,26 +57,11 @@ class SynthMedStorageService:
         return target, relative
 
     def resolve_source(self, relative_path: str) -> Path:
-        candidate = Path(relative_path)
-        if candidate.is_absolute():
-            raise ValueError("Stored path must be relative")
-        resolved = (self.base / candidate).resolve()
-        if not resolved.is_relative_to(self.sources_root):
-            raise ValueError("Resolved path is outside the SynthMed sources storage root")
-        if not resolved.is_file():
-            raise FileNotFoundError("Stored source file does not exist")
-        return resolved
+        return resolve_within_root(self.sources_root, _within_category(relative_path, "sources"))
 
     def resolve_generated(self, relative_path: str) -> Path:
-        candidate = Path(relative_path)
-        if candidate.is_absolute():
-            raise ValueError("Stored path must be relative")
-        resolved = (self.base / candidate).resolve()
-        if not resolved.is_relative_to(self.generated_root):
-            raise ValueError("Resolved path is outside the SynthMed generated storage root")
-        if not resolved.is_file():
-            raise FileNotFoundError("Stored generated file does not exist")
-        return resolved
+        return resolve_within_root(self.generated_root, _within_category(relative_path, "generated"))
+
 
     def remove_source(self, relative_path: str) -> None:
         path = self.resolve_source(relative_path)
@@ -93,13 +90,5 @@ class SynthMedStorageService:
         return target, f"reports/{job_id}/{safe_name}"
 
     def resolve_report(self, relative_path: str) -> Path:
-        candidate = Path(relative_path)
-        if candidate.is_absolute():
-            raise ValueError("Stored path must be relative")
-        resolved = (self.base / candidate).resolve()
-        if not resolved.is_relative_to(self.reports_root):
-            raise ValueError("Resolved path is outside the SynthMed reports storage root")
-        if not resolved.is_file():
-            raise FileNotFoundError("Stored report file does not exist")
-        return resolved
+        return resolve_within_root(self.reports_root, _within_category(relative_path, "reports"))
 

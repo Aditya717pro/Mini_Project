@@ -7,8 +7,9 @@ import time
 import traceback
 import warnings
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from threading import Lock
 from typing import Any
 from uuid import uuid4
 
@@ -17,11 +18,13 @@ import pandas as pd
 import torch
 from fastapi import HTTPException, Request, status
 from sdv.single_table import CTGANSynthesizer
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import Settings
 from app.db.session import SessionLocal
+from app.models.enums import UserRole
+from app.models.user import User
 from app.services.audit_service import log_audit
 from app.synthmed.models import (
     SynthMedEvaluationReport,
@@ -45,7 +48,11 @@ from app.synthmed.services.storage_service import SynthMedStorageService
 MODEL_NAME = "SDV CTGANSynthesizer"
 TERMINAL_STATUSES = {"Completed", "Failed"}
 ACTIVE_STATUSES = {"Queued", "Preprocessing", "Training", "Generating", "Validating"}
+INTERRUPTED_ERROR_TYPE = "InterruptedJob"
+INTERRUPTED_ERROR_MESSAGE = "Generation was interrupted by an API restart."
 _executor: ThreadPoolExecutor | None = None
+_executor_lock = Lock()
+_executor_stopping = False
 
 
 def _now() -> datetime:
@@ -64,11 +71,24 @@ def _session_factory(db: Session | None = None) -> sessionmaker[Session]:
 
 def _executor_for(settings: Settings) -> ThreadPoolExecutor:
     global _executor
-    if _executor is None:
-        _executor = ThreadPoolExecutor(
-            max_workers=settings.synthmed_generation_worker_count, thread_name_prefix="synthmed-ctgan"
-        )
-    return _executor
+    with _executor_lock:
+        if _executor_stopping:
+            raise RuntimeError("SynthMed generation executor is shutting down")
+        if _executor is None:
+            _executor = ThreadPoolExecutor(
+                max_workers=settings.synthmed_generation_worker_count, thread_name_prefix="synthmed-ctgan"
+            )
+        return _executor
+
+
+def shutdown_executor(wait: bool = True) -> None:
+    global _executor, _executor_stopping
+    with _executor_lock:
+        _executor_stopping = True
+        executor = _executor
+        _executor = None
+    if executor is not None:
+        executor.shutdown(wait=wait, cancel_futures=not wait)
 
 
 def _status(job: SynthMedGenerationJob, value: str, **updates: Any) -> None:
@@ -176,7 +196,7 @@ def start_generation_job(
     *,
     source: SynthMedSourceDataset,
     config: dict[str, Any],
-    user: Any,
+    user: User,
     settings: Settings,
     request: Request | None = None,
 ) -> SynthMedGenerationJob:
@@ -468,30 +488,27 @@ def job_response(job: SynthMedGenerationJob) -> dict[str, Any]:
     }
 
 
-def get_job(db: Session, job_id: str, user: Any) -> SynthMedGenerationJob:
+def get_job(db: Session, job_id: str, user: User) -> SynthMedGenerationJob:
     job = db.get(SynthMedGenerationJob, job_id)
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Generation job not found.")
-    if job.owner_id != user.id and user.role.value != "ADMINISTRATOR":
+    if job.owner_id != user.id and user.role != UserRole.ADMINISTRATOR:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not permitted to view this generation job.")
     return job
 
 
-def list_jobs(db: Session, user: Any) -> list[SynthMedGenerationJob]:
-    return list(
-        db.scalars(
-            select(SynthMedGenerationJob)
-            .where(SynthMedGenerationJob.owner_id == user.id)
-            .order_by(SynthMedGenerationJob.created_at.desc())
-        )
-    )
+def list_jobs(db: Session, user: User) -> list[SynthMedGenerationJob]:
+    statement = select(SynthMedGenerationJob)
+    if user.role != UserRole.ADMINISTRATOR:
+        statement = statement.where(SynthMedGenerationJob.owner_id == user.id)
+    return list(db.scalars(statement.order_by(SynthMedGenerationJob.created_at.desc())))
 
 
 def job_for_generated(db: Session, generated_id: str) -> SynthMedGenerationJob | None:
     return db.scalar(select(SynthMedGenerationJob).where(SynthMedGenerationJob.generated_dataset_id == generated_id))
 
 
-def generated_detail(db: Session, generated_id: str, user: Any) -> dict[str, Any]:
+def generated_detail(db: Session, generated_id: str, user: User) -> dict[str, Any]:
     from app.synthmed.services.source_service import ensure_generated_access, get_generated
 
     generated = get_generated(db, generated_id)
@@ -521,7 +538,7 @@ def generated_detail(db: Session, generated_id: str, user: Any) -> dict[str, Any
 
 
 def preview_generated(
-    db: Session, generated_id: str, user: Any, settings: Settings, page: int, page_size: int
+    db: Session, generated_id: str, user: User, settings: Settings, page: int, page_size: int
 ) -> dict[str, Any]:
     from app.synthmed.services.source_service import ensure_generated_access, get_generated
 
@@ -541,7 +558,7 @@ def preview_generated(
     }
 
 
-def evaluation_report(db: Session, generated_id: str, report_type: str, user: Any) -> dict[str, Any]:
+def evaluation_report(db: Session, generated_id: str, report_type: str, user: User) -> dict[str, Any]:
     from app.synthmed.services.source_service import ensure_generated_access, get_generated
 
     generated = get_generated(db, generated_id)
@@ -587,7 +604,7 @@ def export_generated(
     db: Session,
     *,
     generated_id: str,
-    user: Any,
+    user: User,
     file_format: str,
     settings: Settings,
     request: Request | None = None,
@@ -652,17 +669,43 @@ def generated_download_path(db: Session, generated_id: str, file_format: str, se
     return SynthMedStorageService(settings).resolve_generated(relative), Path(relative).name
 
 
-def recover_stale_jobs(session_factory: sessionmaker[Session] | None = None) -> int:
+def recover_stale_jobs(
+    session_factory: sessionmaker[Session] | None = None, *, stale_after_seconds: int = 0
+) -> int:
     factory = session_factory or SessionLocal
+    cutoff = _now() - timedelta(seconds=stale_after_seconds) if stale_after_seconds > 0 else None
     recovered = 0
     with factory() as db:
-        jobs = db.scalars(select(SynthMedGenerationJob).where(SynthMedGenerationJob.status.in_(ACTIVE_STATUSES)))
-        for job in jobs:
-            _status(
-                job,
-                "Failed",
-                completed_at=_now(),
-                error_json={"type": "InterruptedJob", "message": "Generation was interrupted by an API restart."},
+        statement = select(SynthMedGenerationJob.id, SynthMedGenerationJob.owner_id).where(
+            SynthMedGenerationJob.status.in_(ACTIVE_STATUSES)
+        )
+        if cutoff is not None:
+            statement = statement.where(SynthMedGenerationJob.updated_at <= cutoff)
+        candidates = db.execute(statement).all()
+        for job_id, owner_id in candidates:
+            result = db.execute(
+                update(SynthMedGenerationJob)
+                .where(
+                    SynthMedGenerationJob.id == job_id,
+                    SynthMedGenerationJob.status.in_(ACTIVE_STATUSES),
+                )
+                .values(
+                    status="Failed",
+                    completed_at=_now(),
+                    updated_at=_now(),
+                    error_json={"type": INTERRUPTED_ERROR_TYPE, "message": INTERRUPTED_ERROR_MESSAGE},
+                )
+                .execution_options(synchronize_session=False)
+            )
+            if result.rowcount != 1:
+                continue
+            log_audit(
+                db,
+                action="synthmed.generation_interrupted",
+                resource_type="synthmed_generation_job",
+                resource_id=job_id,
+                actor_id=owner_id,
+                details={"reason": "api_restart", "stale_after_seconds": stale_after_seconds},
             )
             recovered += 1
         db.commit()

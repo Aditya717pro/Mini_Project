@@ -10,7 +10,8 @@ from starlette.responses import Response
 from app.api.v1 import api_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
-from app.db.session import engine
+from app.db.session import SessionLocal, engine
+from app.synthmed.services import generation_service
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +25,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.app_version,
         settings.environment,
     )
-    yield
-    engine.dispose()
-    logger.info("MedDataHub API stopped")
+    if settings.synthmed_stale_job_recovery_enabled:
+        try:
+            recovered = generation_service.recover_stale_jobs(
+                SessionLocal, stale_after_seconds=settings.synthmed_stale_job_after_seconds
+            )
+            if recovered:
+                logger.warning("Recovered %d interrupted SynthMed generation job(s)", recovered)
+        except Exception:
+            logger.exception("SynthMed stale-job recovery failed; continuing startup")
+    try:
+        yield
+    finally:
+        try:
+            generation_service.shutdown_executor(wait=True)
+        except Exception:
+            logger.exception("SynthMed generation executor shutdown failed")
+        engine.dispose()
+        logger.info("MedDataHub API stopped")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

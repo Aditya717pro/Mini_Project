@@ -35,3 +35,15 @@ def test_api_prefix_is_normalized() -> None:
 def test_api_prefix_must_start_with_slash() -> None:
     with pytest.raises(ValidationError):
         Settings(environment="test", api_v1_prefix="api/v1")
+
+
+def test_synthmed_stale_job_recovery_defaults() -> None:
+    settings = Settings(environment="test")
+
+    assert settings.synthmed_stale_job_recovery_enabled is True
+    assert settings.synthmed_stale_job_after_seconds == 0
+
+
+def test_synthmed_stale_job_after_seconds_must_not_be_negative() -> None:
+    with pytest.raises(ValidationError):
+        Settings(environment="test", synthmed_stale_job_after_seconds=-1)

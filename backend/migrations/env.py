@@ -4,9 +4,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+import app.models  # noqa: F401
 from app.core.config import Settings
 from app.database.base import Base
-import app.models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
@@ -24,6 +24,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        compare_server_default=True,
         render_as_batch=True,
     )
     with context.begin_transaction():

@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser
+from app.api.deps import CurrentUser, get_app_settings
+from app.core.config import Settings
 from app.db.session import get_db
 from app.etl.extract import extract_dataset
 from app.models.dataset import Dataset
@@ -24,6 +25,7 @@ from app.schemas.reports import (
 from app.services.audit_service import log_audit
 from app.services.dataset_service import current_version, get_dataset, iso, representativeness_score
 from app.services.readiness_service import assess_readiness, persist_readiness_report
+from app.services.storage_service import StorageService
 
 router = APIRouter(prefix="/datasets", tags=["reports"])
 
@@ -131,6 +133,7 @@ def create_readiness_report(
     payload: ReadinessRequest,
     request: Request,
     db: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
     user: CurrentUser,
 ) -> ReadinessReportResponse:
     dataset = get_dataset(db, dataset_id)
@@ -153,7 +156,14 @@ def create_readiness_report(
             detail="Run ETL quality assessment before assessing readiness",
         )
 
-    extracted = extract_dataset(version.raw_file_path, dataset.format)
+    try:
+        raw_path = StorageService(settings).resolve(version.raw_file_path, kind="raw")
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dataset raw file not found on disk",
+        ) from error
+    extracted = extract_dataset(raw_path, dataset.format)
     latest_rep = db.scalar(
         select(RepresentativenessReport)
         .where(RepresentativenessReport.dataset_id == dataset.id)

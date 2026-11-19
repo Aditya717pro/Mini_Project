@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
@@ -148,14 +147,11 @@ def download_dataset_endpoint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset has no versions")
 
     file_path = version.processed_file_path or version.raw_file_path
-    path = Path(file_path)
-    if not path.is_absolute():
-        storage = StorageService(settings)
-        kind = "processed" if version.processed_file_path else "raw"
-        path = storage.resolve(file_path, kind=kind)
-
-    if not path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset file not found on disk")
+    kind = "processed" if version.processed_file_path else "raw"
+    try:
+        path = StorageService(settings).resolve(file_path, kind=kind)
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset file not found on disk") from error
 
     log_audit(
         db,

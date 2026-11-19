@@ -8,7 +8,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.dataset import Dataset, DatasetVersion
-from app.models.enums import AccessClassification, DatasetStatus, RequestStatus
+from app.models.enums import AccessClassification, DatasetStatus, RequestStatus, UserRole
 from app.models.reports import QualityReport, ReadinessReport, RepresentativenessReport
 from app.models.user import User
 from app.schemas.dataset import DatasetDetailResponse, DatasetSummary, DatasetVersionResponse
@@ -189,7 +189,7 @@ def dataset_report_context(dataset_id: str) -> dict[str, Any]:
 def has_approved_access(db: Session, dataset: Dataset, user: User) -> bool:
     from app.models.access import AccessRequest
 
-    if user.role.value == "Administrator" or dataset.owner_id == user.id:
+    if user.role == UserRole.ADMINISTRATOR or dataset.owner_id == user.id:
         return True
     if dataset.access_classification == AccessClassification.OPEN:
         return True

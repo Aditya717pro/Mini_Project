@@ -50,6 +50,7 @@ def create_upload(
 
     try:
         raw_path = storage.save_raw(dataset_id, "v1.0", filename, content)
+        raw_relative_path = storage.relative_path(raw_path, kind="raw")
         extracted: ExtractResult = extract_dataset(raw_path, file_format)
         profile = extracted.profile
         suggestions = suggest_mappings([column.name for column in profile.columns])
@@ -64,7 +65,7 @@ def create_upload(
             status=DatasetStatus.PROCESSING,
             format=file_format,
             original_filename=Path(filename).name,
-            original_path=str(raw_path),
+            original_path=raw_relative_path,
             checksum_sha256=checksum,
             file_size_bytes=len(content),
             record_count=profile.row_count,
@@ -79,7 +80,7 @@ def create_upload(
             dataset_id=dataset_id,
             version_number=1,
             version_label="v1.0",
-            raw_file_path=str(raw_path),
+            raw_file_path=raw_relative_path,
             checksum_sha256=checksum,
             file_size_bytes=len(content),
             record_count=profile.row_count,

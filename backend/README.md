@@ -29,6 +29,8 @@ Copy-Item .env.example .env
 
 Edit `.env` for local database settings. Never commit `.env` or real patient data.
 
+Password reset email requires working SMTP settings. Delivery is fail-closed: if sending fails, the request still returns the generic `202` response for privacy, but no reset code is persisted or accepted and no success audit entry is written.
+
 ## Run
 
 From the repository root:
@@ -61,7 +63,7 @@ Roll back the latest migration:
 alembic downgrade -1
 ```
 
-The `b7c4e1d9a3f2_etl_governance` migration adds ETL approval/decision columns and the `etl_mapping_decisions` table, and migrates the previous `Running` status to `Processing`. SynthMed adds `d4a8c1f0b2e3_synthmed_source_and_generated_tables` for source/generated datasets and `f6b2c9d4e7a1_ctgan_generation_jobs_configs_and_reports` for generation jobs, configs and evaluation reports.
+The `b7c4e1d9a3f2_etl_governance` migration adds ETL approval/decision columns and the `etl_mapping_decisions` table, and migrates the previous `Running` status to `Processing`. SynthMed adds `d4a8c1f0b2e3_synthmed_source_and_generated_tables` for source/generated datasets and `f6b2c9d4e7a1_ctgan_generation_jobs_configs_and_reports` for generation jobs, configs and evaluation reports. `a1f4d7e9c2b6_reconcile_schema_drift` aligns unique indexes/constraints and adds the generation status index; Alembic autogenerate now also compares server defaults.
 
 ## ETL API
 
@@ -102,7 +104,11 @@ Example mapping decision payload:
 | `POST` | `/api/v1/synthmed/generated/{generation_id}/export` | Export generated data to another format |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}/reports/{report_type}/download` | Download report JSON |
 
-Generation runs on CPU with configurable epochs, batch size and seed. Batch size must be a multiple of 10 between 20 and 10000. Set `SYNTHMED_GENERATION_INLINE=true` for inline test execution; production uses background workers.
+Generation runs on CPU with configurable epochs, batch size and seed. Batch size must be a multiple of 10 between 20 and 10000. Set `SYNTHMED_GENERATION_INLINE=true` for inline test execution; production uses in-process background workers.
+
+Set `SYNTHMED_STALE_JOB_RECOVERY_ENABLED=false` to skip startup recovery. `SYNTHMED_STALE_JOB_AFTER_SECONDS` is an optional minimum age for recovery; `0` marks all active jobs found at startup as interrupted. Recovery runs before requests are accepted, writes an `InterruptedJob` error and an audit entry, and is idempotent. If recovery fails, the error is logged and startup continues. On shutdown the executor stops accepting submissions, running tasks are awaited, SQLAlchemy engine disposal happens last, and shutdown errors are logged.
+
+This P0 does not add a durable queue. The SynthMed worker is in-process, so a process crash before completion cannot resume CTGAN training; recovery only converts stranded active jobs into a terminal failed state so users can resubmit. ETL jobs run synchronously in request handlers and do not use a separate executor.
 
 ## Verify
 
@@ -147,4 +153,5 @@ tests/            API, workflow and ETL governance tests
 - Only synthetic data should be used.
 - Ambiguous dates are never inferred; missing values are never imputed; invalid rows are flagged and retained.
 - Raw files are immutable and processed outputs are atomically replaced with rollback on validation failure.
+- Stored file paths are resolved inside their designated storage root; absolute legacy paths are accepted only when they remain inside that root.
 - Generated outputs and reports are owner-scoped; source files are never modified during generation.

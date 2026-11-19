@@ -6,6 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.core.config import Settings
+from app.services.storage_paths import relative_path, resolve_within_root
 
 Validator = Callable[[Path], None]
 
@@ -77,14 +78,10 @@ class StorageService:
                         restore.unlink(missing_ok=True)
             raise
 
+    def relative_path(self, path: Path, *, kind: str) -> str:
+        base = self.raw_root if kind == "raw" else self.processed_root
+        return relative_path(base, path)
+
     def resolve(self, relative_or_absolute_path: str, *, kind: str) -> Path:
         base = self.raw_root if kind == "raw" else self.processed_root
-        candidate = Path(relative_or_absolute_path)
-        if not candidate.is_absolute():
-            candidate = base / candidate
-        resolved = candidate.resolve()
-        if not resolved.is_relative_to(base):
-            raise ValueError("Resolved file path is outside the storage root")
-        if not resolved.is_file():
-            raise FileNotFoundError("Stored file does not exist")
-        return resolved
+        return resolve_within_root(base, relative_or_absolute_path)

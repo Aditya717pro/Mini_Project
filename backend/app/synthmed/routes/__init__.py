@@ -206,7 +206,10 @@ def analyse_generation_source(
 ) -> SynthMedGenerationAnalysisResponse:
     source = get_source(db, source_dataset_id)
     ensure_source_access(source, user)
-    return generation_service.analyse_source(db, source, settings)
+    try:
+        return generation_service.analyse_source(db, source, settings)
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source file not found on disk.") from error
 
 
 @router.post(
@@ -256,7 +259,13 @@ def get_generated_preview(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200, alias="pageSize"),
 ) -> SynthMedGeneratedPreviewResponse:
-    return generation_service.preview_generated(db, generation_id, user, settings, page, page_size)
+    try:
+        return generation_service.preview_generated(db, generation_id, user, settings, page, page_size)
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Generated file not found on disk.",
+        ) from error
 
 
 @router.get("/generated/{generation_id}/quality", response_model=SynthMedEvaluationReportResponse)
@@ -282,14 +291,20 @@ def export_generated_dataset(
     user: CurrentUser,
     settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> SynthMedExportResponse:
-    return generation_service.export_generated(
-        db,
-        generated_id=generation_id,
-        user=user,
-        file_format=payload.format,
-        settings=settings,
-        request=request,
-    )
+    try:
+        return generation_service.export_generated(
+            db,
+            generated_id=generation_id,
+            user=user,
+            file_format=payload.format,
+            settings=settings,
+            request=request,
+        )
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Generated file not found on disk.",
+        ) from error
 
 
 @router.get("/generated/{generation_id}/reports/{report_type}/download")

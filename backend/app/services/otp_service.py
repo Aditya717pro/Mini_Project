@@ -25,7 +25,7 @@ def _latest(db: Session, user: User) -> PasswordResetOTP | None:
     )
 
 
-def issue_otp(db: Session, *, settings: Settings, user: User) -> str | None:
+def issue_otp(db: Session, *, settings: Settings, user: User, commit: bool = True) -> str | None:
     latest = _latest(db, user)
     now = datetime.now(UTC)
     if (
@@ -50,7 +50,8 @@ def issue_otp(db: Session, *, settings: Settings, user: User) -> str | None:
             expires_at=now + timedelta(seconds=settings.otp_ttl_seconds),
         )
     )
-    db.commit()
+    if commit:
+        db.commit()
     return otp
 
 

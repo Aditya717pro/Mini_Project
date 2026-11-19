@@ -25,6 +25,7 @@ def app(tmp_path) -> FastAPI:
             processed_storage_dir=tmp_path / "processed",
             synthmed_storage_dir=tmp_path / "synthmed",
             synthmed_generation_inline=True,
+            synthmed_stale_job_recovery_enabled=False,
         )
     )
 

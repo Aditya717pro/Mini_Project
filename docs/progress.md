@@ -21,6 +21,7 @@ Last updated: 2026-11-19
 | 13 | Frontend/API integration | Complete | UI actions call FastAPI endpoints and reflect backend job state. |
 | 14 | Testing, documentation and hardening | In progress | Backend workflow coverage and docs updated; frontend test suite still absent. |
 | 15 | SynthMed CTGAN generation and reporting | Complete | Real SDV CTGAN jobs, previews, exports, SDMetrics quality reports and privacy-risk reports. |
+| 16 | P0 audit remediation | Complete | Admin RBAC, worker recovery/shutdown, storage containment, fail-closed OTP and Alembic drift checks. |
 
 ## ETL governance implementation
 
@@ -48,13 +49,23 @@ Last updated: 2026-11-19
 - Quality reporting uses SDMetrics quality and diagnostics with per-property scores and details.
 - Privacy reporting covers exact overlap, duplicate rows, nearest-neighbour similarity and explicit limitations; no anonymity or differential privacy claim is made.
 
+## P0 audit remediation
+
+- Administrator access checks now use `UserRole.ADMINISTRATOR` in MedDataHub datasets and SynthMed generation jobs, and administrators list all generation jobs without owning them.
+- SynthMed startup recovery marks stranded active jobs as `Failed` with an `InterruptedJob` error and audit entry; recovery is idempotent, configurable and safe to disable in tests.
+- API shutdown stops accepting new executor submissions, awaits running work, logs shutdown failures and disposes the database engine last. No durable queue was introduced.
+- Stored file paths are resolved through a shared containment helper. Absolute legacy paths are accepted only inside the correct root; traversal, symlink escapes, cross-category paths and directories are rejected with controlled 404 responses before ETL, readiness, analysis, preview, export or download work begins.
+- New dataset and ETL file persistence uses normalised relative paths; old absolute paths remain readable when contained. Internal filesystem paths are not returned in API responses.
+- Password reset delivery is fail-closed: if SMTP sending fails, no OTP is committed, no success audit entry is written, and any previous valid OTP remains intact. The endpoint keeps its generic privacy-preserving `202` response.
+- Alembic autogenerate now compares server defaults. A new revision aligns the ETL unique index, SynthMed config unique constraint and generation status index with SQLAlchemy metadata, and a test runs `upgrade head` plus `check` against a temporary SQLite database.
+
 ## Verification record
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Backend lint | `& 'backend\.venv\Scripts\ruff.exe' check backend/app backend/tests` | All checks passed |
-| Backend tests | `& 'backend\.venv\Scripts\python.exe' -m pytest backend/tests -q` | 40 passed |
-| Alembic upgrade/downgrade | `alembic upgrade head`, `alembic downgrade -1` | Passed on a temporary SQLite database |
+| Backend lint | `ruff check .` from `backend` | All checks passed |
+| Backend tests | `& 'backend\.venv\Scripts\python.exe' -m pytest backend/tests -q` | 59 passed |
+| Alembic upgrade/downgrade/model check | `alembic upgrade head`, `alembic downgrade -1`, `alembic check` | Passed on temporary SQLite databases |
 | OpenAPI paths | `app.openapi()['paths']` required-path assertion | Passed |
 | TypeScript strict check | `npm run typecheck` | Passed |
 | Production build | `npm run build` | Passed |

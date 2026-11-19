@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     synthmed_ctgan_max_records: int = Field(default=50000, ge=1, le=1000000)
     synthmed_generation_worker_count: int = Field(default=1, ge=1, le=8)
     synthmed_generation_inline: bool = False
+    synthmed_stale_job_recovery_enabled: bool = True
+    synthmed_stale_job_after_seconds: int = Field(default=0, ge=0)
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 

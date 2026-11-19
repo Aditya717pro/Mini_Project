@@ -1,4 +1,4 @@
-﻿"""synthmed source and generated dataset tables
+"""synthmed source and generated dataset tables
 
 Revision ID: d4a8c1f0b2e3
 Revises: c9f2a7b41e60
@@ -8,8 +8,8 @@ Create Date: 2026-11-18 22:30:00.000000
 
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision: str = "d4a8c1f0b2e3"
 down_revision: str | None = "c9f2a7b41e60"
@@ -33,8 +33,12 @@ def upgrade() -> None:
         sa.Column("column_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("upload_status", sa.String(length=32), nullable=False, server_default="Uploaded"),
         sa.Column("content_type", sa.String(length=120), nullable=False, server_default=""),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("(CURRENT_TIMESTAMP)"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("(CURRENT_TIMESTAMP)"), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.text("(CURRENT_TIMESTAMP)"), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.text("(CURRENT_TIMESTAMP)"), nullable=False
+        ),
         sa.ForeignKeyConstraint(["owner_id"], ["users.id"], name="fk_synthmed_source_owner", ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -58,8 +62,12 @@ def upgrade() -> None:
         sa.Column("checksum_sha256", sa.String(length=64), nullable=False, server_default=""),
         sa.Column("stored_path", sa.Text(), nullable=False, server_default=""),
         sa.Column("status", sa.String(length=32), nullable=False, server_default="Completed"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("(CURRENT_TIMESTAMP)"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("(CURRENT_TIMESTAMP)"), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.text("(CURRENT_TIMESTAMP)"), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.text("(CURRENT_TIMESTAMP)"), nullable=False
+        ),
         sa.ForeignKeyConstraint(["owner_id"], ["users.id"], name="fk_synthmed_generated_owner", ondelete="RESTRICT"),
         sa.ForeignKeyConstraint(
             ["source_dataset_id"],
@@ -69,7 +77,9 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index("ix_synthmed_generated_datasets_owner_id", "synthmed_generated_datasets", ["owner_id"], unique=False)
+    op.create_index(
+        "ix_synthmed_generated_datasets_owner_id", "synthmed_generated_datasets", ["owner_id"], unique=False
+    )
     op.create_index(
         "ix_synthmed_generated_datasets_source_dataset_id",
         "synthmed_generated_datasets",

@@ -110,13 +110,15 @@ class SynthMedGenerationConfig(Base, TimestampMixin):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     job_id: Mapped[str] = mapped_column(
-        ForeignKey("synthmed_generation_jobs.id", ondelete="CASCADE"), nullable=False, unique=True
+        ForeignKey("synthmed_generation_jobs.id", ondelete="CASCADE"), nullable=False
     )
     owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
     config_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
     owner = relationship("User", foreign_keys=[owner_id])
     job = relationship("SynthMedGenerationJob", foreign_keys=[job_id])
+
+    __table_args__ = (UniqueConstraint("job_id", name="uq_synthmed_config_job"),)
 
 
 class SynthMedEvaluationReport(Base, TimestampMixin):

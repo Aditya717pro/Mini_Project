@@ -1,9 +1,11 @@
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.routes import auth as auth_routes
+from app.models import AuditLog, PasswordResetOTP
 
 
 @pytest.fixture()
@@ -141,3 +143,50 @@ def test_reset_requests_are_throttled(client: TestClient, db_session: Session, s
     assert request_reset(client).status_code == 202
     assert request_reset(client).status_code == 202
     assert len(sent_otps) == 1
+
+
+def test_delivery_failure_does_not_persist_otp(
+    client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail_send(**kwargs: object) -> None:
+        raise RuntimeError("SMTP unavailable")
+
+    monkeypatch.setattr(auth_routes, "send_password_reset_email", fail_send)
+    register(client)
+
+    assert request_reset(client).status_code == 202
+    assert db_session.scalars(select(PasswordResetOTP)).all() == []
+    audit = db_session.scalar(
+        select(AuditLog).where(AuditLog.action == "user.password_reset_requested")
+    )
+    assert audit is None
+    assert client.post(
+        "/api/v1/auth/forgot-password/verify",
+        json={"email": "user@example.com", "otp": "000000", "new_password": "new-strong-password-1"},
+    ).status_code == 400
+
+
+def test_failed_resend_preserves_previous_otp(
+    client: TestClient, db_session: Session, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: list[str] = []
+
+    def send_success(**kwargs: object) -> None:
+        captured.append(str(kwargs["otp"]))
+
+    def fail_send(**kwargs: object) -> None:
+        raise RuntimeError("SMTP unavailable")
+
+    monkeypatch.setattr(auth_routes, "send_password_reset_email", send_success)
+    register(client)
+    assert request_reset(client).status_code == 202
+    first_otp = captured[0]
+
+    app.state.settings.otp_request_cooldown_seconds = 0
+    monkeypatch.setattr(auth_routes, "send_password_reset_email", fail_send)
+    assert request_reset(client).status_code == 202
+
+    assert client.post(
+        "/api/v1/auth/forgot-password/verify",
+        json={"email": "user@example.com", "otp": first_otp, "new_password": "new-strong-password-1"},
+    ).status_code == 204
