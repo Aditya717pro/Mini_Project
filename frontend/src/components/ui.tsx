@@ -495,14 +495,14 @@ export const ToastViewport = () => {
       {toasts.map((toast) => (
         <div key={toast.id} className={cx('toast', `toast-${toast.type}`)}>
           <div className="toast-icon">
-            {toast.type === 'success' ? <CheckCircle2 size={18} /> : toast.type === 'error' ? <XCircle size={18} /> : <Info size={18} />}
+            {toast.type === 'success' ? <CheckCircle2 size={14} /> : toast.type === 'error' ? <XCircle size={14} /> : <Info size={14} />}
           </div>
           <div className="toast-body">
             <strong>{toast.title}</strong>
             {toast.message ? <p>{toast.message}</p> : null}
           </div>
-          <button className="icon-btn" onClick={() => dismissToast(toast.id)} aria-label="Dismiss notification">
-            <X size={14} />
+          <button className="icon-btn toast-close" onClick={() => dismissToast(toast.id)} aria-label="Dismiss notification">
+            <X size={11} />
           </button>
         </div>
       ))}

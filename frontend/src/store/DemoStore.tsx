@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { LoginScreen } from '../components/LoginScreen';
 import { LoadingState } from '../components/ui';
-import { ApiError, api, reportMaps, tokenStore } from '../lib/api';
+import { ApiError, api, reportMaps, tokenStore, type SynthMedUploadPayload } from '../lib/api';
 import type {
   AccessLevel,
   AccessRequest,
@@ -26,6 +26,16 @@ import type {
   RepresentativenessReport,
   RequestStatus,
   Role,
+  SynthMedDownloads,
+  SynthMedEvaluationReport,
+  SynthMedExportResponse,
+  SynthMedGeneratedDataset,
+  SynthMedGeneratedDatasetDetail,
+  SynthMedGeneratedPreview,
+  SynthMedGenerationAnalysis,
+  SynthMedGenerationJob,
+  SynthMedGenerationStartPayload,
+  SynthMedSourceDataset,
   ThemeMode,
   ToastMessage,
 } from '../types';
@@ -62,6 +72,9 @@ interface DemoStore {
   setTheme: (theme: ThemeMode) => void;
   datasets: Dataset[];
   jobs: EtlJob[];
+  synthSources: SynthMedSourceDataset[];
+  synthGenerated: SynthMedGeneratedDataset[];
+  synthJobs: SynthMedGenerationJob[];
   requests: AccessRequest[];
   qualityReports: Record<string, QualityReport>;
   readinessReports: Record<string, ReadinessReport>;
@@ -76,6 +89,26 @@ interface DemoStore {
   verifyPasswordReset: (email: string, otp: string, newPassword: string) => Promise<void>;
   refresh: () => Promise<void>;
   uploadDataset: (input: UploadInput) => Promise<string>;
+  uploadSynthMedSource: (input: SynthMedUploadPayload, onProgress: (percent: number) => void) => Promise<string>;
+  refreshSynthMed: () => Promise<SynthMedDownloads>;
+  getSynthMedSource: (datasetId: string) => Promise<SynthMedSourceDataset>;
+  downloadSynthMedSource: (dataset: SynthMedSourceDataset) => Promise<void>;
+  downloadSynthMedGenerated: (dataset: SynthMedGeneratedDataset) => Promise<void>;
+  analyseSynthMedGeneration: (sourceDatasetId: string) => Promise<SynthMedGenerationAnalysis>;
+  startSynthMedGeneration: (payload: SynthMedGenerationStartPayload) => Promise<SynthMedGenerationJob>;
+  listSynthMedGenerationJobs: () => Promise<SynthMedGenerationJob[]>;
+  getSynthMedGenerationJob: (jobId: string) => Promise<SynthMedGenerationJob>;
+  getSynthMedGeneratedDetail: (generatedId: string) => Promise<SynthMedGeneratedDatasetDetail>;
+  getSynthMedGeneratedPreview: (
+    generatedId: string,
+    page: number,
+    pageSize: number,
+  ) => Promise<SynthMedGeneratedPreview>;
+  getSynthMedQualityReport: (generatedId: string) => Promise<SynthMedEvaluationReport>;
+  getSynthMedPrivacyReport: (generatedId: string) => Promise<SynthMedEvaluationReport>;
+  exportSynthMedGenerated: (generatedId: string, format: FileFormat) => Promise<SynthMedExportResponse>;
+  downloadSynthMedGeneratedFormat: (generatedId: string, format: FileFormat) => Promise<void>;
+  downloadSynthMedReport: (generatedId: string, reportType: string) => Promise<void>;
   refreshJob: (jobId: string) => Promise<void>;
   profileJob: (jobId: string) => Promise<void>;
   recordMappingDecisions: (jobId: string, decisions: MappingDecisionInput[]) => Promise<void>;
@@ -117,6 +150,9 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [booting, setBooting] = useState(true);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [jobs, setJobs] = useState<EtlJob[]>([]);
+  const [synthSources, setSynthSources] = useState<SynthMedSourceDataset[]>([]);
+  const [synthGenerated, setSynthGenerated] = useState<SynthMedGeneratedDataset[]>([]);
+  const [synthJobs, setSynthJobs] = useState<SynthMedGenerationJob[]>([]);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [qualityReports, setQualityReports] = useState<Record<string, QualityReport>>({});
   const [readinessReports, setReadinessReports] = useState<Record<string, ReadinessReport>>({});
@@ -142,25 +178,65 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       setToasts((prev) => [...prev, { id, type, title, message }]);
       const timer = window.setTimeout(() => {
         setToasts((prev) => prev.filter((toast) => toast.id !== id));
-      }, 6000);
+      }, 3000);
       toastTimersRef.current.push(timer);
     },
     [],
   );
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
-      return;
+      // Storage unavailable or disabled
+    }
+
+    const applyTheme = () => {
+      let resolved: 'light' | 'dark' = 'light';
+      if (theme === 'default') {
+        const prefersDark =
+          typeof window !== 'undefined' &&
+          window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches;
+        resolved = prefersDark ? 'dark' : 'light';
+      } else {
+        resolved = theme;
+      }
+      document.documentElement.dataset.theme = resolved;
+      document.documentElement.dataset.themePreference = theme;
+      document.documentElement.style.colorScheme = resolved;
+    };
+
+    applyTheme();
+
+    if (theme === 'default' && typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleSystemThemeChange = () => {
+        applyTheme();
+      };
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', handleSystemThemeChange);
+        return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
+      } else if ('addListener' in mediaQuery) {
+        (mediaQuery as { addListener: (cb: () => void) => void }).addListener(handleSystemThemeChange);
+        return () =>
+          (mediaQuery as { removeListener: (cb: () => void) => void }).removeListener(handleSystemThemeChange);
+      }
     }
   }, [theme]);
 
   const setTheme = useCallback(
     (next: ThemeMode) => {
       setThemeState(next);
-      notify('info', 'Theme updated', `Using the ${next} theme.`);
+      if (next === 'default') {
+        const prefersDark =
+          typeof window !== 'undefined' &&
+          window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches;
+        notify('info', 'Theme: System', prefersDark ? 'Dark mode' : 'Light mode');
+      } else {
+        notify('info', `Theme: ${next === 'dark' ? 'Dark' : 'Light'}`);
+      }
     },
     [notify],
   );
@@ -168,6 +244,9 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const resetWorkspace = useCallback(() => {
     setDatasets([]);
     setJobs([]);
+    setSynthSources([]);
+    setSynthGenerated([]);
+    setSynthJobs([]);
     setRequests([]);
     setQualityReports({});
     setReadinessReports({});
@@ -176,7 +255,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
 
   const loadWorkspace = useCallback(async () => {
     try {
-      const [datasetList, jobList, requestList] = await Promise.all([
+      const [datasetList, jobList, requestList, synthDownloads, generationJobs] = await Promise.all([
         api.listDatasets().catch((err) => {
           console.error('Failed to list datasets:', err);
           return [];
@@ -188,6 +267,14 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
         api.listAccessRequests().catch((err) => {
           console.error('Failed to list access requests:', err);
           return [];
+        }),
+        api.getSynthMedDownloads().catch((err) => {
+          console.error('Failed to list SynthMed datasets:', err);
+          return { sources: [], generated: [] } as SynthMedDownloads;
+        }),
+        api.listSynthMedGenerationJobs().catch((err) => {
+          console.error('Failed to list SynthMed generation jobs:', err);
+          return [] as SynthMedGenerationJob[];
         }),
       ]);
       const reportBundles = await Promise.all(
@@ -202,6 +289,9 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       const maps = reportMaps.from(reportBundles);
       setDatasets(datasetList);
       setJobs(jobList);
+      setSynthSources(synthDownloads.sources);
+      setSynthGenerated(synthDownloads.generated);
+      setSynthJobs(generationJobs);
       setRequests(requestList);
       setQualityReports(maps.qualityReports);
       setReadinessReports(maps.readinessReports);
@@ -384,6 +474,163 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         notify('error', 'Upload failed', errorMessage(error));
         throw error;
+      }
+    },
+    [notify],
+  );
+
+  const uploadSynthMedSource = useCallback(
+    async (input: SynthMedUploadPayload, onProgress: (percent: number) => void) => {
+      try {
+        const dataset = await api.uploadSynthMedSource(input, onProgress);
+        setSynthSources((prev) => [dataset, ...prev.filter((item) => item.id !== dataset.id)]);
+        return dataset.id;
+      } catch (error) {
+        notify('error', 'SynthMed upload failed', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const refreshSynthMed = useCallback(async () => {
+    try {
+      const [downloads, jobs] = await Promise.all([
+        api.getSynthMedDownloads(),
+        api.listSynthMedGenerationJobs(),
+      ]);
+      setSynthSources(downloads.sources);
+      setSynthGenerated(downloads.generated);
+      setSynthJobs(jobs);
+      return downloads;
+    } catch (error) {
+      notify('error', 'Could not refresh SynthMed datasets', errorMessage(error));
+      throw error;
+    }
+  }, [notify]);
+
+  const getSynthMedSource = useCallback(async (datasetId: string) => {
+    const dataset = await api.getSynthMedSource(datasetId);
+    setSynthSources((prev) => prev.map((item) => (item.id === dataset.id ? dataset : item)));
+    return dataset;
+  }, []);
+
+  const downloadSynthMedSource = useCallback(
+    async (dataset: SynthMedSourceDataset) => {
+      try {
+        await api.downloadSynthMedSource(dataset);
+      } catch (error) {
+        notify('error', 'Source download failed', errorMessage(error));
+      }
+    },
+    [notify],
+  );
+
+  const downloadSynthMedGenerated = useCallback(
+    async (dataset: SynthMedGeneratedDataset) => {
+      try {
+        await api.downloadSynthMedGenerated(dataset);
+      } catch (error) {
+        notify('error', 'Generated dataset download failed', errorMessage(error));
+      }
+    },
+    [notify],
+  );
+
+  const analyseSynthMedGeneration = useCallback(async (sourceDatasetId: string) => {
+    try {
+      return await api.analyseSynthMedGeneration(sourceDatasetId);
+    } catch (error) {
+      notify('error', 'Source analysis failed', errorMessage(error));
+      throw error;
+    }
+  }, [notify]);
+
+  const startSynthMedGeneration = useCallback(
+    async (payload: SynthMedGenerationStartPayload) => {
+      try {
+        const job = await api.startSynthMedGeneration(payload);
+        setSynthJobs((prev) => [job, ...prev.filter((item) => item.id !== job.id)]);
+        notify('info', 'Generation job started', `${job.modelName} is ${job.status.toLowerCase()}.`);
+        return job;
+      } catch (error) {
+        notify('error', 'Generation could not start', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const listSynthMedGenerationJobs = useCallback(async () => {
+    try {
+      const jobs = await api.listSynthMedGenerationJobs();
+      setSynthJobs(jobs);
+      return jobs;
+    } catch (error) {
+      notify('error', 'Could not load generation jobs', errorMessage(error));
+      throw error;
+    }
+  }, [notify]);
+
+  const getSynthMedGenerationJob = useCallback(async (jobId: string) => {
+    const job = await api.getSynthMedGenerationJob(jobId);
+    setSynthJobs((prev) => prev.map((item) => (item.id === job.id ? job : item)));
+    return job;
+  }, []);
+
+  const getSynthMedGeneratedDetail = useCallback(
+    async (generatedId: string) => api.getSynthMedGeneratedDetail(generatedId),
+    [],
+  );
+
+  const getSynthMedGeneratedPreview = useCallback(
+    async (generatedId: string, page: number, pageSize: number) =>
+      api.getSynthMedGeneratedPreview(generatedId, page, pageSize),
+    [],
+  );
+
+  const getSynthMedQualityReport = useCallback(
+    async (generatedId: string) => api.getSynthMedQualityReport(generatedId),
+    [],
+  );
+
+  const getSynthMedPrivacyReport = useCallback(
+    async (generatedId: string) => api.getSynthMedPrivacyReport(generatedId),
+    [],
+  );
+
+  const exportSynthMedGenerated = useCallback(
+    async (generatedId: string, format: FileFormat) => {
+      try {
+        const response = await api.exportSynthMedGenerated(generatedId, format);
+        notify('success', 'Export ready', `${format} output is available for download.`);
+        await refreshSynthMed();
+        return response;
+      } catch (error) {
+        notify('error', 'Export failed', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify, refreshSynthMed],
+  );
+
+  const downloadSynthMedGeneratedFormat = useCallback(
+    async (generatedId: string, format: FileFormat) => {
+      try {
+        await api.downloadSynthMedGeneratedFormat(generatedId, format);
+      } catch (error) {
+        notify('error', `${format} download failed`, errorMessage(error));
+      }
+    },
+    [notify],
+  );
+
+  const downloadSynthMedReport = useCallback(
+    async (generatedId: string, reportType: string) => {
+      try {
+        await api.downloadSynthMedReport(generatedId, reportType);
+      } catch (error) {
+        notify('error', 'Report download failed', errorMessage(error));
       }
     },
     [notify],
@@ -585,6 +832,9 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       setTheme,
       datasets,
       jobs,
+      synthSources,
+      synthGenerated,
+      synthJobs,
       requests,
       qualityReports,
       readinessReports,
@@ -599,6 +849,22 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       verifyPasswordReset,
       refresh,
       uploadDataset,
+      uploadSynthMedSource,
+      refreshSynthMed,
+      getSynthMedSource,
+      downloadSynthMedSource,
+      downloadSynthMedGenerated,
+      analyseSynthMedGeneration,
+      startSynthMedGeneration,
+      listSynthMedGenerationJobs,
+      getSynthMedGenerationJob,
+      getSynthMedGeneratedDetail,
+      getSynthMedGeneratedPreview,
+      getSynthMedQualityReport,
+      getSynthMedPrivacyReport,
+      exportSynthMedGenerated,
+      downloadSynthMedGeneratedFormat,
+      downloadSynthMedReport,
       refreshJob,
       profileJob,
       recordMappingDecisions,
@@ -619,6 +885,9 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     setTheme,
     datasets,
     jobs,
+    synthSources,
+    synthGenerated,
+    synthJobs,
     requests,
     qualityReports,
     readinessReports,
@@ -633,6 +902,22 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     verifyPasswordReset,
     refresh,
     uploadDataset,
+    uploadSynthMedSource,
+    refreshSynthMed,
+    getSynthMedSource,
+    downloadSynthMedSource,
+    downloadSynthMedGenerated,
+    analyseSynthMedGeneration,
+    startSynthMedGeneration,
+    listSynthMedGenerationJobs,
+    getSynthMedGenerationJob,
+    getSynthMedGeneratedDetail,
+    getSynthMedGeneratedPreview,
+    getSynthMedQualityReport,
+    getSynthMedPrivacyReport,
+    exportSynthMedGenerated,
+    downloadSynthMedGeneratedFormat,
+    downloadSynthMedReport,
     refreshJob,
     profileJob,
     recordMappingDecisions,

@@ -23,6 +23,8 @@ def app(tmp_path) -> FastAPI:
             database_url="sqlite://",
             raw_storage_dir=tmp_path / "raw",
             processed_storage_dir=tmp_path / "processed",
+            synthmed_storage_dir=tmp_path / "synthmed",
+            synthmed_generation_inline=True,
         )
     )
 

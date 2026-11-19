@@ -11,6 +11,16 @@ import type {
   ReadinessReport,
   RepresentativenessReport,
   Role,
+  SynthMedDownloads,
+  SynthMedEvaluationReport,
+  SynthMedExportResponse,
+  SynthMedGeneratedDataset,
+  SynthMedGeneratedDatasetDetail,
+  SynthMedGeneratedPreview,
+  SynthMedGenerationAnalysis,
+  SynthMedGenerationJob,
+  SynthMedGenerationStartPayload,
+  SynthMedSourceDataset,
 } from '../types';
 
 const RAW_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000')
@@ -50,6 +60,21 @@ const errorDetail = async (response: Response): Promise<string> => {
   return response.statusText || 'Request failed';
 };
 
+const detailFromText = (text: string, fallback: string): string => {
+  try {
+    const body = JSON.parse(text) as { detail?: unknown };
+    if (typeof body.detail === 'string') return body.detail;
+    if (Array.isArray(body.detail)) {
+      return body.detail
+        .map((item) => (typeof item === 'object' && item && 'msg' in item ? String(item.msg) : String(item)))
+        .join('; ');
+    }
+  } catch {
+    return fallback || 'Request failed';
+  }
+  return fallback || 'Request failed';
+};
+
 const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
   const headers = new Headers(options.headers);
   const token = tokenStore.get();
@@ -68,6 +93,63 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+};
+
+const uploadWithProgress = <T>(
+  path: string,
+  form: FormData,
+  onProgress: (percent: number) => void,
+): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_ROOT}${path}`);
+    const token = tokenStore.get();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(100);
+        try {
+          resolve(JSON.parse(xhr.responseText) as T);
+        } catch (error) {
+          reject(error);
+        }
+        return;
+      }
+      if (xhr.status === 401) {
+        tokenStore.clear();
+        window.dispatchEvent(new Event('meddatahub:unauthorized'));
+      }
+      reject(new ApiError(xhr.status, detailFromText(xhr.responseText, xhr.statusText)));
+    };
+    xhr.onerror = () => reject(new ApiError(0, 'Network error during upload'));
+    xhr.send(form);
+  });
+
+const downloadBlob = async (path: string, filename: string): Promise<void> => {
+  const token = tokenStore.get();
+  const response = await fetch(`${API_ROOT}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!response.ok) {
+    const message = await errorDetail(response);
+    if (response.status === 401) {
+      tokenStore.clear();
+      window.dispatchEvent(new Event('meddatahub:unauthorized'));
+    }
+    throw new ApiError(response.status, message);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 };
 
 interface ApiUser {
@@ -133,6 +215,12 @@ interface ApiReportsResponse {
   quality: QualityReport | null;
   readiness: ReadinessReport | null;
   representativeness: RepresentativenessReport | null;
+}
+
+export interface SynthMedUploadPayload {
+  file: File;
+  datasetName: string;
+  description: string;
 }
 
 export interface UploadPayload {
@@ -359,22 +447,100 @@ export const api = {
       method: 'POST',
     }),
 
-  downloadDataset: async (dataset: Dataset): Promise<void> => {
-    const token = tokenStore.get();
-    const response = await fetch(`${API_ROOT}/datasets/${encodeURIComponent(dataset.id)}/download`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-    if (!response.ok) {
-      throw new ApiError(response.status, await errorDetail(response));
-    }
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `${dataset.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.${dataset.format.toLowerCase()}`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+  downloadDataset: async (dataset: Dataset): Promise<void> =>
+    downloadBlob(
+      `/datasets/${encodeURIComponent(dataset.id)}/download`,
+      `${dataset.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.${dataset.format.toLowerCase()}`,
+    ),
+
+  uploadSynthMedSource: async (
+    payload: SynthMedUploadPayload,
+    onProgress: (percent: number) => void,
+  ): Promise<SynthMedSourceDataset> => {
+    const form = new FormData();
+    form.append('file', payload.file);
+    form.append('dataset_name', payload.datasetName);
+    form.append('description', payload.description);
+    const response = await uploadWithProgress<{ dataset: SynthMedSourceDataset; message: string }>(
+      '/synthmed/upload',
+      form,
+      onProgress,
+    );
+    return response.dataset;
   },
+
+  listSynthMedSources: async (): Promise<SynthMedSourceDataset[]> => request<SynthMedSourceDataset[]>('/synthmed/sources'),
+
+  getSynthMedSource: async (datasetId: string): Promise<SynthMedSourceDataset> =>
+    request<SynthMedSourceDataset>(`/synthmed/sources/${encodeURIComponent(datasetId)}`),
+
+  listSynthMedGenerated: async (): Promise<SynthMedGeneratedDataset[]> =>
+    request<SynthMedGeneratedDataset[]>('/synthmed/generated'),
+
+  getSynthMedDownloads: async (): Promise<SynthMedDownloads> => request<SynthMedDownloads>('/synthmed/downloads'),
+
+  downloadSynthMedSource: async (dataset: SynthMedSourceDataset): Promise<void> =>
+    downloadBlob(`/synthmed/sources/${encodeURIComponent(dataset.id)}/download`, dataset.originalFilename),
+
+  downloadSynthMedGenerated: async (dataset: SynthMedGeneratedDataset): Promise<void> =>
+    downloadBlob(
+      `/synthmed/generated/${encodeURIComponent(dataset.id)}/download`,
+      dataset.fileName || `${dataset.datasetName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.${dataset.fileFormat.toLowerCase()}`,
+    ),
+
+  analyseSynthMedGeneration: async (sourceDatasetId: string): Promise<SynthMedGenerationAnalysis> =>
+    request<SynthMedGenerationAnalysis>(
+      `/synthmed/generation/analyse/${encodeURIComponent(sourceDatasetId)}`,
+      { method: 'POST' },
+    ),
+
+  startSynthMedGeneration: async (payload: SynthMedGenerationStartPayload): Promise<SynthMedGenerationJob> =>
+    request<SynthMedGenerationJob>('/synthmed/generation/start', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  listSynthMedGenerationJobs: async (): Promise<SynthMedGenerationJob[]> =>
+    request<SynthMedGenerationJob[]>('/synthmed/generation/jobs'),
+
+  getSynthMedGenerationJob: async (jobId: string): Promise<SynthMedGenerationJob> =>
+    request<SynthMedGenerationJob>(`/synthmed/generation/jobs/${encodeURIComponent(jobId)}`),
+
+  getSynthMedGeneratedDetail: async (generatedId: string): Promise<SynthMedGeneratedDatasetDetail> =>
+    request<SynthMedGeneratedDatasetDetail>(`/synthmed/generated/${encodeURIComponent(generatedId)}`),
+
+  getSynthMedGeneratedPreview: async (
+    generatedId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<SynthMedGeneratedPreview> =>
+    request<SynthMedGeneratedPreview>(
+      `/synthmed/generated/${encodeURIComponent(generatedId)}/preview?page=${page}&pageSize=${pageSize}`,
+    ),
+
+  getSynthMedQualityReport: async (generatedId: string): Promise<SynthMedEvaluationReport> =>
+    request<SynthMedEvaluationReport>(`/synthmed/generated/${encodeURIComponent(generatedId)}/quality`),
+
+  getSynthMedPrivacyReport: async (generatedId: string): Promise<SynthMedEvaluationReport> =>
+    request<SynthMedEvaluationReport>(`/synthmed/generated/${encodeURIComponent(generatedId)}/privacy`),
+
+  exportSynthMedGenerated: async (generatedId: string, format: FileFormat): Promise<SynthMedExportResponse> =>
+    request<SynthMedExportResponse>(`/synthmed/generated/${encodeURIComponent(generatedId)}/export`, {
+      method: 'POST',
+      body: JSON.stringify({ format }),
+    }),
+
+  downloadSynthMedGeneratedFormat: async (generatedId: string, format: FileFormat): Promise<void> =>
+    downloadBlob(
+      `/synthmed/generated/${encodeURIComponent(generatedId)}/download?file_format=${format}`,
+      `synthetic_data.${format.toLowerCase()}`,
+    ),
+
+  downloadSynthMedReport: async (generatedId: string, reportType: string): Promise<void> =>
+    downloadBlob(
+      `/synthmed/generated/${encodeURIComponent(generatedId)}/reports/${encodeURIComponent(reportType)}/download`,
+      `${reportType}_report.json`,
+    ),
 };
 
 export const reportMaps = {

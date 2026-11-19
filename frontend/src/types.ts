@@ -322,6 +322,157 @@ export interface CurrentUser {
   title: string;
 }
 
+export interface SynthMedSourceDataset {
+  id: string;
+  datasetName: string;
+  description: string;
+  originalFilename: string;
+  fileFormat: FileFormat;
+  fileSizeBytes: number;
+  uploadDate: string;
+  uploadedBy: string;
+  uploadStatus: string;
+  checksumSha256: string;
+  rowCount: number;
+  columnCount: number;
+}
+
+export interface SynthMedGeneratedDataset {
+  id: string;
+  sourceDatasetId: string;
+  datasetName: string;
+  sourceDatasetName: string;
+  generationMethod: string;
+  recordCount: number;
+  columnCount: number;
+  generationDate: string;
+  fileFormat: FileFormat;
+  fileSizeBytes: number;
+  fileName: string;
+  status: string;
+}
+
+export interface SynthMedDownloads {
+  sources: SynthMedSourceDataset[];
+  generated: SynthMedGeneratedDataset[];
+}
+
+export type SynthMedGenerationStatus =
+  | 'Queued'
+  | 'Preprocessing'
+  | 'Training'
+  | 'Generating'
+  | 'Validating'
+  | 'Completed'
+  | 'Failed';
+
+export type SynthMedColumnKind = 'numerical' | 'categorical' | 'datetime' | 'boolean' | 'unknown';
+
+export interface SynthMedColumnAnalysis {
+  name: string;
+  dtype: string;
+  kind: SynthMedColumnKind;
+  missingCount: number;
+  missingPercentage: number;
+  uniqueCount: number;
+  constant: boolean;
+  potentialIdentifier: boolean;
+  quasiIdentifier: boolean;
+}
+
+export interface SynthMedGenerationAnalysis {
+  sourceDatasetId: string;
+  datasetName: string;
+  originalFilename: string;
+  totalRecords: number;
+  totalColumns: number;
+  columns: SynthMedColumnAnalysis[];
+  numericalColumns: string[];
+  categoricalColumns: string[];
+  datetimeColumns: string[];
+  booleanColumns: string[];
+  potentialIdentifierColumns: string[];
+  quasiIdentifierColumns: string[];
+  constantColumns: string[];
+  duplicateRecords: number;
+  generationReady: boolean;
+  guidance: string;
+}
+
+export interface SynthMedGenerationStartPayload {
+  sourceDatasetId: string;
+  datasetName: string;
+  selectedColumns: string[];
+  categoricalColumns: string[];
+  numericalColumns: string[];
+  identifierColumns: string[];
+  primaryKey: string | null;
+  seed: number | null;
+  epochs: number;
+  batchSize: number;
+  recordCount: number;
+  preserveMissingness: boolean;
+}
+
+export interface SynthMedGenerationJob {
+  id: string;
+  sourceDatasetId: string;
+  generatedDatasetId: string;
+  status: SynthMedGenerationStatus;
+  modelName: string;
+  epochs: number;
+  batchSize: number;
+  seed: number | null;
+  requestedRecordCount: number;
+  generatedRecordCount: number;
+  trainingDurationSeconds: number | null;
+  createdAt: string;
+  startedAt: string;
+  completedAt: string;
+  error: string;
+  config: Record<string, unknown>;
+}
+
+export interface SynthMedGeneratedDatasetDetail extends SynthMedGeneratedDataset {
+  generationJobId: string;
+  modelName: string;
+  trainingDurationSeconds: number | null;
+  availableFormats: FileFormat[];
+  reportTypes: string[];
+  trainingConfig: {
+    epochs: number | null;
+    batchSize: number | null;
+    seed: number | null;
+    preserveMissingness: boolean;
+    includedColumns: string[];
+  };
+}
+
+export interface SynthMedGeneratedPreview {
+  generatedDatasetId: string;
+  columns: string[];
+  rows: Record<string, unknown>[];
+  totalRecords: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface SynthMedEvaluationReport {
+  id: string;
+  generatedDatasetId: string;
+  reportType: string;
+  method: string;
+  score: number | null;
+  report: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface SynthMedExportResponse {
+  generatedDatasetId: string;
+  format: FileFormat;
+  fileName: string;
+}
+
 export interface ToastMessage {
   id: string;
   type: 'success' | 'error' | 'info';

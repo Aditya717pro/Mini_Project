@@ -1,23 +1,38 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="MedDataHub - AI-ready medical dataset repository for women's and paediatric health research." />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>MedDataHub</title>
-    <script>
-      try {
-        var storedTheme = localStorage.getItem('meddatahub.theme');
-        document.documentElement.dataset.theme =
-          storedTheme === 'default' || storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'default';
-      } catch (error) {
-        document.documentElement.dataset.theme = 'default';
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="MedDataHub - AI-ready medical dataset repository for women's and paediatric health research." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>MedDataHub</title>
+  <script>
+    try {
+      var storedTheme = localStorage.getItem('meddatahub.theme');
+      var themePref = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'default';
+      var resolvedTheme = themePref;
+      if (themePref === 'default') {
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        resolvedTheme = prefersDark ? 'dark' : 'light';
       }
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+      document.documentElement.dataset.theme = resolvedTheme;
+      document.documentElement.dataset.themePreference = themePref;
+      document.documentElement.style.colorScheme = resolvedTheme;
+    } catch (error) {
+      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var fallbackTheme = prefersDark ? 'dark' : 'light';
+      document.documentElement.dataset.theme = fallbackTheme;
+      document.documentElement.dataset.themePreference = 'default';
+      document.documentElement.style.colorScheme = fallbackTheme;
+    }
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

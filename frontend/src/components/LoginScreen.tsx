@@ -72,6 +72,12 @@ export const LoginScreen = ({
     return () => window.removeEventListener('popstate', syncFromHistory);
   }, []);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(''), 3000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
   const clearAuthHash = () => {
     if (window.location.hash) {
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);

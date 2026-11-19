@@ -21,7 +21,7 @@ def log_audit(
         actor_id=actor_id,
         details_json=details or {},
         ip_address=request.client.host if request and request.client else None,
-        user_agent=request.headers.get("user-agent")[:300] if request else None,
+        user_agent=(request.headers.get("user-agent") or "")[:300] or None if request else None,
     )
     db.add(entry)
     return entry

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import {
   Area,
   AreaChart,
@@ -148,8 +148,8 @@ export const Dashboard = () => {
         description="Monitor repository health, review pipeline activity and keep women's and paediatric datasets ready for reuse."
         actions={
           <>
-            <Link to="/repository">
-              <Button variant="secondary">Browse repository</Button>
+            <Link to="/synthmed">
+              <Button variant="secondary">SynthMed</Button>
             </Link>
             <Link to="/upload">
               <Button icon={<UploadCloud size={16} />}>Upload dataset</Button>

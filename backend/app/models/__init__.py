@@ -1,4 +1,4 @@
-from app.database.base import Base
+﻿from app.database.base import Base
 from app.models.access import AccessRequest
 from app.models.audit import AuditLog
 from app.models.dataset import Dataset, DatasetMetadata, DatasetVersion
@@ -14,6 +14,13 @@ from app.models.etl import ETLJob, ETLJobLog, ETLMappingDecision
 from app.models.password_reset import PasswordResetOTP
 from app.models.reports import QualityReport, ReadinessReport, RepresentativenessReport
 from app.models.user import User
+from app.synthmed.models import (
+    SynthMedEvaluationReport,
+    SynthMedGeneratedDataset,
+    SynthMedGenerationConfig,
+    SynthMedGenerationJob,
+    SynthMedSourceDataset,
+)
 
 __all__ = [
     "AccessClassification",
@@ -34,6 +41,12 @@ __all__ = [
     "ReadinessReport",
     "RepresentativenessReport",
     "RequestStatus",
+    "SynthMedEvaluationReport",
+    "SynthMedGeneratedDataset",
+    "SynthMedGenerationConfig",
+    "SynthMedGenerationJob",
+    "SynthMedSourceDataset",
+
     "User",
     "UserRole",
 ]

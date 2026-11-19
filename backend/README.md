@@ -1,6 +1,6 @@
 # MedDataHub backend
 
-FastAPI service for the MedDataHub dataset repository. It provides JWT authentication, RBAC, persistent SQLAlchemy models, Alembic migrations, secure file storage, upload APIs, a governed ETL engine and rule-based assessment reports.
+FastAPI service for the MedDataHub dataset repository. It provides JWT authentication, RBAC, persistent SQLAlchemy models, Alembic migrations, secure file storage, upload APIs, a governed ETL engine, rule-based assessment reports and real CTGAN synthetic data generation via SDV.
 
 ## Requirements
 
@@ -61,7 +61,7 @@ Roll back the latest migration:
 alembic downgrade -1
 ```
 
-The `b7c4e1d9a3f2_etl_governance` migration adds ETL approval/decision columns and the `etl_mapping_decisions` table, and migrates the previous `Running` status to `Processing`.
+The `b7c4e1d9a3f2_etl_governance` migration adds ETL approval/decision columns and the `etl_mapping_decisions` table, and migrates the previous `Running` status to `Processing`. SynthMed adds `d4a8c1f0b2e3_synthmed_source_and_generated_tables` for source/generated datasets and `f6b2c9d4e7a1_ctgan_generation_jobs_configs_and_reports` for generation jobs, configs and evaluation reports.
 
 ## ETL API
 
@@ -84,6 +84,25 @@ Example mapping decision payload:
   { "source": "notes", "decision": "Unmapped", "target": null }
 ]
 ```
+
+## SynthMed generation API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/v1/synthmed/generation/analyse/{source_dataset_id}` | Analyse columns and generation readiness |
+| `POST` | `/api/v1/synthmed/generation/start` | Start a real CTGAN training job |
+| `GET` | `/api/v1/synthmed/generation/jobs/{job_id}` | Job status and error message |
+| `GET` | `/api/v1/synthmed/generation/jobs` | Job history |
+| `GET` | `/api/v1/synthmed/generated` | Generated datasets |
+| `GET` | `/api/v1/synthmed/generated/{generation_id}` | Generated dataset detail |
+| `GET` | `/api/v1/synthmed/generated/{generation_id}/preview` | Generated data preview |
+| `GET` | `/api/v1/synthmed/generated/{generation_id}/quality` | SDMetrics quality report |
+| `GET` | `/api/v1/synthmed/generated/{generation_id}/privacy` | Privacy-risk report |
+| `GET` | `/api/v1/synthmed/generated/{dataset_id}/download` | Download generated dataset |
+| `POST` | `/api/v1/synthmed/generated/{generation_id}/export` | Export generated data to another format |
+| `GET` | `/api/v1/synthmed/generated/{generation_id}/reports/{report_type}/download` | Download report JSON |
+
+Generation runs on CPU with configurable epochs, batch size and seed. Batch size must be a multiple of 10 between 20 and 10000. Set `SYNTHMED_GENERATION_INLINE=true` for inline test execution; production uses background workers.
 
 ## Verify
 
@@ -113,8 +132,10 @@ app/
   etl/            Extract, transform, load and pipeline modules
   models/         Domain models
   schemas/        Pydantic request/response models
-  services/       Business services
-  utils/          Upload validation helpers
+   services/       Business services
+   synthmed/       Source datasets, CTGAN generation, evaluation and routes
+   utils/          Upload validation helpers
+
 migrations/       Alembic environment and revisions
 tests/            API, workflow and ETL governance tests
 ```
@@ -122,6 +143,8 @@ tests/            API, workflow and ETL governance tests
 ## Boundaries
 
 - Quality, readiness and representativeness scores are rule-based, not clinically validated.
+- CTGAN quality and privacy reports are statistical screening signals, not clinical equivalence, differential privacy or anonymity guarantees.
 - Only synthetic data should be used.
 - Ambiguous dates are never inferred; missing values are never imputed; invalid rows are flagged and retained.
 - Raw files are immutable and processed outputs are atomically replaced with rollback on validation failure.
+- Generated outputs and reports are owner-scoped; source files are never modified during generation.

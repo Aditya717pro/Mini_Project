@@ -1,8 +1,8 @@
-from functools import lru_cache
+﻿from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 25 * 1024 * 1024
     raw_storage_dir: Path = BACKEND_ROOT / "storage" / "raw"
     processed_storage_dir: Path = BACKEND_ROOT / "storage" / "processed"
+    synthmed_storage_dir: Path = BACKEND_ROOT / "storage" / "synthmed"
+    synthmed_ctgan_default_epochs: int = Field(default=20, ge=1, le=200)
+    synthmed_ctgan_max_epochs: int = Field(default=200, ge=1, le=10000)
+    synthmed_ctgan_default_batch_size: int = Field(default=100, ge=11, le=10000)
+    synthmed_ctgan_max_records: int = Field(default=50000, ge=1, le=1000000)
+    synthmed_generation_worker_count: int = Field(default=1, ge=1, le=8)
+    synthmed_generation_inline: bool = False
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 

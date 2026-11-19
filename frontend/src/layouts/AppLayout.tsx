@@ -25,7 +25,7 @@ import { LoadingState, ToastViewport } from '../components/ui';
 import type { ThemeMode } from '../types';
 
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: typeof Monitor }[] = [
-  { value: 'default', label: 'Default', icon: Monitor },
+  { value: 'default', label: 'Default (System)', icon: Monitor },
   { value: 'light', label: 'Light', icon: Sun },
   { value: 'dark', label: 'Dark', icon: Moon },
 ];
@@ -219,7 +219,7 @@ export const AppLayout = () => {
                 aria-label="Change theme"
                 aria-haspopup="menu"
                 aria-expanded={themeMenuOpen}
-                title={`Theme: ${theme}`}
+                title={`Theme: ${theme === 'default' ? 'Default (System)' : theme}`}
               >
                 <ActiveThemeIcon size={18} />
               </button>
