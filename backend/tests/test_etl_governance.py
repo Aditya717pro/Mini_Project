@@ -121,6 +121,28 @@ def run_job(client: TestClient, headers: dict[str, str], job_id: str) -> dict:
     return job.json()
 
 
+def test_etl_admin_can_view_and_list_other_users_jobs(client: TestClient, db_session: Session) -> None:
+    owner_headers = contributor_headers(client, db_session, "etl-owner-access@example.org")
+    other_headers = contributor_headers(client, db_session, "etl-other-access@example.org")
+    job_id = upload(client, owner_headers, SYNTHETIC_CSV, "Admin access cohort")["jobId"]
+    create_user(db_session, "etl-admin-access@example.org", UserRole.ADMINISTRATOR)
+    admin_headers = login(client, "etl-admin-access@example.org")
+
+    detail_path = f"/api/v1/etl/jobs/{job_id}"
+    assert client.get(detail_path, headers=owner_headers).status_code == 200
+    assert client.get(detail_path, headers=other_headers).status_code == 403
+    assert client.get(detail_path, headers=admin_headers).status_code == 200
+
+    def job_ids(headers: dict[str, str]) -> list[str]:
+        response = client.get("/api/v1/etl/jobs", headers=headers)
+        assert response.status_code == 200, response.text
+        return [item["id"] for item in response.json()]
+
+    assert job_id in job_ids(owner_headers)
+    assert job_id not in job_ids(other_headers)
+    assert job_id in job_ids(admin_headers)
+
+
 def test_upload_creates_queued_job_without_approvals(client: TestClient, db_session: Session) -> None:
     headers = contributor_headers(client, db_session)
     payload = upload(client, headers, SYNTHETIC_CSV)

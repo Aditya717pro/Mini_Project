@@ -206,6 +206,12 @@ def test_generation_authentication_ownership_and_failure(client: TestClient, db_
     job = start_job(client, alice, source_id)
     generated_id = job["generatedDatasetId"]
 
+    owner_detail = client.get(f"{API}/generation/jobs/{job['id']}", headers=alice)
+    assert owner_detail.status_code == 200, owner_detail.text
+    owner_jobs = client.get(f"{API}/generation/jobs", headers=alice)
+    assert owner_jobs.status_code == 200, owner_jobs.text
+    assert job["id"] in [item["id"] for item in owner_jobs.json()]
+
     for path in [
         f"{API}/generation/jobs/{job['id']}",
         f"{API}/generated/{generated_id}",
