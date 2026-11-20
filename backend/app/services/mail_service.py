@@ -5,7 +5,7 @@ from app.core.config import Settings
 
 
 def send_password_reset_email(*, settings: Settings, to_email: str, otp: str) -> None:
-    if not settings.smtp_host:
+    if not settings.smtp_is_configured:
         raise RuntimeError("SMTP is not configured")
 
     message = EmailMessage()

@@ -191,6 +191,29 @@ def test_startup_recovery_failure_does_not_block_startup(
         assert test_client.get("/api/v1/health").status_code == 200
 
 
+def test_shutdown_handles_executor_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FailingExecutor:
+        def shutdown(self, *, wait: bool, cancel_futures: bool) -> None:
+            raise RuntimeError("executor close failed")
+
+    class RecordingLogger:
+        def __init__(self) -> None:
+            self.messages: list[str] = []
+
+        def exception(self, message: str) -> None:
+            self.messages.append(message)
+
+    logger = RecordingLogger()
+    monkeypatch.setattr(generation_service, "_executor", FailingExecutor())
+    monkeypatch.setattr(generation_service, "logger", logger)
+
+    generation_service.shutdown_executor()
+
+    assert generation_service._executor is None
+    assert generation_service._executor_stopping is True
+    assert logger.messages == ["SynthMed generation executor shutdown failed"]
+
+
 def test_shutdown_calls_executor_shutdown(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

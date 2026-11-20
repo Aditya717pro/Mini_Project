@@ -115,3 +115,23 @@ def test_openapi_lists_health_endpoints(client: TestClient) -> None:
     paths = response.json()["paths"]
     assert "/api/v1/health" in paths
     assert "/api/v1/health/ready" in paths
+
+
+def test_openapi_lists_required_p0_endpoints(client: TestClient) -> None:
+    paths = client.get("/openapi.json").json()["paths"]
+
+    required = {
+        "/api/v1/auth/register",
+        "/api/v1/auth/login",
+        "/api/v1/auth/forgot-password",
+        "/api/v1/auth/forgot-password/verify",
+        "/api/v1/datasets/",
+        "/api/v1/datasets/{dataset_id}/download",
+        "/api/v1/etl/jobs",
+        "/api/v1/etl/jobs/{job_id}",
+        "/api/v1/synthmed/upload",
+        "/api/v1/synthmed/generation/jobs",
+        "/api/v1/synthmed/generation/jobs/{job_id}",
+        "/api/v1/synthmed/generated/{dataset_id}/download",
+    }
+    assert required.issubset(set(paths))

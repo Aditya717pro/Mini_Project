@@ -2,6 +2,7 @@
 import {
   Download,
   FlaskConical,
+  GitCompare,
   ShieldCheck,
   UploadCloud,
   Wand2,
@@ -78,13 +79,21 @@ export const SynthMed = () => {
               </div>
             </li>
             <li>
+              <span className="activity-icon activity-quality"><GitCompare size={15} /></span>
+              <div>
+                <Link to="/synthmed/comparison"><strong>Original vs Synthetic Comparison</strong></Link>
+                <span>Compare shared columns with real distribution distances, category frequencies and saved history.</span>
+              </div>
+            </li>
+            <li>
               <span className="activity-icon activity-quality"><ShieldCheck size={15} /></span>
               <div>
                 <Link to="/synthmed/evaluation"><strong>Quality &amp; Privacy Evaluation</strong></Link>
-                 <span>Review SDMetrics quality scores and privacy-risk screening with explicit limitations.</span>
+                  <span>Review SDMetrics quality scores and privacy-risk screening with explicit limitations.</span>
 
               </div>
             </li>
+
             <li>
               <span className="activity-icon activity-publish"><Download size={15} /></span>
               <div>

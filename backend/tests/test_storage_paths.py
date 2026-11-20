@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -38,6 +39,39 @@ def test_resolve_within_root_rejects_directory(tmp_path: Path) -> None:
 
     with pytest.raises(FileNotFoundError):
         resolve_within_root(root, "nested")
+
+
+def test_resolve_within_root_rejects_symlink_escape(tmp_path: Path) -> None:
+    root = tmp_path / "raw"
+    root.mkdir()
+    outside = tmp_path / "outside.csv"
+    outside.write_text("secret\n", encoding="utf-8")
+    link = root / "link.csv"
+    try:
+        link.symlink_to(outside)
+    except OSError:
+        link = None
+    if link is not None and not link.is_symlink():
+        link = None
+
+    if link is not None:
+        stored_path = "link.csv"
+    else:
+        outside_dir = tmp_path / "outside_dir"
+        outside_dir.mkdir()
+        (outside_dir / "secret.csv").write_text("secret\n", encoding="utf-8")
+        junction = root / "link_dir"
+        result = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(junction), str(outside_dir)],
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            pytest.skip("Neither symlinks nor directory junctions are available in this environment")
+        stored_path = "link_dir/secret.csv"
+
+    with pytest.raises(ValueError):
+        resolve_within_root(root, stored_path)
 
 
 def test_relative_path_is_normalised_and_posix(tmp_path: Path) -> None:
@@ -81,3 +115,26 @@ def test_synthmed_storage_rejects_cross_root_paths(tmp_path: Path) -> None:
         storage.resolve_generated(relative)
     with pytest.raises(ValueError):
         storage.resolve_report(relative)
+
+
+def test_meddatahub_and_synthmed_roots_are_isolated(tmp_path: Path) -> None:
+    settings = Settings(
+        environment="test",
+        raw_storage_dir=tmp_path / "raw",
+        processed_storage_dir=tmp_path / "processed",
+        synthmed_storage_dir=tmp_path / "synthmed",
+    )
+    meddatahub = StorageService(settings)
+    synthmed = SynthMedStorageService(settings)
+
+    raw = meddatahub.save_raw("dataset-1", "v1.0", "source.csv", b"id\n1\n")
+    source, _ = synthmed.save_source("dataset-1", "source.csv", b"id\n1\n")
+
+    with pytest.raises((ValueError, FileNotFoundError)):
+        synthmed.resolve_source(str(raw))
+    with pytest.raises((ValueError, FileNotFoundError)):
+        synthmed.resolve_generated(str(raw))
+    with pytest.raises((ValueError, FileNotFoundError)):
+        meddatahub.resolve(str(source), kind="raw")
+    with pytest.raises((ValueError, FileNotFoundError)):
+        meddatahub.resolve(str(source), kind="processed")

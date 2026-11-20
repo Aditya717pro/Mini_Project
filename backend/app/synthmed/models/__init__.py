@@ -14,6 +14,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,16 +27,19 @@ class SynthMedSourceDataset(Base, TimestampMixin):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
     dataset_name: Mapped[str] = mapped_column(String(250), nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default=text("''"))
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     stored_path: Mapped[str] = mapped_column(Text, nullable=False)
     file_format: Mapped[str] = mapped_column(String(16), nullable=False)
     file_size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
     checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
-    row_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    column_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    upload_status: Mapped[str] = mapped_column(String(32), nullable=False, default="Uploaded")
-    content_type: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    row_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    column_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    upload_status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="Uploaded", server_default="Uploaded"
+    )
+    content_type: Mapped[str] = mapped_column(String(120), nullable=False, default="", server_default=text("''"))
+
 
     owner = relationship("User", foreign_keys=[owner_id])
 
@@ -54,14 +58,15 @@ class SynthMedGeneratedDataset(Base, TimestampMixin):
     )
     dataset_name: Mapped[str] = mapped_column(String(250), nullable=False)
     source_dataset_name: Mapped[str] = mapped_column(String(250), nullable=False)
-    generation_method: Mapped[str] = mapped_column(String(80), nullable=False, default="")
-    record_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    column_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    file_format: Mapped[str] = mapped_column(String(16), nullable=False, default="CSV")
-    file_size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
-    checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False, default="")
-    stored_path: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="Completed")
+    generation_method: Mapped[str] = mapped_column(String(80), nullable=False, default="", server_default=text("''"))
+    record_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    column_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    file_format: Mapped[str] = mapped_column(String(16), nullable=False, default="CSV", server_default="CSV")
+    file_size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0, server_default="0")
+    checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False, default="", server_default=text("''"))
+    stored_path: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default=text("''"))
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="Completed", server_default="Completed")
+
 
     owner = relationship("User", foreign_keys=[owner_id])
     source_dataset = relationship("SynthMedSourceDataset", foreign_keys=[source_dataset_id])
@@ -82,13 +87,15 @@ class SynthMedGenerationJob(Base, TimestampMixin):
     generated_dataset_id: Mapped[str | None] = mapped_column(
         ForeignKey("synthmed_generated_datasets.id", ondelete="SET NULL"), nullable=True
     )
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="Queued", index=True)
-    model_name: Mapped[str] = mapped_column(String(80), nullable=False, default="CTGAN")
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="Queued", server_default="Queued", index=True
+    )
+    model_name: Mapped[str] = mapped_column(String(80), nullable=False, default="CTGAN", server_default="CTGAN")
     epochs: Mapped[int] = mapped_column(Integer, nullable=False)
     batch_size: Mapped[int] = mapped_column(Integer, nullable=False)
     seed: Mapped[int | None] = mapped_column(Integer, nullable=True)
     requested_record_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    generated_record_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    generated_record_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     training_duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
     config_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     error_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
@@ -133,10 +140,10 @@ class SynthMedEvaluationReport(Base, TimestampMixin):
     )
     owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
     report_type: Mapped[str] = mapped_column(String(32), nullable=False)
-    method: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    method: Mapped[str] = mapped_column(String(120), nullable=False, default="", server_default=text("''"))
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
     report_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    file_path: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    file_path: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default=text("''"))
 
     owner = relationship("User", foreign_keys=[owner_id])
     job = relationship("SynthMedGenerationJob", foreign_keys=[job_id])
@@ -145,5 +152,32 @@ class SynthMedEvaluationReport(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("job_id", "report_type", name="uq_synthmed_eval_job_type"),
         Index("ix_synthmed_eval_generated_type", "generated_dataset_id", "report_type"),
+    )
+
+
+class SynthMedComparison(Base, TimestampMixin):
+    __tablename__ = "synthmed_comparisons"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    owner_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+    source_dataset_id: Mapped[str] = mapped_column(
+        ForeignKey("synthmed_source_datasets.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    generated_dataset_id: Mapped[str] = mapped_column(
+        ForeignKey("synthmed_generated_datasets.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(250), nullable=False, default="", server_default=text("''"))
+    method: Mapped[str] = mapped_column(String(120), nullable=False, default="", server_default=text("''"))
+    summary_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    report_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    file_path: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default=text("''"))
+
+    owner = relationship("User", foreign_keys=[owner_id])
+    source_dataset = relationship("SynthMedSourceDataset", foreign_keys=[source_dataset_id])
+    generated_dataset = relationship("SynthMedGeneratedDataset", foreign_keys=[generated_dataset_id])
+
+    __table_args__ = (
+        Index("ix_synthmed_comparison_owner_created", "owner_id", "created_at"),
+        Index("ix_synthmed_comparison_generated_created", "generated_dataset_id", "created_at"),
     )
 

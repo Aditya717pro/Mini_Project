@@ -11,6 +11,9 @@ import type {
   ReadinessReport,
   RepresentativenessReport,
   Role,
+  SynthMedComparisonCreatePayload,
+  SynthMedComparisonDetail,
+  SynthMedComparisonListItem,
   SynthMedDownloads,
   SynthMedEvaluationReport,
   SynthMedExportResponse,
@@ -540,6 +543,24 @@ export const api = {
     downloadBlob(
       `/synthmed/generated/${encodeURIComponent(generatedId)}/reports/${encodeURIComponent(reportType)}/download`,
       `${reportType}_report.json`,
+    ),
+
+  listSynthMedComparisons: async (): Promise<SynthMedComparisonListItem[]> =>
+    request<SynthMedComparisonListItem[]>('/synthmed/comparisons'),
+
+  getSynthMedComparison: async (comparisonId: string): Promise<SynthMedComparisonDetail> =>
+    request<SynthMedComparisonDetail>(`/synthmed/comparisons/${encodeURIComponent(comparisonId)}`),
+
+  createSynthMedComparison: async (payload: SynthMedComparisonCreatePayload): Promise<SynthMedComparisonDetail> =>
+    request<SynthMedComparisonDetail>('/synthmed/comparisons', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  downloadSynthMedComparisonReport: async (comparisonId: string): Promise<void> =>
+    downloadBlob(
+      `/synthmed/comparisons/${encodeURIComponent(comparisonId)}/report/download`,
+      'comparison_report.json',
     ),
 };
 

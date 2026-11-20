@@ -64,6 +64,12 @@ def profile_job(db: Session, *, settings: Settings, job: ETLJob) -> ETLJob:
         db.commit()
         db.refresh(job)
         return job
+    except (ValueError, FileNotFoundError) as error:
+        fail_job(db, job, error, message="Profiling failed. The original file was not modified.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dataset raw file not found on disk",
+        ) from error
     except Exception as error:
         fail_job(db, job, error, message="Profiling failed. The original file was not modified.")
         raise HTTPException(

@@ -1,6 +1,6 @@
 # Development progress
 
-Last updated: 2026-11-19
+Last updated: 2026-11-20
 
 ## Phase status
 
@@ -56,15 +56,17 @@ Last updated: 2026-11-19
 - API shutdown stops accepting new executor submissions, awaits running work, logs shutdown failures and disposes the database engine last. No durable queue was introduced.
 - Stored file paths are resolved through a shared containment helper. Absolute legacy paths are accepted only inside the correct root; traversal, symlink escapes, cross-category paths and directories are rejected with controlled 404 responses before ETL, readiness, analysis, preview, export or download work begins.
 - New dataset and ETL file persistence uses normalised relative paths; old absolute paths remain readable when contained. Internal filesystem paths are not returned in API responses.
-- Password reset delivery is fail-closed: if SMTP sending fails, no OTP is committed, no success audit entry is written, and any previous valid OTP remains intact. The endpoint keeps its generic privacy-preserving `202` response.
-- Alembic autogenerate now compares server defaults. A new revision aligns the ETL unique index, SynthMed config unique constraint and generation status index with SQLAlchemy metadata, and a test runs `upgrade head` plus `check` against a temporary SQLite database.
+- Password reset delivery is fail-closed: configuration is checked before user lookup, an unconfigured SMTP service returns `503` and creates no OTP, and a delivery failure rolls back the OTP and the success audit entry while keeping the generic privacy-preserving `202` response. Codes are six-digit `secrets`-generated values stored only as password hashes, with expiry, attempt limits, resend cooldown and one-time use retained.
+- SMTP settings are `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME` (legacy alias `SMTP_USER`), `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` and `SMTP_USE_TLS`; none are hardcoded and `.env` remains untracked. `.env.example` records the defaults (`SMTP_PORT=587`, `SMTP_FROM_EMAIL=no-reply@meddatahub.local`, `SMTP_USE_TLS=true`, `OTP_TTL_SECONDS=600`, `OTP_MAX_ATTEMPTS=5`, `OTP_REQUEST_COOLDOWN_SECONDS=60`).
+- Alembic autogenerate now compares server defaults and explicitly registers both MedDataHub and SynthMed models in the migration metadata. The verified head is `a1f4d7e9c2b6`, parented on `f6b2c9d4e7a1`; revision `a1f4d7e9c2b6` aligns the ETL unique index and adds the SynthMed generation status index, while earlier SynthMed revisions already carry the server defaults and `uq_synthmed_config_job` constraint. Model-side server defaults were aligned to those revisions rather than adding redundant migrations. Tests cover the revision graph, upgrade to head, schema parity, no-drift `check`, upgrade/downgrade round trip and data preservation on temporary SQLite databases.
+- The SynthMed worker remains a single-process in-memory executor, not a durable queue. A process crash can interrupt active work; recovery converts stranded active jobs to a terminal `Failed` state with an `InterruptedJob` payload so users can resubmit. Recovery is configurable (`SYNTHMED_STALE_JOB_RECOVERY_ENABLED=true`, `SYNTHMED_STALE_JOB_AFTER_SECONDS=0` by default), idempotent, conditional on the job still being active, and skips terminal jobs. Recovery failures are logged and startup continues. Shutdown stops submissions, awaits running tasks, logs executor errors and disposes the database engine last.
 
 ## Verification record
 
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend lint | `ruff check .` from `backend` | All checks passed |
-| Backend tests | `& 'backend\.venv\Scripts\python.exe' -m pytest backend/tests -q` | 59 passed |
+| Backend tests | `& 'backend\.venv\Scripts\python.exe' -m pytest backend/tests -q` | 71 passed |
 | Alembic upgrade/downgrade/model check | `alembic upgrade head`, `alembic downgrade -1`, `alembic check` | Passed on temporary SQLite databases |
 | OpenAPI paths | `app.openapi()['paths']` required-path assertion | Passed |
 | TypeScript strict check | `npm run typecheck` | Passed |

@@ -100,6 +100,10 @@ def test_ctgan_workflow_end_to_end(app: FastAPI, client: TestClient, db_session:
     headers = auth_headers(client, "ctgan-owner@example.test")
     source_id = upload(client, headers, FICTIONAL_CSV)
 
+    source_metadata = client.get(f"{API}/sources/{source_id}", headers=headers)
+    assert source_metadata.status_code == 200, source_metadata.text
+    assert source_metadata.json()["datasetName"] == "Fictional cohort"
+
     analysis_response = client.post(f"{API}/generation/analyse/{source_id}", headers=headers)
     assert analysis_response.status_code == 200, analysis_response.text
     analysis = analysis_response.json()
@@ -214,6 +218,7 @@ def test_generation_authentication_ownership_and_failure(client: TestClient, db_
 
     for path in [
         f"{API}/generation/jobs/{job['id']}",
+        f"{API}/sources/{source_id}/download",
         f"{API}/generated/{generated_id}",
         f"{API}/generated/{generated_id}/preview",
         f"{API}/generated/{generated_id}/quality",

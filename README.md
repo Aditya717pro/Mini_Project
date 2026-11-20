@@ -106,6 +106,12 @@ Quality reports use SDMetrics quality and diagnostics. Privacy reports cover exa
 | `npm run lint:backend` | Run Ruff against the backend |
 | `npm test` | Run backend tests |
 
+## Configuration and security
+
+Password reset email is fail-closed. Copy `backend/.env.example` to `backend/.env` and set `SMTP_HOST` to enable it; with no host, `POST /api/v1/auth/forgot-password` returns `503` and no code is stored. The supported variables are `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME` (legacy alias `SMTP_USER`), `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` and `SMTP_USE_TLS`. Codes are six-digit `secrets`-generated values stored only as hashes, with expiry, attempt limits, resend cooldown and one-time use. Never commit `.env` or credentials.
+
+SynthMed uses a single-process in-memory worker, not a durable queue: a process crash can interrupt active generation. Startup recovery fails stranded active jobs with an `InterruptedJob` payload so they can be resubmitted. Defaults are `SYNTHMED_STALE_JOB_RECOVERY_ENABLED=true` and `SYNTHMED_STALE_JOB_AFTER_SECONDS=0`; recovery is conditional, idempotent and preserves terminal jobs. Shutdown stops new submissions, awaits running tasks and disposes the database engine last. Stored paths are resolved inside their designated raw, processed or SynthMed root; traversal, symlink escapes, cross-root and directory paths are rejected with controlled `404` responses.
+
 ## Behaviour boundaries
 
 | Capability | Status |

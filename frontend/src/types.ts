@@ -473,6 +473,76 @@ export interface SynthMedExportResponse {
   fileName: string;
 }
 
+export interface SynthMedComparisonCreatePayload {
+  sourceDatasetId: string;
+  generatedDatasetId: string;
+  name: string;
+}
+
+export interface SynthMedComparisonChartPoint {
+  bucket?: string;
+  category?: string;
+  original: number;
+  synthetic: number;
+}
+
+export interface SynthMedComparisonChart {
+  column: string;
+  kind: 'numerical' | 'categorical' | string;
+  title: string;
+  points: SynthMedComparisonChartPoint[];
+}
+
+export interface SynthMedComparisonColumnMetric {
+  name: string;
+  sourceKind: string;
+  syntheticKind: string;
+  shared: boolean;
+  similarity: number | null;
+  metric: string;
+  sourceMissingPercentage: number;
+  syntheticMissingPercentage: number;
+  sourceUniqueCount: number;
+  syntheticUniqueCount: number;
+  sourceStats: Record<string, unknown>;
+  syntheticStats: Record<string, unknown>;
+}
+
+export interface SynthMedComparisonSummary {
+  sourceRows: number;
+  syntheticRows: number;
+  rowDifference: number;
+  sourceColumns: number;
+  syntheticColumns: number;
+  sharedColumns: number;
+  onlySourceColumns: string[];
+  onlySyntheticColumns: string[];
+  overallSimilarity: number | null;
+  numericSimilarity: number | null;
+  categoricalSimilarity: number | null;
+  missingnessDeltaPercentage: number | null;
+}
+
+export interface SynthMedComparisonListItem {
+  id: string;
+  name: string;
+  sourceDatasetId: string;
+  sourceDatasetName: string;
+  generatedDatasetId: string;
+  generatedDatasetName: string;
+  summary: SynthMedComparisonSummary;
+  createdAt: string;
+  createdBy: string;
+  reportAvailable: boolean;
+}
+
+export interface SynthMedComparisonDetail extends SynthMedComparisonListItem {
+  method: string;
+  columns: SynthMedComparisonColumnMetric[];
+  charts: SynthMedComparisonChart[];
+  limitations: string[];
+}
+
 export interface ToastMessage {
   id: string;
   type: 'success' | 'error' | 'info';

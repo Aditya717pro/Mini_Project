@@ -5,6 +5,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 import app.models  # noqa: F401
+import app.synthmed.models  # noqa: F401
 from app.core.config import Settings
 from app.database.base import Base
 
@@ -42,6 +43,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
+            compare_server_default=True,
             render_as_batch=True,
         )
         with context.begin_transaction():

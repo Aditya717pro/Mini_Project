@@ -29,7 +29,21 @@ Copy-Item .env.example .env
 
 Edit `.env` for local database settings. Never commit `.env` or real patient data.
 
-Password reset email requires working SMTP settings. Delivery is fail-closed: if sending fails, the request still returns the generic `202` response for privacy, but no reset code is persisted or accepted and no success audit entry is written.
+Password reset email requires working SMTP settings. Delivery is fail-closed: an unconfigured service returns `503` before any user lookup or code creation; if sending fails, the request still returns the generic `202` response for privacy, but no reset code is persisted or accepted and no success audit entry is written. Six-digit codes are generated with `secrets`, stored only as password hashes, and retain expiry, attempt limits, resend cooldown and one-time use.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `SMTP_HOST` | empty (disabled) | SMTP server host; empty disables reset email |
+| `SMTP_PORT` | `587` | SMTP port (1-65535) |
+| `SMTP_USERNAME` | empty | SMTP username; `SMTP_USER` is accepted as a legacy alias |
+| `SMTP_PASSWORD` | empty | SMTP password |
+| `SMTP_FROM_EMAIL` | `no-reply@meddatahub.local` | Sender address |
+| `SMTP_USE_TLS` | `true` | Start TLS before login |
+| `OTP_TTL_SECONDS` | `600` | Code lifetime |
+| `OTP_MAX_ATTEMPTS` | `5` | Incorrect-attempt limit |
+| `OTP_REQUEST_COOLDOWN_SECONDS` | `60` | Resend cooldown |
+
+Never hardcode credentials or commit `.env`.
 
 ## Run
 

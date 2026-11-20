@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import logging
 import random
 import time
 import traceback
@@ -44,6 +45,8 @@ from app.synthmed.services.dataset_service import (
 from app.synthmed.services.evaluation_service import build_privacy_report, build_quality_report
 from app.synthmed.services.source_service import to_generated_response
 from app.synthmed.services.storage_service import SynthMedStorageService
+
+logger = logging.getLogger(__name__)
 
 MODEL_NAME = "SDV CTGANSynthesizer"
 TERMINAL_STATUSES = {"Completed", "Failed"}
@@ -88,7 +91,10 @@ def shutdown_executor(wait: bool = True) -> None:
         executor = _executor
         _executor = None
     if executor is not None:
-        executor.shutdown(wait=wait, cancel_futures=not wait)
+        try:
+            executor.shutdown(wait=wait, cancel_futures=not wait)
+        except Exception:
+            logger.exception("SynthMed generation executor shutdown failed")
 
 
 def _status(job: SynthMedGenerationJob, value: str, **updates: Any) -> None:
@@ -683,12 +689,15 @@ def recover_stale_jobs(
             statement = statement.where(SynthMedGenerationJob.updated_at <= cutoff)
         candidates = db.execute(statement).all()
         for job_id, owner_id in candidates:
+            conditions = [
+                SynthMedGenerationJob.id == job_id,
+                SynthMedGenerationJob.status.in_(ACTIVE_STATUSES),
+            ]
+            if cutoff is not None:
+                conditions.append(SynthMedGenerationJob.updated_at <= cutoff)
             result = db.execute(
                 update(SynthMedGenerationJob)
-                .where(
-                    SynthMedGenerationJob.id == job_id,
-                    SynthMedGenerationJob.status.in_(ACTIVE_STATUSES),
-                )
+                .where(*conditions)
                 .values(
                     status="Failed",
                     completed_at=_now(),

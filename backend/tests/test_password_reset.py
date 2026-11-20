@@ -117,6 +117,37 @@ def test_expired_otp_is_rejected(
     assert response.status_code == 400
 
 
+def test_unconfigured_smtp_returns_503_without_creating_otp(
+    client: TestClient, db_session: Session, app: FastAPI, sent_otps: list[str]
+) -> None:
+    app.state.settings.smtp_host = ""
+    register(client)
+
+    response = request_reset(client)
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Password reset email is not configured."
+    assert sent_otps == []
+    assert db_session.scalars(select(PasswordResetOTP)).all() == []
+    assert db_session.scalar(
+        select(AuditLog).where(AuditLog.action == "user.password_reset_requested")
+    ) is None
+
+
+def test_otp_is_not_exposed_in_response_or_logs(
+    client: TestClient, db_session: Session, sent_otps: list[str], caplog: pytest.LogCaptureFixture
+) -> None:
+    register(client)
+    with caplog.at_level("DEBUG"):
+        response = request_reset(client)
+
+    assert response.status_code == 202
+    assert response.json() == {"message": "If the email is registered, a reset code has been sent."}
+    assert len(sent_otps) == 1
+    assert sent_otps[0] not in response.text
+    assert sent_otps[0] not in caplog.text
+
+
 def test_too_many_attempts(client: TestClient, db_session: Session, sent_otps: list[str], app: FastAPI) -> None:
     app.state.settings.otp_max_attempts = 1
     register(client)

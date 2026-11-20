@@ -7,6 +7,9 @@ import {
   BrainCircuit,
   Check,
   Database,
+  Download,
+  FlaskConical,
+  GitCompare,
   KeyRound,
   LayoutDashboard,
   Menu,
@@ -15,7 +18,9 @@ import {
   Search,
   Settings,
   Sun,
+  ShieldCheck,
   Users,
+  Wand2,
   Workflow,
   X,
 } from 'lucide-react';
@@ -46,6 +51,17 @@ const navGroups = [
       { to: '/quality', label: 'Data Quality', icon: BadgeCheck, end: false },
       { to: '/readiness', label: 'AI Readiness', icon: BrainCircuit, end: false },
       { to: '/representativeness', label: 'Representativeness', icon: Users, end: false },
+    ],
+  },
+  {
+    label: 'SynthMed',
+    items: [
+      { to: '/synthmed', label: 'SynthMed Overview', icon: FlaskConical, end: true },
+      { to: '/synthmed/generate', label: 'Generate Synthetic Data', icon: Wand2, end: false },
+      { to: '/synthmed/generated', label: 'Generated Datasets', icon: FlaskConical, end: false },
+      { to: '/synthmed/comparison', label: 'Comparison Dashboard', icon: GitCompare, end: false },
+      { to: '/synthmed/evaluation', label: 'Quality & Privacy', icon: ShieldCheck, end: false },
+      { to: '/synthmed/downloads', label: 'Download Centre', icon: Download, end: false },
     ],
   },
   {

@@ -150,3 +150,66 @@ class SynthMedExportResponse(BaseModel):
     generatedDatasetId: str
     format: str
     fileName: str
+
+
+class SynthMedComparisonCreateRequest(BaseModel):
+    sourceDatasetId: str
+    generatedDatasetId: str
+    name: str = ""
+
+
+class SynthMedComparisonColumnMetric(BaseModel):
+    name: str
+    sourceKind: str
+    syntheticKind: str
+    shared: bool = True
+    similarity: float | None = None
+    metric: str = ""
+    sourceMissingPercentage: float = 0.0
+    syntheticMissingPercentage: float = 0.0
+    sourceUniqueCount: int = 0
+    syntheticUniqueCount: int = 0
+    sourceStats: dict[str, Any] = Field(default_factory=dict)
+    syntheticStats: dict[str, Any] = Field(default_factory=dict)
+
+
+class SynthMedComparisonSummary(BaseModel):
+    sourceRows: int
+    syntheticRows: int
+    rowDifference: int
+    sourceColumns: int
+    syntheticColumns: int
+    sharedColumns: int
+    onlySourceColumns: list[str] = Field(default_factory=list)
+    onlySyntheticColumns: list[str] = Field(default_factory=list)
+    overallSimilarity: float | None = None
+    numericSimilarity: float | None = None
+    categoricalSimilarity: float | None = None
+    missingnessDeltaPercentage: float = 0.0
+
+
+class SynthMedComparisonChart(BaseModel):
+    column: str
+    kind: str
+    title: str
+    points: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class SynthMedComparisonListItem(BaseModel):
+    id: str
+    name: str
+    sourceDatasetId: str
+    sourceDatasetName: str
+    generatedDatasetId: str
+    generatedDatasetName: str
+    summary: SynthMedComparisonSummary
+    createdAt: str
+    createdBy: str
+    reportAvailable: bool = False
+
+
+class SynthMedComparisonResponse(SynthMedComparisonListItem):
+    method: str
+    columns: list[SynthMedComparisonColumnMetric] = Field(default_factory=list)
+    charts: list[SynthMedComparisonChart] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)

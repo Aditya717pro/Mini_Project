@@ -165,6 +165,11 @@ def forgot_password(
     db: Annotated[Session, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_app_settings)],
 ) -> dict[str, str]:
+    if not settings.smtp_is_configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password reset email is not configured.",
+        )
     email = payload.email.strip().lower()
     user = db.scalar(select(User).where(User.email == email))
     if user is not None and user.is_active:

@@ -47,3 +47,34 @@ def test_synthmed_stale_job_recovery_defaults() -> None:
 def test_synthmed_stale_job_after_seconds_must_not_be_negative() -> None:
     with pytest.raises(ValidationError):
         Settings(environment="test", synthmed_stale_job_after_seconds=-1)
+
+
+def test_smtp_username_env_alias_is_supported(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SMTP_USERNAME", "alias-user")
+    monkeypatch.delenv("SMTP_USER", raising=False)
+
+    settings = Settings(_env_file=None, environment="test")
+
+    assert settings.smtp_user == "alias-user"
+
+
+def test_smtp_is_configured_is_fail_closed() -> None:
+    assert Settings(environment="test", smtp_host="").smtp_is_configured is False
+    assert (
+        Settings(
+            environment="test",
+            smtp_host="smtp.test.local",
+            smtp_username="user",
+            smtp_password="",
+        ).smtp_is_configured
+        is False
+    )
+    assert (
+        Settings(
+            environment="test",
+            smtp_host="smtp.test.local",
+            smtp_username="user",
+            smtp_password="secret",
+        ).smtp_is_configured
+        is True
+    )

@@ -6,8 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
-from app.models import DatasetVersion, User
-from app.models.enums import UserRole
+from app.models import Dataset, DatasetVersion, ETLJob, User
+from app.models.enums import DatasetStatus, JobStatus, UserRole
 from app.services.storage_service import StorageService
 
 
@@ -108,6 +108,28 @@ def test_upload_etl_reports_and_access_flow(
     assert job.json()["status"] == "Queued"
     assert all(item["decision"] is None for item in job.json()["mappings"])
 
+    version = db_session.scalar(select(DatasetVersion).where(DatasetVersion.dataset_id == dataset_id))
+    assert version is not None
+    original_raw_path = version.raw_file_path
+    outside = tmp_path / "poisoned.csv"
+    outside.write_text("secret,not,a,dataset\n", encoding="utf-8")
+    version.raw_file_path = str(outside)
+    db_session.commit()
+    poisoned_profile = client.post(f"/api/v1/etl/jobs/{job_id}/profile", headers=contributor_headers)
+    assert poisoned_profile.status_code == 404
+    assert b"secret" not in poisoned_profile.content
+    version.raw_file_path = original_raw_path
+    job_record = db_session.get(ETLJob, job_id)
+    assert job_record is not None
+    job_record.status = JobStatus.QUEUED
+    job_record.current_stage = "extract"
+    job_record.progress = 10
+    job_record.error_message = None
+    dataset_record = db_session.get(Dataset, dataset_id)
+    assert dataset_record is not None
+    dataset_record.status = DatasetStatus.PROCESSING
+    db_session.commit()
+
     blocked = client.post(
         f"/api/v1/etl/jobs/{job_id}/run",
         headers=contributor_headers,
@@ -179,6 +201,18 @@ def test_upload_etl_reports_and_access_flow(
     readiness = client.get(f"/api/v1/datasets/{dataset_id}/readiness", headers=contributor_headers)
     assert readiness.status_code == 200, readiness.text
     assert readiness.json()["verdict"] in {"Ready", "Ready with caveats", "Not ready"}
+
+    version.raw_file_path = str(outside)
+    db_session.commit()
+    poisoned_readiness = client.post(
+        f"/api/v1/datasets/{dataset_id}/readiness",
+        headers=contributor_headers,
+        json={"task": "Readmission risk modelling"},
+    )
+    assert poisoned_readiness.status_code == 404
+    assert b"secret" not in poisoned_readiness.content
+    version.raw_file_path = original_raw_path
+    db_session.commit()
 
     representativeness = client.get(
         f"/api/v1/datasets/{dataset_id}/representativeness",

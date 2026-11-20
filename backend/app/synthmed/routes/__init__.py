@@ -14,6 +14,9 @@ from app.core.config import Settings
 from app.db.session import get_db
 from app.services.audit_service import log_audit
 from app.synthmed.schemas import (
+    SynthMedComparisonCreateRequest,
+    SynthMedComparisonListItem,
+    SynthMedComparisonResponse,
     SynthMedDownloadsResponse,
     SynthMedEvaluationReportResponse,
     SynthMedExportRequest,
@@ -27,7 +30,7 @@ from app.synthmed.schemas import (
     SynthMedSourceDatasetResponse,
     SynthMedSourceUploadResponse,
 )
-from app.synthmed.services import generation_service
+from app.synthmed.services import comparison_service, generation_service
 from app.synthmed.services.source_service import (
     create_source_upload,
     downloads_payload,
@@ -335,5 +338,62 @@ def download_generated_report(
     )
     db.commit()
     return _stream_file(path, "application/json", f"{report_type}_report.json")
+
+
+@router.post("/comparisons", response_model=SynthMedComparisonResponse, status_code=status.HTTP_201_CREATED)
+def create_comparison(
+    payload: SynthMedComparisonCreateRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> SynthMedComparisonResponse:
+    row = comparison_service.create_comparison(
+        db,
+        source_id=payload.sourceDatasetId,
+        generated_id=payload.generatedDatasetId,
+        name=payload.name,
+        settings=settings,
+        user=user,
+        request=request,
+    )
+    return comparison_service.to_response(row)
+
+
+@router.get("/comparisons", response_model=list[SynthMedComparisonListItem])
+def get_comparisons(
+    db: Annotated[Session, Depends(get_db)], user: CurrentUser
+) -> list[SynthMedComparisonListItem]:
+    return [comparison_service.to_list_response(row) for row in comparison_service.list_comparisons(db, user)]
+
+
+@router.get("/comparisons/{comparison_id}", response_model=SynthMedComparisonResponse)
+def get_comparison(
+    comparison_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser
+) -> SynthMedComparisonResponse:
+    return comparison_service.to_response(comparison_service.get_comparison(db, comparison_id, user))
+
+
+@router.get("/comparisons/{comparison_id}/report/download")
+def download_comparison_report(
+    comparison_id: str,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+):
+    row = comparison_service.get_comparison(db, comparison_id, user)
+    path = comparison_service.comparison_report_path(row, settings)
+    log_audit(
+        db,
+        action="synthmed.comparison_report_downloaded",
+        resource_type="synthmed_comparison",
+        resource_id=row.id,
+        actor_id=user.id,
+        details={"source_dataset_id": row.source_dataset_id, "generated_dataset_id": row.generated_dataset_id},
+        request=request,
+    )
+    db.commit()
+    return _stream_file(path, "application/json", "comparison_report.json")
 
 

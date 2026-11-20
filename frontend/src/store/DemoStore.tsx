@@ -26,6 +26,9 @@ import type {
   RepresentativenessReport,
   RequestStatus,
   Role,
+  SynthMedComparisonCreatePayload,
+  SynthMedComparisonDetail,
+  SynthMedComparisonListItem,
   SynthMedDownloads,
   SynthMedEvaluationReport,
   SynthMedExportResponse,
@@ -75,6 +78,7 @@ interface DemoStore {
   synthSources: SynthMedSourceDataset[];
   synthGenerated: SynthMedGeneratedDataset[];
   synthJobs: SynthMedGenerationJob[];
+  synthComparisons: SynthMedComparisonListItem[];
   requests: AccessRequest[];
   qualityReports: Record<string, QualityReport>;
   readinessReports: Record<string, ReadinessReport>;
@@ -109,6 +113,10 @@ interface DemoStore {
   exportSynthMedGenerated: (generatedId: string, format: FileFormat) => Promise<SynthMedExportResponse>;
   downloadSynthMedGeneratedFormat: (generatedId: string, format: FileFormat) => Promise<void>;
   downloadSynthMedReport: (generatedId: string, reportType: string) => Promise<void>;
+  listSynthMedComparisons: () => Promise<SynthMedComparisonListItem[]>;
+  getSynthMedComparison: (comparisonId: string) => Promise<SynthMedComparisonDetail>;
+  createSynthMedComparison: (payload: SynthMedComparisonCreatePayload) => Promise<SynthMedComparisonDetail>;
+  downloadSynthMedComparisonReport: (comparisonId: string) => Promise<void>;
   refreshJob: (jobId: string) => Promise<void>;
   profileJob: (jobId: string) => Promise<void>;
   recordMappingDecisions: (jobId: string, decisions: MappingDecisionInput[]) => Promise<void>;
@@ -153,6 +161,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [synthSources, setSynthSources] = useState<SynthMedSourceDataset[]>([]);
   const [synthGenerated, setSynthGenerated] = useState<SynthMedGeneratedDataset[]>([]);
   const [synthJobs, setSynthJobs] = useState<SynthMedGenerationJob[]>([]);
+  const [synthComparisons, setSynthComparisons] = useState<SynthMedComparisonListItem[]>([]);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [qualityReports, setQualityReports] = useState<Record<string, QualityReport>>({});
   const [readinessReports, setReadinessReports] = useState<Record<string, ReadinessReport>>({});
@@ -247,6 +256,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     setSynthSources([]);
     setSynthGenerated([]);
     setSynthJobs([]);
+    setSynthComparisons([]);
     setRequests([]);
     setQualityReports({});
     setReadinessReports({});
@@ -255,7 +265,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
 
   const loadWorkspace = useCallback(async () => {
     try {
-      const [datasetList, jobList, requestList, synthDownloads, generationJobs] = await Promise.all([
+      const [datasetList, jobList, requestList, synthDownloads, generationJobs, comparisons] = await Promise.all([
         api.listDatasets().catch((err) => {
           console.error('Failed to list datasets:', err);
           return [];
@@ -276,6 +286,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
           console.error('Failed to list SynthMed generation jobs:', err);
           return [] as SynthMedGenerationJob[];
         }),
+        api.listSynthMedComparisons().catch((err) => {
+          console.error('Failed to list SynthMed comparisons:', err);
+          return [] as SynthMedComparisonListItem[];
+        }),
       ]);
       const reportBundles = await Promise.all(
         datasetList.map(async (dataset) => {
@@ -292,6 +306,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       setSynthSources(synthDownloads.sources);
       setSynthGenerated(synthDownloads.generated);
       setSynthJobs(generationJobs);
+      setSynthComparisons(comparisons);
       setRequests(requestList);
       setQualityReports(maps.qualityReports);
       setReadinessReports(maps.readinessReports);
@@ -636,6 +651,85 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     [notify],
   );
 
+  const listSynthMedComparisons = useCallback(async () => {
+    try {
+      const items = await api.listSynthMedComparisons();
+      setSynthComparisons(items);
+      return items;
+    } catch (error) {
+      notify('error', 'Could not load comparisons', errorMessage(error));
+      throw error;
+    }
+  }, [notify]);
+
+  const getSynthMedComparison = useCallback(
+    async (comparisonId: string) => {
+      try {
+        const detail = await api.getSynthMedComparison(comparisonId);
+        const item: SynthMedComparisonListItem = {
+          id: detail.id,
+          name: detail.name,
+          sourceDatasetId: detail.sourceDatasetId,
+          sourceDatasetName: detail.sourceDatasetName,
+          generatedDatasetId: detail.generatedDatasetId,
+          generatedDatasetName: detail.generatedDatasetName,
+          summary: detail.summary,
+          createdAt: detail.createdAt,
+          createdBy: detail.createdBy,
+          reportAvailable: detail.reportAvailable,
+        };
+        setSynthComparisons((prev) =>
+          prev.some((entry) => entry.id === item.id)
+            ? prev.map((entry) => (entry.id === item.id ? item : entry))
+            : [item, ...prev],
+        );
+        return detail;
+      } catch (error) {
+        notify('error', 'Could not load comparison', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const createSynthMedComparison = useCallback(
+    async (payload: SynthMedComparisonCreatePayload) => {
+      try {
+        const detail = await api.createSynthMedComparison(payload);
+        const item: SynthMedComparisonListItem = {
+          id: detail.id,
+          name: detail.name,
+          sourceDatasetId: detail.sourceDatasetId,
+          sourceDatasetName: detail.sourceDatasetName,
+          generatedDatasetId: detail.generatedDatasetId,
+          generatedDatasetName: detail.generatedDatasetName,
+          summary: detail.summary,
+          createdAt: detail.createdAt,
+          createdBy: detail.createdBy,
+          reportAvailable: detail.reportAvailable,
+        };
+        setSynthComparisons((prev) => [item, ...prev.filter((entry) => entry.id !== item.id)]);
+        notify('success', 'Comparison ready', `${detail.name} was calculated from the stored datasets.`);
+        return detail;
+      } catch (error) {
+        notify('error', 'Comparison failed', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const downloadSynthMedComparisonReport = useCallback(
+    async (comparisonId: string) => {
+      try {
+        await api.downloadSynthMedComparisonReport(comparisonId);
+      } catch (error) {
+        notify('error', 'Comparison report download failed', errorMessage(error));
+      }
+    },
+    [notify],
+  );
+
   const replaceJob = useCallback((updated: EtlJob) => {
     setJobs((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
   }, []);
@@ -835,6 +929,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       synthSources,
       synthGenerated,
       synthJobs,
+      synthComparisons,
       requests,
       qualityReports,
       readinessReports,
@@ -865,6 +960,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       exportSynthMedGenerated,
       downloadSynthMedGeneratedFormat,
       downloadSynthMedReport,
+      listSynthMedComparisons,
+      getSynthMedComparison,
+      createSynthMedComparison,
+      downloadSynthMedComparisonReport,
       refreshJob,
       profileJob,
       recordMappingDecisions,
@@ -888,6 +987,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     synthSources,
     synthGenerated,
     synthJobs,
+    synthComparisons,
     requests,
     qualityReports,
     readinessReports,
@@ -918,6 +1018,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     exportSynthMedGenerated,
     downloadSynthMedGeneratedFormat,
     downloadSynthMedReport,
+    listSynthMedComparisons,
+    getSynthMedComparison,
+    createSynthMedComparison,
+    downloadSynthMedComparisonReport,
     refreshJob,
     profileJob,
     recordMappingDecisions,

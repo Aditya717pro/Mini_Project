@@ -2,7 +2,7 @@
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -16,6 +16,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        populate_by_name=True,
     )
 
     app_name: str = "MedDataHub API"
@@ -29,8 +30,11 @@ class Settings(BaseSettings):
     allow_registration: bool = True
 
     smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_user: str = ""
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_user: str = Field(
+        default="",
+        validation_alias=AliasChoices("SMTP_USERNAME", "SMTP_USER", "smtp_user"),
+    )
     smtp_password: str = ""
     smtp_from_email: str = "no-reply@meddatahub.local"
     smtp_use_tls: bool = True
@@ -61,6 +65,15 @@ class Settings(BaseSettings):
     synthmed_stale_job_after_seconds: int = Field(default=0, ge=0)
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+
+    @property
+    def smtp_is_configured(self) -> bool:
+        host = self.smtp_host.strip()
+        sender = self.smtp_from_email.strip()
+        username = self.smtp_user.strip()
+        password = self.smtp_password.strip()
+        credentials_valid = (not username and not password) or bool(username and password)
+        return bool(host and sender and 1 <= self.smtp_port <= 65535) and credentials_valid
 
     @field_validator("api_v1_prefix")
     @classmethod

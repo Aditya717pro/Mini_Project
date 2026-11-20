@@ -34,6 +34,9 @@ const SynthMedEvaluation = lazy(() =>
 const SynthMedDownloads = lazy(() =>
   import('./pages/SynthMedDownloads').then((module) => ({ default: module.SynthMedDownloads })),
 );
+const SynthMedComparison = lazy(() =>
+  import('./pages/SynthMedComparison').then((module) => ({ default: module.SynthMedComparison })),
+);
 const NotFound = lazy(() => import('./pages/NotFound').then((module) => ({ default: module.NotFound })));
 
 export const App = () => (
@@ -58,6 +61,8 @@ export const App = () => (
           <Route path="synthmed/generated" element={<SynthMedGenerated />} />
           <Route path="synthmed/evaluation" element={<SynthMedEvaluation />} />
           <Route path="synthmed/downloads" element={<SynthMedDownloads />} />
+          <Route path="synthmed/comparison" element={<SynthMedComparison />} />
+          <Route path="synthmed/comparison/:comparisonId" element={<SynthMedComparison />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
