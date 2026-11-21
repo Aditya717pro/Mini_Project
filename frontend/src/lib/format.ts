@@ -1,3 +1,5 @@
+import type { SynthMedConditionSatisfaction } from '../types';
+
 export const formatNumber = (value: number) => new Intl.NumberFormat('en-GB').format(value);
 
 export const formatDate = (iso: string) =>
@@ -44,3 +46,30 @@ export const initials = (name: string) =>
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('');
+
+export const conditionValueText = (value: unknown): string => {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+};
+
+export const conditionLabel = (condition: {
+  column?: string;
+  operator?: string;
+  value?: unknown;
+  numRows?: number;
+}): string => {
+  const column = condition.column ?? '—';
+  const value = conditionValueText(condition.value);
+  const rows = condition.numRows == null ? '' : ` · ${formatNumber(condition.numRows)} rows`;
+  return `${column} ${condition.operator ?? 'eq'} ${value}${rows}`;
+};
+
+export const asConditionSatisfaction = (value: unknown): SynthMedConditionSatisfaction | null => {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Record<string, unknown>;
+  if (!('combined' in candidate) && !('allConditionsSatisfied' in candidate) && !('conditions' in candidate)) {
+    return null;
+  }
+  return candidate as unknown as SynthMedConditionSatisfaction;
+};

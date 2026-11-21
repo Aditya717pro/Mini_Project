@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Activity, ArrowRight, Database, LockKeyhole, Mail, UserPlus } from 'lucide-react';
 import { Alert, Button, Field } from '../components/ui';
 
@@ -39,6 +40,7 @@ export const LoginScreen = ({
   onRequestPasswordReset,
   onVerifyPasswordReset,
 }: LoginScreenProps) => {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<AuthMode>(() => (typeof window === 'undefined' ? 'login' : modeFromLocation()));
   const authEntryActive = useRef(
     typeof window !== 'undefined' && Boolean(window.history.state?.meddatahubAuthMode),
@@ -128,6 +130,7 @@ export const LoginScreen = ({
       await onLogin(email, password);
       clearAuthHash();
       storeCredential(email, password);
+      navigate('/', { replace: true });
     } catch (caught) {
       setError(describeError(caught, 'Sign in failed.'));
     } finally {
@@ -162,6 +165,7 @@ export const LoginScreen = ({
       });
       clearAuthHash();
       storeCredential(email, password, fullName);
+      navigate('/', { replace: true });
     } catch (caught) {
       setError(describeError(caught, 'Registration failed.'));
     } finally {

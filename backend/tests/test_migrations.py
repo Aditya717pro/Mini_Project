@@ -22,13 +22,15 @@ def test_alembic_revision_graph_has_single_expected_head(alembic_config: tuple[C
     config, _ = alembic_config
     directory = script.ScriptDirectory.from_config(config)
 
-    assert directory.get_heads() == ["c74e9b1a6d02"]
+    assert directory.get_heads() == ["b2f6d8a9c1e3"]
+    assert directory.get_revision("b2f6d8a9c1e3").down_revision == "c74e9b1a6d02"
     assert directory.get_revision("c74e9b1a6d02").down_revision == "a1f4d7e9c2b6"
     assert directory.get_revision("a1f4d7e9c2b6").down_revision == "f6b2c9d4e7a1"
     assert directory.get_revision("f6b2c9d4e7a1").down_revision == "d4a8c1f0b2e3"
 
     chain = [revision.revision for revision in directory.walk_revisions()]
     assert chain == [
+        "b2f6d8a9c1e3",
         "c74e9b1a6d02",
         "a1f4d7e9c2b6",
         "f6b2c9d4e7a1",

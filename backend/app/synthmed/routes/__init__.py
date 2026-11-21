@@ -1,8 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
@@ -14,9 +14,15 @@ from app.core.config import Settings
 from app.db.session import get_db
 from app.services.audit_service import log_audit
 from app.synthmed.schemas import (
+    SynthMedClinicalReferenceListResponse,
+    SynthMedClinicalValidationRequest,
+    SynthMedClinicalValidationResponse,
     SynthMedComparisonCreateRequest,
     SynthMedComparisonListItem,
     SynthMedComparisonResponse,
+    SynthMedConditionValidationRequest,
+    SynthMedConditionValidationResponse,
+    SynthMedDatasetColumnsResponse,
     SynthMedDownloadsResponse,
     SynthMedEvaluationReportResponse,
     SynthMedExportRequest,
@@ -27,10 +33,18 @@ from app.synthmed.schemas import (
     SynthMedGenerationAnalysisResponse,
     SynthMedGenerationJobResponse,
     SynthMedGenerationStartRequest,
+    SynthMedMedicalProfileResponse,
+    SynthMedModelCapabilityListResponse,
     SynthMedSourceDatasetResponse,
     SynthMedSourceUploadResponse,
 )
-from app.synthmed.services import comparison_service, generation_service
+from app.synthmed.services import (
+    clinical_reference_service,
+    comparison_service,
+    generation_service,
+    medical_schema_service,
+)
+from app.synthmed.services.dataset_service import read_source_dataframe
 from app.synthmed.services.source_service import (
     create_source_upload,
     downloads_payload,
@@ -46,6 +60,11 @@ from app.synthmed.services.source_service import (
 from app.synthmed.services.storage_service import SynthMedStorageService
 
 router = APIRouter(prefix="/synthmed", tags=["synthmed"])
+
+
+@router.get("/models", response_model=SynthMedModelCapabilityListResponse)
+def get_generation_models(user: CurrentUser) -> SynthMedModelCapabilityListResponse:
+    return SynthMedModelCapabilityListResponse.model_validate(generation_service.models_payload())
 
 
 def _stream_file(path: Path, media_type: str, download_name: str) -> StreamingResponse:
@@ -67,6 +86,10 @@ def _stream_file(path: Path, media_type: str, download_name: str) -> StreamingRe
         },
     )
 
+
+def _source_frame(source, settings: Settings):
+    storage = SynthMedStorageService(settings)
+    return read_source_dataframe(storage.resolve_source(source.stored_path), source.file_format)
 
 
 @router.post("/upload", response_model=SynthMedSourceUploadResponse, status_code=status.HTTP_201_CREATED)
@@ -94,11 +117,9 @@ def upload_source_dataset(
     return SynthMedSourceUploadResponse(
         dataset=to_source_response(dataset),
         message=(
-            "Source dataset uploaded and stored successfully. "
-            "The original file was preserved without modification."
+            "Source dataset uploaded and stored successfully. The original file was preserved without modification."
         ),
     )
-
 
 
 @router.get("/sources", response_model=list[SynthMedSourceDatasetResponse])
@@ -113,6 +134,100 @@ def get_source_dataset(
     dataset = get_source(db, dataset_id)
     ensure_source_access(dataset, user)
     return to_source_response(dataset)
+
+
+@router.get("/datasets/{dataset_id}/columns", response_model=SynthMedDatasetColumnsResponse)
+def get_dataset_columns(
+    dataset_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+    model: str = "CTGAN",
+) -> SynthMedDatasetColumnsResponse:
+    source = get_source(db, dataset_id)
+    ensure_source_access(source, user)
+    try:
+        payload = generation_service.dataset_columns_payload(db, source, user, settings, model)
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source file not found on disk.") from error
+    return SynthMedDatasetColumnsResponse.model_validate(payload)
+
+
+@router.get("/clinical/references", response_model=SynthMedClinicalReferenceListResponse)
+def get_clinical_references(user: CurrentUser) -> SynthMedClinicalReferenceListResponse:
+    references = clinical_reference_service.reference_catalog()
+    return SynthMedClinicalReferenceListResponse(
+        references=references,
+        count=len(references),
+        message=(
+            "Documented research-use reference intervals with source provenance. "
+            "Unavailable entries are never applied to generated records."
+        ),
+    )
+
+
+@router.get("/sources/{dataset_id}/medical-profile", response_model=SynthMedMedicalProfileResponse)
+def get_medical_profile(
+    dataset_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> SynthMedMedicalProfileResponse:
+    source = get_source(db, dataset_id)
+    ensure_source_access(source, user)
+    try:
+        frame = _source_frame(source, settings)
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source file not found on disk.") from error
+    profile = medical_schema_service.profile_medical_schema(frame)
+    return SynthMedMedicalProfileResponse(
+        sourceDatasetId=source.id,
+        datasetName=source.dataset_name,
+        profile=profile,
+        message="Review detected units and contexts before enabling clinical constraints.",
+    )
+
+
+@router.post("/sources/{dataset_id}/clinical-validation", response_model=SynthMedClinicalValidationResponse)
+def validate_source_clinical(
+    dataset_id: str,
+    payload: SynthMedClinicalValidationRequest,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> SynthMedClinicalValidationResponse:
+    source = get_source(db, dataset_id)
+    ensure_source_access(source, user)
+    try:
+        frame = _source_frame(source, settings)
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source file not found on disk.") from error
+    profile = medical_schema_service.profile_medical_schema(frame)
+    approved = payload.approvedOutputColumns or profile["approvedOutputColumns"]
+    schema_validation = (
+        medical_schema_service.validate_strict_output_schema(
+            frame,
+            approved_columns=approved,
+            identifier_columns=profile["excludedIdentifierColumns"],
+        )
+        if payload.enforceStrictSchema
+        else {}
+    )
+    report = clinical_reference_service.validate_clinical_records(
+        frame,
+        generation_profile=payload.generationProfile,
+        clinical_variables=[item.model_dump() for item in payload.clinicalVariables],
+        overrides=[item.model_dump() for item in payload.referenceOverrides],
+        disease_rules=[item.model_dump() for item in payload.diseaseRules],
+    )
+    public_report = generation_service._public_clinical_report(report)
+    return SynthMedClinicalValidationResponse(
+        sourceDatasetId=source.id,
+        generationProfile=payload.generationProfile,
+        report=public_report,
+        schemaValidation=schema_validation,
+        warnings=list(public_report.get("warnings") or []),
+    )
 
 
 @router.get("/sources/{dataset_id}/download")
@@ -148,7 +263,6 @@ def download_source_dataset(
         "XLSX": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }.get(dataset.file_format, "application/octet-stream")
     return _stream_file(path, media, dataset.original_filename)
-
 
 
 @router.get("/downloads", response_model=SynthMedDownloadsResponse)
@@ -215,9 +329,57 @@ def analyse_generation_source(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source file not found on disk.") from error
 
 
-@router.post(
-    "/generation/start", response_model=SynthMedGenerationJobResponse, status_code=status.HTTP_201_CREATED
-)
+def _validate_conditions(
+    payload: SynthMedConditionValidationRequest,
+    request: Request,
+    db: Session,
+    user,
+    settings: Settings,
+) -> SynthMedConditionValidationResponse:
+    source = get_source(db, payload.sourceDatasetId)
+    ensure_source_access(source, user)
+    config = payload.model_dump(exclude={"sourceDatasetId"})
+    result = generation_service.validate_conditions_payload(source, config, settings)
+    log_audit(
+        db,
+        action="synthmed.conditions_validated",
+        resource_type="synthmed_source_dataset",
+        resource_id=source.id,
+        actor_id=user.id,
+        details={
+            "model": result["model"],
+            "condition_count": len(config.get("conditions") or []),
+            "valid": result["valid"],
+        },
+        request=request,
+    )
+    db.commit()
+    return SynthMedConditionValidationResponse.model_validate(result)
+
+
+@router.post("/generation/validate-conditions", response_model=SynthMedConditionValidationResponse)
+def validate_generation_conditions(
+    payload: SynthMedConditionValidationRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> SynthMedConditionValidationResponse:
+    return _validate_conditions(payload, request, db, user, settings)
+
+
+@router.post("/conditions/validate", response_model=SynthMedConditionValidationResponse)
+def validate_conditions(
+    payload: SynthMedConditionValidationRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> SynthMedConditionValidationResponse:
+    return _validate_conditions(payload, request, db, user, settings)
+
+
+@router.post("/generation/start", response_model=SynthMedGenerationJobResponse, status_code=status.HTTP_201_CREATED)
 def start_generation(
     payload: SynthMedGenerationStartRequest,
     request: Request,
@@ -246,6 +408,18 @@ def get_generation_job(
     return generation_service.job_response(generation_service.get_job(db, job_id, user))
 
 
+@router.get("/generation/jobs/{job_id}/conditions", response_model=SynthMedEvaluationReportResponse)
+def get_generation_job_conditions(
+    job_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser
+) -> SynthMedEvaluationReportResponse:
+    job = generation_service.get_job(db, job_id, user)
+    if not job.generated_dataset_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No condition result is available yet.")
+    return SynthMedEvaluationReportResponse.model_validate(
+        generation_service.condition_satisfaction_report(db, job.generated_dataset_id, user)
+    )
+
+
 @router.get("/generated/{generation_id}", response_model=SynthMedGeneratedDatasetDetailResponse)
 def get_generated_detail(
     generation_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser
@@ -269,6 +443,31 @@ def get_generated_preview(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Generated file not found on disk.",
         ) from error
+
+
+@router.get("/generated/{generation_id}/conditions", response_model=SynthMedEvaluationReportResponse)
+def get_generated_conditions(
+    generation_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser
+) -> SynthMedEvaluationReportResponse:
+    return SynthMedEvaluationReportResponse.model_validate(
+        generation_service.condition_satisfaction_report(db, generation_id, user)
+    )
+
+
+@router.get("/generated/{generation_id}/clinical", response_model=SynthMedEvaluationReportResponse)
+def get_generated_clinical(
+    generation_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser
+) -> SynthMedEvaluationReportResponse:
+    return SynthMedEvaluationReportResponse.model_validate(
+        generation_service.evaluation_report(db, generation_id, "clinical", user)
+    )
+
+
+@router.get("/generated/{generation_id}/evaluation", response_model=dict[str, Any])
+def get_generated_evaluation(
+    generation_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser
+) -> dict[str, Any]:
+    return generation_service.generated_evaluation_summary(db, generation_id, user)
 
 
 @router.get("/generated/{generation_id}/quality", response_model=SynthMedEvaluationReportResponse)
@@ -361,9 +560,7 @@ def create_comparison(
 
 
 @router.get("/comparisons", response_model=list[SynthMedComparisonListItem])
-def get_comparisons(
-    db: Annotated[Session, Depends(get_db)], user: CurrentUser
-) -> list[SynthMedComparisonListItem]:
+def get_comparisons(db: Annotated[Session, Depends(get_db)], user: CurrentUser) -> list[SynthMedComparisonListItem]:
     return [comparison_service.to_list_response(row) for row in comparison_service.list_comparisons(db, user)]
 
 
@@ -395,5 +592,3 @@ def download_comparison_report(
     )
     db.commit()
     return _stream_file(path, "application/json", "comparison_report.json")
-
-

@@ -234,7 +234,10 @@ def to_generated_response(dataset: SynthMedGeneratedDataset) -> SynthMedGenerate
         sourceDatasetName=dataset.source_dataset_name,
 
         generationMethod=dataset.generation_method,
+        generationMode=dataset.generation_mode,
+        selectedModel=dataset.selected_model,
         recordCount=dataset.record_count,
+
         columnCount=dataset.column_count,
         generationDate=_iso(dataset.created_at),
         fileFormat=dataset.file_format,

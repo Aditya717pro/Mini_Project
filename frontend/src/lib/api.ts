@@ -13,16 +13,29 @@ import type {
   Role,
   SynthMedComparisonCreatePayload,
   SynthMedComparisonDetail,
+  SynthMedClinicalReferencesResponse,
+  SynthMedClinicalRule,
+  SynthMedClinicalVariable,
   SynthMedComparisonListItem,
+  SynthMedConditionValidationRequest,
+  SynthMedConditionValidationResponse,
+  SynthMedDatasetColumns,
   SynthMedDownloads,
   SynthMedEvaluationReport,
   SynthMedExportResponse,
   SynthMedGeneratedDataset,
   SynthMedGeneratedDatasetDetail,
+  SynthMedGeneratedEvaluationSummary,
   SynthMedGeneratedPreview,
   SynthMedGenerationAnalysis,
   SynthMedGenerationJob,
+  SynthMedGenerationProfile,
   SynthMedGenerationStartPayload,
+  SynthMedMedicalProfileResponse,
+  SynthMedModelName,
+  SynthMedModelsResponse,
+  SynthMedReferenceOverride,
+  SynthMedSourceClinicalValidationResponse,
   SynthMedSourceDataset,
 } from '../types';
 
@@ -224,6 +237,16 @@ export interface SynthMedUploadPayload {
   file: File;
   datasetName: string;
   description: string;
+}
+
+export interface SynthMedSourceClinicalValidationPayload {
+  sourceDatasetId: string;
+  generationProfile: SynthMedGenerationProfile;
+  clinicalVariables: SynthMedClinicalVariable[];
+  referenceOverrides: SynthMedReferenceOverride[];
+  diseaseRules: SynthMedClinicalRule[];
+  approvedOutputColumns?: string[];
+  enforceStrictSchema?: boolean;
 }
 
 export interface UploadPayload {
@@ -474,6 +497,29 @@ export const api = {
 
   listSynthMedSources: async (): Promise<SynthMedSourceDataset[]> => request<SynthMedSourceDataset[]>('/synthmed/sources'),
 
+  listSynthMedModels: async (): Promise<SynthMedModelsResponse> => request<SynthMedModelsResponse>('/synthmed/models'),
+
+  getSynthMedDatasetColumns: async (datasetId: string, model: SynthMedModelName): Promise<SynthMedDatasetColumns> =>
+    request<SynthMedDatasetColumns>(
+      `/synthmed/datasets/${encodeURIComponent(datasetId)}/columns?model=${encodeURIComponent(model)}`,
+    ),
+
+  listSynthMedClinicalReferences: async (): Promise<SynthMedClinicalReferencesResponse> =>
+    request<SynthMedClinicalReferencesResponse>('/synthmed/clinical/references'),
+
+  getSynthMedMedicalProfile: async (datasetId: string): Promise<SynthMedMedicalProfileResponse> =>
+    request<SynthMedMedicalProfileResponse>(
+      `/synthmed/sources/${encodeURIComponent(datasetId)}/medical-profile`,
+    ),
+
+  validateSynthMedSourceClinical: async (
+    payload: SynthMedSourceClinicalValidationPayload,
+  ): Promise<SynthMedSourceClinicalValidationResponse> =>
+    request<SynthMedSourceClinicalValidationResponse>(
+      `/synthmed/sources/${encodeURIComponent(payload.sourceDatasetId)}/clinical-validation`,
+      { method: 'POST', body: JSON.stringify(payload) },
+    ),
+
   getSynthMedSource: async (datasetId: string): Promise<SynthMedSourceDataset> =>
     request<SynthMedSourceDataset>(`/synthmed/sources/${encodeURIComponent(datasetId)}`),
 
@@ -497,6 +543,14 @@ export const api = {
       { method: 'POST' },
     ),
 
+  validateSynthMedConditions: async (
+    payload: SynthMedConditionValidationRequest,
+  ): Promise<SynthMedConditionValidationResponse> =>
+    request<SynthMedConditionValidationResponse>('/synthmed/generation/validate-conditions', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
   startSynthMedGeneration: async (payload: SynthMedGenerationStartPayload): Promise<SynthMedGenerationJob> =>
     request<SynthMedGenerationJob>('/synthmed/generation/start', {
       method: 'POST',
@@ -509,6 +563,15 @@ export const api = {
   getSynthMedGenerationJob: async (jobId: string): Promise<SynthMedGenerationJob> =>
     request<SynthMedGenerationJob>(`/synthmed/generation/jobs/${encodeURIComponent(jobId)}`),
 
+  getSynthMedGenerationJobConditions: async (jobId: string): Promise<SynthMedEvaluationReport> =>
+    request<SynthMedEvaluationReport>(`/synthmed/generation/jobs/${encodeURIComponent(jobId)}/conditions`),
+
+  getSynthMedGeneratedConditions: async (generatedId: string): Promise<SynthMedEvaluationReport> =>
+    request<SynthMedEvaluationReport>(`/synthmed/generated/${encodeURIComponent(generatedId)}/conditions`),
+
+  getSynthMedGeneratedEvaluation: async (generatedId: string): Promise<SynthMedGeneratedEvaluationSummary> =>
+    request<SynthMedGeneratedEvaluationSummary>(`/synthmed/generated/${encodeURIComponent(generatedId)}/evaluation`),
+
   getSynthMedGeneratedDetail: async (generatedId: string): Promise<SynthMedGeneratedDatasetDetail> =>
     request<SynthMedGeneratedDatasetDetail>(`/synthmed/generated/${encodeURIComponent(generatedId)}`),
 
@@ -520,6 +583,9 @@ export const api = {
     request<SynthMedGeneratedPreview>(
       `/synthmed/generated/${encodeURIComponent(generatedId)}/preview?page=${page}&pageSize=${pageSize}`,
     ),
+
+  getSynthMedClinicalReport: async (generatedId: string): Promise<SynthMedEvaluationReport> =>
+    request<SynthMedEvaluationReport>(`/synthmed/generated/${encodeURIComponent(generatedId)}/clinical`),
 
   getSynthMedQualityReport: async (generatedId: string): Promise<SynthMedEvaluationReport> =>
     request<SynthMedEvaluationReport>(`/synthmed/generated/${encodeURIComponent(generatedId)}/quality`),

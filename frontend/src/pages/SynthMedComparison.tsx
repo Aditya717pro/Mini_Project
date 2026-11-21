@@ -18,6 +18,7 @@ import {
   Play,
   RefreshCw,
   ShieldCheck,
+  Stethoscope,
 } from 'lucide-react';
 import {
   Alert,
@@ -33,7 +34,7 @@ import {
   type Tone,
 } from '../components/ui';
 import { useDemo } from '../store/DemoStore';
-import { formatDateTime, formatNumber } from '../lib/format';
+import { asConditionSatisfaction, conditionLabel, formatDateTime, formatNumber } from '../lib/format';
 import type { SynthMedComparisonDetail } from '../types';
 
 const tooltipStyle = {
@@ -143,6 +144,10 @@ export const SynthMedComparison = () => {
     if (!detail) return null;
     return detail.charts.find((chart) => chart.column === chartColumn) ?? detail.charts[0] ?? null;
   }, [chartColumn, detail]);
+
+  const generatedMetadata = detail?.generatedMetadata;
+  const comparisonSatisfaction = asConditionSatisfaction(generatedMetadata?.conditionSatisfaction);
+  const clinical = detail?.clinical;
 
   const chartData = useMemo(
     () =>
@@ -297,7 +302,12 @@ export const SynthMedComparison = () => {
                     >
                       {item.name}
                     </button>
-                    <div className="stat-hint">{item.generatedDatasetName}</div>
+                    <div className="stat-hint">
+                      {item.generatedDatasetName}
+                      {item.generatedMetadata?.model || item.generatedMetadata?.generationMode
+                        ? ` · ${item.generatedMetadata?.generationMode ?? 'Unconditional'} · ${item.generatedMetadata?.model ?? '—'}`
+                        : ''}
+                    </div>
                   </div>
                   <div className="selector-meta">
                     <Badge tone={similarityTone(item.summary.overallSimilarity)}>
@@ -339,6 +349,39 @@ export const SynthMedComparison = () => {
             <>
               <InfoRow label="Original">{detail.sourceDatasetName}</InfoRow>
               <InfoRow label="Synthetic">{detail.generatedDatasetName}</InfoRow>
+              <InfoRow label="Generation mode">{generatedMetadata?.generationMode ?? 'Unconditional'}</InfoRow>
+              <InfoRow label="Generation profile">
+                {clinical?.generationProfile ?? generatedMetadata?.generationProfile ?? 'Standard'}
+              </InfoRow>
+              <InfoRow label="Selected model">
+                {generatedMetadata?.modelName ?? generatedMetadata?.model ?? '—'}
+              </InfoRow>
+              <InfoRow label="Requested conditions">
+                {generatedMetadata?.requestedConditions?.length ? (
+                  <ul className="checklist">
+                    {generatedMetadata.requestedConditions.map((condition, index) => (
+                      <li key={index}><ShieldCheck size={14} />{conditionLabel(condition)}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  'None'
+                )}
+              </InfoRow>
+              <InfoRow label="Condition satisfaction">
+                {comparisonSatisfaction ? (
+                  <Badge
+                    tone={comparisonSatisfaction.passed === false ? 'danger' : 'success'}
+                    title={comparisonSatisfaction.method}
+                  >
+                    {comparisonSatisfaction.passed === false ? 'Failed' : 'Passed'}
+                    {comparisonSatisfaction.combined
+                      ? ` · ${percent(comparisonSatisfaction.combined.satisfactionPercentage)}`
+                      : ''}
+                  </Badge>
+                ) : (
+                  'Not applicable'
+                )}
+              </InfoRow>
               <InfoRow label="Created">{formatDateTime(detail.createdAt)} by {detail.createdBy}</InfoRow>
               <InfoRow label="Report">{detail.reportAvailable ? 'JSON report stored' : 'Not available'}</InfoRow>
             </>
@@ -380,6 +423,96 @@ export const SynthMedComparison = () => {
               tone="warning"
             />
           </div>
+
+          {clinical ? (
+            <Card>
+              <CardHeader
+                title="Clinical comparison"
+                subtitle="Original and synthetic records screened with the same documented references."
+                action={<Badge tone={clinical.generationProfile === 'Standard' ? 'neutral' : 'purple'}>
+                  {clinical.generationProfile}
+                </Badge>}
+              />
+              <div className="grid-2 grid-2-wide">
+                <div>
+                  <h4>Original records</h4>
+                  <div className="info-list">
+                    <InfoRow label="Measurements">
+                      {formatNumber(clinical.sourceMedicalProfile.clinicalMeasurementColumns.length)}
+                    </InfoRow>
+                    <InfoRow label="Records checked">
+                      {formatNumber(clinical.sourceValidation.totalRecords ?? 0)}
+                    </InfoRow>
+                    <InfoRow label="Warnings">
+                      {formatNumber(clinical.sourceValidation.warnings?.length ?? 0)}
+                    </InfoRow>
+                  </div>
+                </div>
+                <div>
+                  <h4>Synthetic records</h4>
+                  <div className="info-list">
+                    <InfoRow label="Measurements">
+                      {formatNumber(clinical.syntheticMedicalProfile.clinicalMeasurementColumns.length)}
+                    </InfoRow>
+                    <InfoRow label="Records checked">
+                      {formatNumber(clinical.syntheticValidation.totalRecords ?? 0)}
+                    </InfoRow>
+                    <InfoRow label="Warnings">
+                      {formatNumber(clinical.syntheticValidation.warnings?.length ?? 0)}
+                    </InfoRow>
+                  </div>
+                </div>
+              </div>
+              {clinical.sourceValidation.classificationCounts ||
+              clinical.syntheticValidation.classificationCounts ? (
+                <div className="table-wrap">
+                  <table className="table table-compact">
+                    <thead>
+                      <tr>
+                        <th>Classification</th>
+                        <th className="num">Original</th>
+                        <th className="num">Synthetic</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Array.from(
+                        new Set([
+                          ...Object.keys(clinical.sourceValidation.classificationCounts ?? {}),
+                          ...Object.keys(clinical.syntheticValidation.classificationCounts ?? {}),
+                        ]),
+                      ).map((label) => (
+                        <tr key={label}>
+                          <td>{label.replace(/_/g, ' ')}</td>
+                          <td className="num">
+                            {formatNumber(clinical.sourceValidation.classificationCounts?.[label] ?? 0)}
+                          </td>
+                          <td className="num">
+                            {formatNumber(clinical.syntheticValidation.classificationCounts?.[label] ?? 0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+              <InfoRow label="Approved output schema">
+                <Badge tone={clinical.schemaValidation.passed ? 'success' : 'danger'}>
+                  {clinical.schemaValidation.passed ? 'Passed' : 'Failed'}
+                </Badge>
+              </InfoRow>
+              <InfoRow label="Rejection sampling">
+                {clinical.rejectionSampling.attempts ?? '—'} / {clinical.rejectionSampling.maxAttempts ?? '—'} attempts ·{' '}
+                {formatNumber(clinical.rejectionSampling.rejectedRecords ?? 0)} rejected
+              </InfoRow>
+              {clinical.limitations.length ? (
+                <ul className="checklist">
+                  {clinical.limitations.map((limitation) => (
+                    <li key={limitation}><Stethoscope size={14} />{limitation}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader

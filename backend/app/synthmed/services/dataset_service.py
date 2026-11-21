@@ -14,7 +14,8 @@ from sdv.metadata import Metadata
 
 TABLE_NAME = "synthmed"
 IDENTIFIER_PATTERN = re.compile(
-    r"(^|_)(patient|patientid|mrn|nhs|ssn|uuid|guid|record|case|subject|member|id)(_|$)"
+    r"(^|_)(patient|patientid|mrn|nhs|ssn|uuid|guid|record|case|subject|member|id|"
+    r"house|housenumber|building|flat|apartment|plot|door)(_|$)"
 )
 QUASI_IDENTIFIER_PATTERN = re.compile(
     r"(^|_)(age|birth|dob|date|gender|sex|postcode|zip|zipcode|county|district)(_|$)"

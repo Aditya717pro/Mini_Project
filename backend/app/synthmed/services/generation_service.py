@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import json
 import logging
 import random
 import time
@@ -18,7 +19,6 @@ import numpy as np
 import pandas as pd
 import torch
 from fastapi import HTTPException, Request, status
-from sdv.single_table import CTGANSynthesizer
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -34,6 +34,7 @@ from app.synthmed.models import (
     SynthMedGenerationJob,
     SynthMedSourceDataset,
 )
+from app.synthmed.services import clinical_reference_service, condition_service, medical_schema_service
 from app.synthmed.services.dataset_service import (
     TABLE_NAME,
     analyse_dataframe,
@@ -48,9 +49,10 @@ from app.synthmed.services.storage_service import SynthMedStorageService
 
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "SDV CTGANSynthesizer"
+MODEL_NAME = condition_service.MODEL_LABELS["CTGAN"]
+CLINICAL_PROFILES = {"Standard", "NormalRange", "ClinicalDistribution"}
 TERMINAL_STATUSES = {"Completed", "Failed"}
-ACTIVE_STATUSES = {"Queued", "Preprocessing", "Training", "Generating", "Validating"}
+ACTIVE_STATUSES = {"Queued", "Preprocessing", "Training", "Generating", "Validating", "Evaluating"}
 INTERRUPTED_ERROR_TYPE = "InterruptedJob"
 INTERRUPTED_ERROR_MESSAGE = "Generation was interrupted by an API restart."
 _executor: ThreadPoolExecutor | None = None
@@ -112,10 +114,17 @@ def _error_details(error: Exception) -> dict[str, Any]:
     }
 
 
-def _validate_config(config: dict[str, Any], settings: Settings) -> None:
+def _validate_config(config: dict[str, Any], settings: Settings, model: str) -> None:
+    record_count = int(config["recordCount"])
+    if not (1 <= record_count <= settings.synthmed_ctgan_max_records):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Requested record count must be between 1 and {settings.synthmed_ctgan_max_records}.",
+        )
+    if model == "GaussianCopula":
+        return
     epochs = int(config["epochs"])
     batch_size = int(config["batchSize"])
-    record_count = int(config["recordCount"])
     if not (1 <= epochs <= settings.synthmed_ctgan_max_epochs):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -124,12 +133,7 @@ def _validate_config(config: dict[str, Any], settings: Settings) -> None:
     if not (20 <= batch_size <= 10000) or batch_size % 10 != 0:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Batch size must be a multiple of 10 between 20 and 10000 for CTGAN.",
-        )
-    if not (1 <= record_count <= settings.synthmed_ctgan_max_records):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=f"Requested record count must be between 1 and {settings.synthmed_ctgan_max_records}.",
+            detail="Batch size must be a multiple of 10 between 20 and 10000 for CTGAN and TVAE.",
         )
 
 
@@ -142,6 +146,87 @@ def _set_seed(seed: int | None) -> None:
 def _save_report(storage: SynthMedStorageService, job_id: str, filename: str, payload: dict[str, Any]) -> str:
     _, relative = storage.save_report(job_id, filename, dump_json(payload))
     return relative
+
+
+def _dict_list(value: Any) -> list[dict[str, Any]]:
+    return [item for item in (value or []) if isinstance(item, dict)]
+
+
+def _public_clinical_report(report: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in report.items() if key != "_mandatoryFailures"}
+
+
+def _normalise_clinical_config(config: dict[str, Any]) -> str:
+    profile = str(config.get("generationProfile") or "Standard")
+    if profile not in CLINICAL_PROFILES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Unknown generation profile: {profile!r}.",
+        )
+    config["generationProfile"] = profile
+    for key in ("clinicalVariables", "referenceOverrides", "diseaseRules"):
+        config[key] = _dict_list(config.get(key))
+    config["enforceStrictSchema"] = bool(config.get("enforceStrictSchema", False))
+    config["maxSamplingAttempts"] = int(config.get("maxSamplingAttempts") or 4)
+    return profile
+
+
+def _prepare_clinical_config(
+    source: SynthMedSourceDataset, config: dict[str, Any], settings: Settings
+) -> dict[str, Any]:
+    profile = _normalise_clinical_config(config)
+
+    storage = SynthMedStorageService(settings)
+    frame = read_source_dataframe(storage.resolve_source(source.stored_path), source.file_format)
+    medical = medical_schema_service.profile_medical_schema(frame)
+    allowed = [str(column) for column in medical["approvedOutputColumns"]]
+    requested = [str(column) for column in (config.get("approvedOutputColumns") or allowed)]
+    approved = [column for column in allowed if column in requested]
+    if not approved:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "No medical output columns remain. Synthetic output requires at least one age, gender, disease "
+                "or clinical measurement column."
+            ),
+        )
+
+    variables = config["clinicalVariables"]
+    variable_columns = [str(item.get("column") or "") for item in variables if item.get("enabled", True)]
+    missing_variables = [column for column in variable_columns if column and column not in approved]
+    if missing_variables:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Clinical variables must use approved output columns: " + ", ".join(missing_variables),
+        )
+
+    subset = frame.loc[:, approved]
+    schema_validation = medical_schema_service.validate_strict_output_schema(
+        subset,
+        approved_columns=approved,
+        identifier_columns=medical["excludedIdentifierColumns"],
+    )
+    if not schema_validation["passed"]:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Strict output schema validation failed: " + "; ".join(schema_validation["errors"]),
+        )
+
+    configured_identifiers = [str(item) for item in (config.get("identifierColumns") or [])]
+    identifiers = sorted(set(configured_identifiers) | set(medical["excludedIdentifierColumns"]))
+    config["approvedOutputColumns"] = approved
+    config["selectedColumns"] = approved
+    config["identifierColumns"] = identifiers
+    config["clinicalSchemaValidation"] = schema_validation
+    config["excludedOutputColumns"] = [column for column in requested if column not in approved]
+    return {
+        "generationProfile": profile,
+        "strictSchema": True,
+        "schemaValidation": schema_validation,
+        "medicalProfile": medical,
+        "approvedOutputColumns": approved,
+        "excludedOutputColumns": config["excludedOutputColumns"],
+    }
 
 
 def _upsert_report(
@@ -206,18 +291,69 @@ def start_generation_job(
     settings: Settings,
     request: Request | None = None,
 ) -> SynthMedGenerationJob:
-    _validate_config(config, settings)
+    model = condition_service.normalize_model(config.get("model"))
+    if model is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Unknown synthesis model: {config.get('model')!r}.",
+        )
+    _validate_config(config, settings, model)
+
+    requested_conditions = config.get("conditions") or []
+    requested_mode = str(config.get("generationMode") or "Unconditional")
+    if requested_mode == "Conditional" and not requested_conditions:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Conditional generation requires at least one condition.",
+        )
+    mode = "Conditional" if requested_conditions else "Unconditional"
+    config = dict(config)
+    clinical_setup = _prepare_clinical_config(source, config, settings)
+    config["clinicalSetup"] = clinical_setup
+
+    validation: dict[str, Any] = {
+        "valid": True,
+        "model": model,
+        "capabilities": condition_service.CAPABILITIES[model].as_dict(),
+        "normalizedConditions": [],
+        "samplingPlan": [],
+        "errors": [],
+        "warnings": [],
+    }
+    normalized_conditions: list[dict[str, Any]] = []
+    sampling_plan: list[dict[str, Any]] = []
+    if requested_conditions:
+        validation = condition_service.validate_conditions(source=source, config=config, settings=settings)
+        if not validation["valid"]:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Condition validation failed: " + "; ".join(validation["errors"]),
+            )
+        normalized_conditions = list(validation["normalizedConditions"])
+        sampling_plan = list(validation["samplingPlan"])
+
+    config["model"] = model
+    config["generationMode"] = mode
+    config["selectedModel"] = model
+    config["normalizedConditions"] = json_safe(normalized_conditions)
+    config["samplingPlan"] = json_safe(sampling_plan)
+    config["conditionValidation"] = json_safe(validation)
+
     job = SynthMedGenerationJob(
         id=str(uuid4()),
         owner_id=user.id,
         source_dataset_id=source.id,
         status="Queued",
-        model_name=MODEL_NAME,
+        model_name=condition_service.MODEL_LABELS[model],
+        generation_mode=mode,
+        selected_model=model,
         epochs=int(config["epochs"]),
         batch_size=int(config["batchSize"]),
         seed=config.get("seed"),
         requested_record_count=int(config["recordCount"]),
         generated_record_count=0,
+        normalized_conditions_json=json_safe(normalized_conditions),
+        condition_validation_json=json_safe(validation),
         config_json=json_safe(config),
     )
     generation_config = SynthMedGenerationConfig(
@@ -236,7 +372,10 @@ def start_generation_job(
         actor_id=user.id,
         details={
             "source_dataset_id": source.id,
-            "model": MODEL_NAME,
+            "model": model,
+            "generation_mode": mode,
+            "generation_profile": config.get("generationProfile", "Standard"),
+            "condition_count": len(normalized_conditions),
             "epochs": job.epochs,
             "batch_size": job.batch_size,
             "record_count": job.requested_record_count,
@@ -255,6 +394,133 @@ def start_generation_job(
     return job
 
 
+def _scale_sampling_plan(plan: list[dict[str, Any]], rows: int) -> list[dict[str, Any]]:
+    if not plan:
+        return []
+    total = sum(int(cohort.get("numRows") or 0) for cohort in plan) or 1
+    remaining = rows
+    scaled: list[dict[str, Any]] = []
+    for index, cohort in enumerate(plan):
+        if index == len(plan) - 1:
+            cohort_rows = remaining
+        else:
+            proportional = max(1, round(int(cohort.get("numRows") or 0) * rows / total))
+            reserve = len(plan) - index - 1
+            cohort_rows = min(proportional, max(1, remaining - reserve))
+        cohort_rows = max(1, cohort_rows)
+        remaining -= cohort_rows
+        scaled.append({**cohort, "numRows": cohort_rows})
+    return scaled
+
+
+def _sample_batch(
+    synthesizer: Any,
+    *,
+    model: str,
+    mode: str,
+    sampling_plan: list[dict[str, Any]],
+    rows: int,
+) -> pd.DataFrame:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if mode == "Conditional":
+            conditions = condition_service.build_sdv_conditions(_scale_sampling_plan(sampling_plan, rows))
+            sampled = synthesizer.sample_from_conditions(conditions=conditions)
+        else:
+            sampled = synthesizer.sample(num_rows=rows)
+    return sampled[TABLE_NAME] if isinstance(sampled, dict) else sampled
+
+
+def _rejection_sample(
+    synthesizer: Any,
+    *,
+    model: str,
+    mode: str,
+    sampling_plan: list[dict[str, Any]],
+    requested_rows: int,
+    config: dict[str, Any],
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    profile = str(config.get("generationProfile") or "Standard")
+    if profile == "Standard":
+        synthetic = _sample_batch(
+            synthesizer,
+            model=model,
+            mode=mode,
+            sampling_plan=sampling_plan,
+            rows=requested_rows,
+        )
+        return synthetic, {
+            "method": "No clinical rejection sampling for the Standard profile",
+            "attempts": 1,
+            "sampledRecords": int(len(synthetic)),
+            "acceptedRecords": int(len(synthetic)),
+            "rejectedRecords": 0,
+            "rejectionCounts": {},
+        }
+
+    max_attempts = int(config.get("maxSamplingAttempts") or 4)
+    variables = config.get("clinicalVariables") or []
+    overrides = config.get("referenceOverrides") or []
+    disease_rules = config.get("diseaseRules") or []
+    accepted_parts: list[pd.DataFrame] = []
+    accepted_rows = 0
+    sampled_rows = 0
+    rejected_rows = 0
+    attempts = 0
+    rejection_counts: dict[str, int] = {}
+
+    while accepted_rows < requested_rows and attempts < max_attempts:
+        attempts += 1
+        needed = requested_rows - accepted_rows
+        batch = _sample_batch(
+            synthesizer,
+            model=model,
+            mode=mode,
+            sampling_plan=sampling_plan,
+            rows=needed,
+        )
+        sampled_rows += int(len(batch))
+        report = clinical_reference_service.validate_clinical_records(
+            batch,
+            generation_profile=profile,
+            clinical_variables=variables,
+            overrides=overrides,
+            disease_rules=disease_rules,
+        )
+        failures = report.get("_mandatoryFailures") or []
+        mask = pd.Series([bool(value) for value in failures], index=batch.index)
+        rejected_rows += int(mask.sum())
+        for key, value in (report.get("classificationCounts") or {}).items():
+            if key in {"implausible", "invalid", "unverified"} or (
+                profile == "NormalRange" and key == "abnormal_plausible"
+            ):
+                rejection_counts[key] = rejection_counts.get(key, 0) + int(value or 0)
+        accepted = batch.loc[~mask]
+        if not accepted.empty:
+            accepted_parts.append(accepted)
+            accepted_rows += int(len(accepted))
+
+    rejection_report = {
+        "method": "Bounded rejection sampling against documented clinical references",
+        "generationProfile": profile,
+        "attempts": attempts,
+        "maxAttempts": max_attempts,
+        "sampledRecords": sampled_rows,
+        "acceptedRecords": accepted_rows,
+        "rejectedRecords": rejected_rows,
+        "rejectionCounts": rejection_counts,
+        "limitations": clinical_reference_service.CLINICAL_LIMITATIONS,
+    }
+    if accepted_rows < requested_rows:
+        raise RuntimeError(
+            "Clinical validation could not produce the requested record count "
+            f"({accepted_rows}/{requested_rows}) within {max_attempts} sampling attempts: "
+            f"{json.dumps(json_safe(rejection_report), ensure_ascii=False)}"
+        )
+    synthetic = pd.concat(accepted_parts, ignore_index=True).iloc[:requested_rows].reset_index(drop=True)
+    return synthetic, rejection_report
+
+
 def run_generation_job(
     job_id: str, settings: Settings, factory: sessionmaker[Session] | None = None
 ) -> SynthMedGenerationJob | None:
@@ -264,6 +530,15 @@ def run_generation_job(
         if job is None or job.status in TERMINAL_STATUSES:
             return job
         try:
+            model = condition_service.normalize_model(job.selected_model or job.config_json.get("model")) or "CTGAN"
+            model_label = condition_service.MODEL_LABELS[model]
+            mode = job.generation_mode or str(job.config_json.get("generationMode") or "Unconditional")
+            normalized_conditions = list(
+                job.normalized_conditions_json or job.config_json.get("normalizedConditions") or []
+            )
+            sampling_plan = list(job.config_json.get("samplingPlan") or [])
+            if mode == "Conditional" and not normalized_conditions:
+                sampling_plan = condition_service.build_sampling_plan(normalized_conditions, job.requested_record_count)
             _status(job, "Preprocessing", started_at=job.started_at or _now())
             db.commit()
 
@@ -283,43 +558,116 @@ def run_generation_job(
             if settings.environment == "test":
                 torch.set_num_threads(1)
             _set_seed(job.seed)
+            synthesizer_class = condition_service.MODEL_CLASSES[model]
+            synthesizer_kwargs: dict[str, Any] = {}
+            if model in {"CTGAN", "TVAE"}:
+                synthesizer_kwargs.update(
+                    {"epochs": job.epochs, "batch_size": job.batch_size, "enable_gpu": False, "verbose": False}
+                )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                synthesizer = CTGANSynthesizer(
-                    prepared["metadata"],
-                    epochs=job.epochs,
-                    batch_size=job.batch_size,
-                    enable_gpu=False,
-                    verbose=False,
-                )
+                synthesizer = synthesizer_class(prepared["metadata"], **synthesizer_kwargs)
             training_started = time.perf_counter()
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 synthesizer.fit({TABLE_NAME: prepared["frame"]})
             training_duration = time.perf_counter() - training_started
 
-            model_path, model_relative = storage.save_report(job.id, "ctgan_model.pkl", b"")
+            model_path, model_relative = storage.save_report(job.id, f"{model.lower()}_model.pkl", b"")
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 synthesizer.save(str(model_path))
 
             _status(job, "Generating")
             db.commit()
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                sampled = synthesizer.sample(num_rows=job.requested_record_count)
-            synthetic = sampled[TABLE_NAME] if isinstance(sampled, dict) else sampled
-            if len(synthetic) != job.requested_record_count:
+            profile = str(job.config_json.get("generationProfile") or "Standard")
+            synthetic, rejection_report = _rejection_sample(
+                synthesizer,
+                model=model,
+                mode=mode,
+                sampling_plan=sampling_plan,
+                requested_rows=job.requested_record_count,
+                config=job.config_json,
+            )
+            expected_columns = list(prepared["frame"].columns)
+            if list(synthetic.columns) != expected_columns:
                 raise RuntimeError(
-                    f"CTGAN generated {len(synthetic)} records but {job.requested_record_count} were requested."
+                    f"{model_label} output schema differs from the prepared training schema: "
+                    f"expected {expected_columns}, received {list(synthetic.columns)}."
                 )
+
+            _status(job, "Validating", generated_record_count=int(len(synthetic)))
+            db.commit()
+            if profile != "Standard" or job.config_json.get("clinicalVariables"):
+                clinical_report = clinical_reference_service.validate_clinical_records(
+                    synthetic,
+                    generation_profile=profile,
+                    clinical_variables=job.config_json.get("clinicalVariables") or [],
+                    overrides=job.config_json.get("referenceOverrides") or [],
+                    disease_rules=job.config_json.get("diseaseRules") or [],
+                )
+                failures = clinical_report.get("_mandatoryFailures") or []
+                if profile != "Standard" and any(bool(value) for value in failures):
+                    raise RuntimeError(
+                        "Generated records failed final clinical validation: "
+                        f"{json.dumps(json_safe(_public_clinical_report(clinical_report)), ensure_ascii=False)}"
+                    )
+            else:
+                clinical_report = {
+                    "method": "Not applied to the Standard generation profile",
+                    "generationProfile": profile,
+                    "totalRecords": int(len(synthetic)),
+                    "classificationCounts": {},
+                    "warnings": [],
+                    "limitations": clinical_reference_service.CLINICAL_LIMITATIONS,
+                }
+            clinical_report_public = _public_clinical_report(clinical_report)
+
+            schema_validation = medical_schema_service.validate_strict_output_schema(
+                synthetic,
+                approved_columns=list(job.config_json.get("approvedOutputColumns") or []),
+                identifier_columns=list(job.config_json.get("identifierColumns") or []),
+            )
+            if not schema_validation["passed"]:
+                raise RuntimeError(
+                    "Generated output failed strict schema validation: " + "; ".join(schema_validation["errors"])
+                )
+
+            satisfaction: dict[str, Any] = {
+                "method": "Not applicable to unconditional generation",
+                "conditional": False,
+                "conditions": [],
+                "cohorts": [],
+                "combined": {
+                    "requestedConditions": 0,
+                    "totalGeneratedRecords": int(len(synthetic)),
+                    "satisfyingRecords": int(len(synthetic)),
+                    "nonSatisfyingRecords": 0,
+                    "satisfactionPercentage": 100.0,
+                },
+                "generatedRecordCount": int(len(synthetic)),
+                "expectedRecordCount": job.requested_record_count,
+                "recordCountMatches": True,
+                "allConditionsSatisfied": True,
+                "passed": True,
+                "limitations": ["No conditions were requested for this generation job."],
+            }
+            if mode == "Conditional":
+                satisfaction = condition_service.evaluate_condition_satisfaction(
+                    synthetic, normalized_conditions, sampling_plan, job.requested_record_count
+                )
+                job.satisfaction_json = json_safe(satisfaction)
+                db.commit()
+                if not satisfaction["passed"]:
+                    raise RuntimeError(
+                        "Conditional sampling did not satisfy the requested conditions: "
+                        f"{json.dumps(json_safe(satisfaction['cohorts']), ensure_ascii=False)}"
+                    )
 
             generated_id = str(uuid4())
             generated_paths: dict[str, str] = {}
             csv_bytes = synthetic.to_csv(index=False).encode("utf-8")
-            _, generated_paths["CSV"] = storage.save_generated(
-                generated_id, "synthetic_data.csv", csv_bytes
-            )
+            _, generated_paths["CSV"] = storage.save_generated(generated_id, "synthetic_data.csv", csv_bytes)
             excel_buffer = io.BytesIO()
             synthetic.to_excel(excel_buffer, index=False, engine="openpyxl")
             _, generated_paths["XLSX"] = storage.save_generated(
@@ -334,13 +682,14 @@ def run_generation_job(
                 source_dataset_id=source.id,
                 dataset_name=str(job.config_json.get("datasetName") or f"{source.dataset_name} synthetic"),
                 source_dataset_name=source.dataset_name,
-                generation_method=MODEL_NAME,
+                generation_method=model_label,
+                generation_mode=mode,
+                selected_model=model,
                 record_count=int(len(synthetic)),
                 column_count=int(len(synthetic.columns)),
                 file_format="CSV",
                 file_size_bytes=len(csv_bytes),
-                checksum_sha256=hashlib.sha256(csv_bytes).hexdigest()
-,
+                checksum_sha256=hashlib.sha256(csv_bytes).hexdigest(),
                 stored_path=generated_paths["CSV"],
                 status="Completed",
             )
@@ -348,9 +697,7 @@ def run_generation_job(
             db.flush()
             job.generated_dataset_id = generated_id
 
-            _status(job, "Validating", generated_record_count=int(len(synthetic)))
-            db.commit()
-
+            _status(job, "Evaluating")
             quality = build_quality_report(prepared["frame"], synthetic, prepared["metadataDict"])
             privacy = build_privacy_report(
                 prepared["frame"],
@@ -358,9 +705,23 @@ def run_generation_job(
                 prepared["metadataDict"],
                 prepared["analysis"],
                 seed=job.seed,
+                conditional=mode == "Conditional",
             )
             quality_path = _save_report(storage, job.id, "quality_report.json", quality)
             privacy_path = _save_report(storage, job.id, "privacy_report.json", privacy)
+            conditions_path = ""
+            if mode == "Conditional":
+                conditions_path = _save_report(storage, job.id, "condition_satisfaction.json", satisfaction)
+                _upsert_report(
+                    db,
+                    job=job,
+                    generated_id=generated_id,
+                    report_type="conditions",
+                    method=satisfaction["method"],
+                    score=satisfaction["combined"]["satisfactionPercentage"],
+                    payload=satisfaction,
+                    file_path=conditions_path,
+                )
             _upsert_report(
                 db,
                 job=job,
@@ -391,26 +752,57 @@ def run_generation_job(
                 payload=prepared["report"],
                 file_path=preprocessing_path,
             )
+            clinical_payload = {
+                "clinicalValidation": clinical_report_public,
+                "schemaValidation": schema_validation,
+                "rejectionSampling": rejection_report,
+            }
+            clinical_path = _save_report(storage, job.id, "clinical_validation.json", clinical_payload)
+            _upsert_report(
+                db,
+                job=job,
+                generated_id=generated_id,
+                report_type="clinical",
+                method=str(clinical_report_public.get("method") or clinical_reference_service.CLINICAL_METHOD),
+                score=None,
+                payload=clinical_payload,
+                file_path=clinical_path,
+            )
 
             generation_report = {
                 "jobId": job.id,
                 "generatedDatasetId": generated_id,
-                "model": MODEL_NAME,
-                "epochs": job.epochs,
-                "batchSize": job.batch_size,
+                "model": model_label,
+                "selectedModel": model,
+                "generationMode": mode,
+                "sdvVersion": condition_service.SDV_VERSION,
+                "samplingApi": condition_service.CAPABILITIES[model].sampling_api,
+                "samplingStrategy": condition_service.CAPABILITIES[model].sampling_strategy,
+                "epochs": job.epochs if model in {"CTGAN", "TVAE"} else None,
+                "batchSize": job.batch_size if model in {"CTGAN", "TVAE"} else None,
                 "seed": job.seed,
                 "requestedRecordCount": job.requested_record_count,
                 "generatedRecordCount": int(len(synthetic)),
                 "trainingDurationSeconds": round(training_duration, 3),
+                "conditions": json_safe(normalized_conditions),
+                "samplingPlan": json_safe(sampling_plan),
+                "conditionSatisfaction": satisfaction,
+                "generationProfile": profile,
+                "clinicalValidation": clinical_report_public,
+                "schemaValidation": schema_validation,
+                "rejectionSampling": rejection_report,
                 "columns": list(synthetic.columns),
                 "generatedPaths": generated_paths,
                 "modelPath": model_relative,
                 "metadataPath": metadata_path,
                 "qualityReportPath": quality_path,
                 "privacyReportPath": privacy_path,
+                "conditionsReportPath": conditions_path,
+                "clinicalReportPath": clinical_path,
                 "notes": [
-                    "CTGAN training ran on CPU.",
+                    f"{model_label} training ran on CPU.",
                     "Original source files were not modified.",
+                    "The same fitted synthesizer instance produced all requested records.",
                     "Synthetic data is for research and software testing, not clinical decision-making.",
                 ],
             }
@@ -420,7 +812,7 @@ def run_generation_job(
                 job=job,
                 generated_id=generated_id,
                 report_type="generation",
-                method=MODEL_NAME,
+                method=model_label,
                 score=None,
                 payload=generation_report,
                 file_path=generation_path,
@@ -433,10 +825,16 @@ def run_generation_job(
                 "preprocessing": preprocessing_path,
                 "quality": quality_path,
                 "privacy": privacy_path,
+                "conditions": conditions_path,
+                "clinical": clinical_path,
                 "metadata": metadata_path,
                 "model": model_relative,
             }
+            config["clinicalValidation"] = clinical_report_public
+            config["schemaValidation"] = schema_validation
+            config["rejectionSampling"] = rejection_report
             job.config_json = json_safe(config)
+            job.satisfaction_json = json_safe(satisfaction)
             _status(
                 job,
                 "Completed",
@@ -451,7 +849,15 @@ def run_generation_job(
                 resource_type="synthmed_generation_job",
                 resource_id=job.id,
                 actor_id=job.owner_id,
-                details={"generated_dataset_id": generated_id, "records": int(len(synthetic))},
+                details={
+                    "generated_dataset_id": generated_id,
+                    "model": model,
+                    "generation_mode": mode,
+                    "generation_profile": profile,
+                    "records": int(len(synthetic)),
+                    "conditions_satisfied": bool(satisfaction["passed"]),
+                    "clinical_validation_applied": profile != "Standard",
+                },
             )
             db.commit()
             return job
@@ -480,6 +886,8 @@ def job_response(job: SynthMedGenerationJob) -> dict[str, Any]:
         "generatedDatasetId": job.generated_dataset_id or "",
         "status": job.status,
         "modelName": job.model_name,
+        "generationMode": job.generation_mode,
+        "selectedModel": job.selected_model,
         "epochs": job.epochs,
         "batchSize": job.batch_size,
         "seed": job.seed,
@@ -489,8 +897,14 @@ def job_response(job: SynthMedGenerationJob) -> dict[str, Any]:
         "createdAt": _iso(job.created_at),
         "startedAt": _iso(job.started_at),
         "completedAt": _iso(job.completed_at),
+        "conditions": json_safe(job.normalized_conditions_json or job.config_json.get("normalizedConditions") or []),
+        "conditionValidation": json_safe(job.condition_validation_json or {}),
+        "conditionSatisfaction": json_safe(job.satisfaction_json or {}),
         "error": (job.error_json or {}).get("message", ""),
         "config": json_safe(job.config_json),
+        "generationProfile": str(job.config_json.get("generationProfile") or "Standard"),
+        "clinicalValidation": json_safe(job.config_json.get("clinicalValidation") or {}),
+        "schemaValidation": json_safe(job.config_json.get("schemaValidation") or {}),
     }
 
 
@@ -530,16 +944,29 @@ def generated_detail(db: Session, generated_id: str, user: User) -> dict[str, An
         **to_generated_response(generated).model_dump(),
         "generationJobId": job.id if job else "",
         "modelName": job.model_name if job else generated.generation_method,
+        "generationMode": job.generation_mode if job else generated.generation_mode,
+        "selectedModel": job.selected_model if job else generated.selected_model,
         "trainingDurationSeconds": job.training_duration_seconds if job else None,
         "availableFormats": sorted((config.get("generatedPaths") or {}).keys()) or [generated.file_format],
         "reportTypes": sorted({report.report_type for report in reports}),
         "trainingConfig": {
-            "epochs": job.epochs if job else None,
-            "batchSize": job.batch_size if job else None,
+            "model": job.selected_model if job else generated.selected_model,
+            "samplingStrategy": condition_service.CAPABILITIES[
+                condition_service.normalize_model(job.selected_model if job else generated.selected_model) or "CTGAN"
+            ].sampling_strategy,
+            "epochs": job.epochs if job and job.selected_model in {"CTGAN", "TVAE"} else None,
+            "batchSize": job.batch_size if job and job.selected_model in {"CTGAN", "TVAE"} else None,
             "seed": job.seed if job else None,
             "preserveMissingness": config.get("preserveMissingness", True),
             "includedColumns": config.get("selectedColumns", []),
         },
+        "conditions": json_safe(
+            (job.normalized_conditions_json if job else None) or config.get("normalizedConditions") or []
+        ),
+        "conditionSatisfaction": json_safe((job.satisfaction_json if job else None) or {}),
+        "generationProfile": str(config.get("generationProfile") or "Standard"),
+        "clinicalValidation": json_safe(config.get("clinicalValidation") or {}),
+        "schemaValidation": json_safe(config.get("schemaValidation") or {}),
     }
 
 
@@ -604,6 +1031,131 @@ def evaluation_report_row(db: Session, generated_id: str, report_type: str) -> S
             detail=f"No {report_type} report file is available.",
         )
     return report
+
+
+def models_payload() -> dict[str, Any]:
+    return {
+        "models": condition_service.model_capabilities(),
+        "sdvVersion": condition_service.SDV_VERSION,
+        "message": (
+            "Conditional sampling uses SDV sample_from_conditions with exact equality conditions. "
+            "Range, missing-value and identifier conditions are rejected."
+        ),
+    }
+
+
+def dataset_columns_payload(
+    db: Session, source: SynthMedSourceDataset, user: User, settings: Settings, model: str = "CTGAN"
+) -> dict[str, Any]:
+    validation = condition_service.validate_conditions(
+        source=source,
+        config={"model": model, "conditions": [], "selectedColumns": None},
+        settings=settings,
+    )
+    storage = SynthMedStorageService(settings)
+    frame = read_source_dataframe(storage.resolve_source(source.stored_path), source.file_format)
+    analysis = analyse_dataframe(frame)
+    return {
+        "sourceDatasetId": source.id,
+        "totalColumns": int(len(frame.columns)),
+        "eligibleColumns": validation["eligibleColumns"],
+        "ineligibleColumns": validation["ineligibleColumns"],
+        "numericalColumns": analysis["numericalColumns"],
+        "categoricalColumns": analysis["categoricalColumns"],
+        "booleanColumns": analysis["booleanColumns"],
+        "datetimeColumns": analysis["datetimeColumns"],
+        "potentialIdentifierColumns": analysis["potentialIdentifierColumns"],
+        "generationReady": analysis["totalRecords"] >= 10 and analysis["totalColumns"] >= 2,
+        "guidance": (
+            "Only eligible columns can be used as exact equality conditions. "
+            "Patient identifiers are excluded from generation and condition validation."
+        ),
+    }
+
+
+def validate_conditions_payload(
+    source: SynthMedSourceDataset, config: dict[str, Any], settings: Settings
+) -> dict[str, Any]:
+    return condition_service.validate_conditions(source=source, config=config, settings=settings)
+
+
+def condition_satisfaction_report(db: Session, generated_id: str, user: User) -> dict[str, Any]:
+    from app.synthmed.services.source_service import ensure_generated_access
+
+    generated = db.get(SynthMedGeneratedDataset, generated_id)
+    if generated is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Generated dataset not found.")
+    ensure_generated_access(generated, user)
+    job = job_for_generated(db, generated_id)
+    report = evaluation_report(db, generated_id, "conditions", user)
+    if job is not None:
+        report["conditions"] = json_safe(
+            job.normalized_conditions_json or job.config_json.get("normalizedConditions") or []
+        )
+        report["generationMode"] = job.generation_mode
+        report["selectedModel"] = job.selected_model
+    return report
+
+
+def generated_evaluation_summary(db: Session, generated_id: str, user: User) -> dict[str, Any]:
+    from app.synthmed.services.source_service import ensure_generated_access
+
+    generated = db.get(SynthMedGeneratedDataset, generated_id)
+    if generated is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Generated dataset not found.")
+    ensure_generated_access(generated, user)
+    reports = list(
+        db.scalars(
+            select(SynthMedEvaluationReport).where(SynthMedEvaluationReport.generated_dataset_id == generated_id)
+        )
+    )
+    by_type = {report.report_type: json_safe(report.report_json) for report in reports}
+    job = job_for_generated(db, generated_id)
+    generation_profile = str((job.config_json if job else {}).get("generationProfile") or "Standard")
+    return {
+        "generatedDatasetId": generated_id,
+        "generationMode": generated.generation_mode,
+        "selectedModel": generated.selected_model,
+        "availableReports": sorted(by_type),
+        "quality": by_type.get("quality"),
+        "privacy": by_type.get("privacy"),
+        "conditions": by_type.get("conditions"),
+        "clinical": by_type.get("clinical"),
+        "generationProfile": generation_profile,
+        "limitations": [
+            "Condition satisfaction, statistical similarity, data quality, "
+            "clinical validation and privacy risk are separate concepts.",
+            "Passing clinical reference checks does not establish clinical validity or fitness for patient care.",
+            "No differential privacy mechanism is implemented.",
+        ],
+    }
+
+
+def generation_metadata(db: Session, generated_id: str) -> dict[str, Any]:
+    job = job_for_generated(db, generated_id)
+    if job is None:
+        return {}
+    return {
+        "model": job.selected_model,
+        "modelName": job.model_name,
+        "generationMode": job.generation_mode,
+        "requestedConditions": json_safe(
+            job.normalized_conditions_json or job.config_json.get("normalizedConditions") or []
+        ),
+        "conditionSatisfaction": json_safe(job.satisfaction_json or {}),
+        "generationDurationSeconds": job.training_duration_seconds,
+        "recordCount": job.generated_record_count,
+        "generationProfile": str(job.config_json.get("generationProfile") or "Standard"),
+        "clinicalValidation": json_safe(job.config_json.get("clinicalValidation") or {}),
+        "schemaValidation": json_safe(job.config_json.get("schemaValidation") or {}),
+        "rejectionSampling": json_safe(job.config_json.get("rejectionSampling") or {}),
+        "clinicalVariables": json_safe(job.config_json.get("clinicalVariables") or []),
+        "referenceOverrides": json_safe(job.config_json.get("referenceOverrides") or []),
+        "diseaseRules": json_safe(job.config_json.get("diseaseRules") or []),
+        "approvedOutputColumns": json_safe(job.config_json.get("approvedOutputColumns") or []),
+        "excludedOutputColumns": json_safe(job.config_json.get("excludedOutputColumns") or []),
+        "status": job.status,
+    }
 
 
 def export_generated(
@@ -675,9 +1227,7 @@ def generated_download_path(db: Session, generated_id: str, file_format: str, se
     return SynthMedStorageService(settings).resolve_generated(relative), Path(relative).name
 
 
-def recover_stale_jobs(
-    session_factory: sessionmaker[Session] | None = None, *, stale_after_seconds: int = 0
-) -> int:
+def recover_stale_jobs(session_factory: sessionmaker[Session] | None = None, *, stale_after_seconds: int = 0) -> int:
     factory = session_factory or SessionLocal
     cutoff = _now() - timedelta(seconds=stale_after_seconds) if stale_after_seconds > 0 else None
     recovered = 0

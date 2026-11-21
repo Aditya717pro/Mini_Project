@@ -2,7 +2,7 @@
 
 MedDataHub is an AI-ready medical dataset repository prototype for women's and paediatric health research. It uses a React/TypeScript frontend, a FastAPI service, persistent SQLAlchemy storage and a governed ETL pipeline. All bundled and test data is synthetic.
 
-> **Current milestone:** authentication, persistent dataset storage, upload APIs, the governed ETL engine, the React/API integration and real CTGAN synthetic data generation via SDV are implemented. Quality, readiness, representativeness, synthetic quality and privacy-risk reporting are rule-based/statistical and are not clinically validated.
+> **Current milestone:** authentication, persistent dataset storage, upload APIs, the governed ETL engine, the React/API integration and real SDV 2.2.0 CTGAN, TVAE and GaussianCopula generation, including exact-equality conditional sampling, are implemented. Quality, readiness, representativeness, synthetic quality, privacy-risk and condition-satisfaction reporting are rule-based/statistical and are not clinically validated.
 
 ## Quick start
 
@@ -45,28 +45,37 @@ Raw files are immutable. Processed CSV and transformation logs are staged in tem
 
 ## SynthMed generation
 
-SynthMed trains a real SDV `CTGANSynthesizer` on an uploaded source dataset. Generation analyses source columns, detects likely identifiers, records preprocessing decisions, validates SDV metadata, then models only eligible columns. Identifier-like columns are excluded rather than reproduced, source files are never modified, and missing values are preserved by default.
+SynthMed trains real SDV 2.2.0 synthesizers on an uploaded source dataset. Supported models are CTGAN (`CTGANSynthesizer`), TVAE (`TVAESynthesizer`) and GaussianCopula (`GaussianCopulaSynthesizer`), for both unconditional and conditional generation. Generation analyses source columns, detects likely identifiers, records preprocessing decisions, validates SDV metadata, then models only eligible columns. Identifier-like columns are excluded rather than reproduced, source files are never modified, and missing values are preserved by default. One fitted synthesizer instance generates all records for a job.
 
-Jobs progress through genuine states: `Queued`, `Preprocessing`, `Training`, `Generating`, `Validating`, `Completed` and `Failed`. The UI polls actual backend status and does not show simulated progress. Training uses CPU and supports configurable epochs, batch size and random seed; batch size must be a multiple of 10 between 20 and 10000.
+Conditional generation uses `sample_from_conditions` with `sdv.sampling.Condition` exact-equality conditions. CTGAN and TVAE use SDV reject sampling; GaussianCopula uses native conditioned Gaussian multivariate sampling. Range operators, missing/null values, primary keys and patient identifiers are rejected. Exact conditions on different columns with the same `numRows` are combined with AND; groups with different `numRows` are separate cohorts whose `numRows` sum to `recordCount`.
+
+Jobs progress through genuine states: `Queued`, `Preprocessing`, `Training`, `Generating`, `Validating`, `Evaluating`, `Completed` and `Failed`. The UI polls actual backend status and does not show simulated progress. CTGAN/TVAE training uses CPU and supports configurable epochs, batch size and random seed; batch size must be a multiple of 10 between 20 and 10000.
 
 Key generation endpoints:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
+| `GET` | `/api/v1/synthmed/models` | Supported models, SDV version and compatibility |
 | `POST` | `/api/v1/synthmed/generation/analyse/{source_dataset_id}` | Analyse columns and generation readiness |
-| `POST` | `/api/v1/synthmed/generation/start` | Start a real CTGAN training job |
+| `GET` | `/api/v1/synthmed/datasets/{dataset_id}/columns` | Eligible/ineligible columns and model guidance |
+| `POST` | `/api/v1/synthmed/generation/validate-conditions` | Validate model, conditions and cohorts |
+| `POST` | `/api/v1/synthmed/conditions/validate` | Alias for condition validation |
+| `POST` | `/api/v1/synthmed/generation/start` | Start a job with `model`, `generationMode` and `conditions` |
 | `GET` | `/api/v1/synthmed/generation/jobs/{job_id}` | Job status and error message |
 | `GET` | `/api/v1/synthmed/generation/jobs` | Job history |
+| `GET` | `/api/v1/synthmed/generation/jobs/{job_id}/conditions` | Condition result for a job |
 | `GET` | `/api/v1/synthmed/generated` | Generated datasets |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}` | Dataset detail and configuration |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}/preview` | Generated data preview |
+| `GET` | `/api/v1/synthmed/generated/{generation_id}/conditions` | Condition-satisfaction report |
+| `GET` | `/api/v1/synthmed/generated/{generation_id}/evaluation` | Combined evaluation summary |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}/quality` | SDMetrics quality report |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}/privacy` | Privacy-risk report |
 | `GET` | `/api/v1/synthmed/generated/{dataset_id}/download` | Download generated dataset |
 | `POST` | `/api/v1/synthmed/generated/{generation_id}/export` | Export generated data to another format |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}/reports/{report_type}/download` | Download report JSON |
 
-Quality reports use SDMetrics quality and diagnostics. Privacy reports cover exact overlap, duplicates, nearest-neighbour similarity and explicit limitations. These are screening signals only: they do not establish clinical equivalence, differential privacy or anonymity.
+Quality reports use SDMetrics quality and diagnostics. Condition satisfaction is computed from generated records and stored as a separate `conditions` report; it is distinct from quality, privacy and clinical validity. Privacy reports cover exact overlap, duplicates, nearest-neighbour similarity and explicit limitations, including a conditional-cohort limitation. These are screening signals only: they do not establish clinical equivalence, differential privacy or anonymity.
 
 ## Current features
 
@@ -76,8 +85,9 @@ Quality reports use SDMetrics quality and diagnostics. Privacy reports cover exa
 - Dataset catalogue, search, filtering, pagination, detail views and version history.
 - ETL workspace driven by backend job state, profiling output, mapping decisions, logs and transformation reports.
 - Quality, AI-readiness and representativeness reports generated by transparent rules.
-- SynthMed CTGAN generation with real job state, preprocessing records, previews and format exports.
-- SDMetrics quality/diagnostics and privacy-risk reports with explicit limitations.
+- SynthMed CTGAN/TVAE/GaussianCopula generation with model selection, compatibility display, conditional toggle, condition builder and validation.
+- Real job state, preprocessing records, previews, format exports and condition/evaluation display.
+- SDMetrics quality/diagnostics, privacy-risk and condition-satisfaction reports with explicit limitations and comparison metadata.
 - Access-request workflow, governance decisions and audit logging.
 - Responsive layout with accessible controls, loading/empty/error states and toasts.
 
@@ -90,7 +100,7 @@ Quality reports use SDMetrics quality and diagnostics. Privacy reports cover exa
 | Charts | Recharts |
 | Icons | Lucide React |
 | Backend | FastAPI, Pydantic Settings, SQLAlchemy 2.0, Alembic, PyMySQL, Uvicorn |
-| Synthetic data | SDV/CTGAN, SDMetrics, Pandas, NumPy, scikit-learn, CPU-only PyTorch |
+| Synthetic data | SDV 2.2.0 (CTGAN, TVAE, GaussianCopula), SDMetrics, Pandas, NumPy, scikit-learn, CPU-only PyTorch |
 | Testing | pytest, Ruff, TypeScript compiler, Vite build |
 
 ## Development commands
@@ -120,7 +130,7 @@ SynthMed uses a single-process in-memory worker, not a durable queue: a process 
 | Persistent datasets, versions, jobs, decisions and reports | Implemented |
 | ETL profiling, mapping review, atomic load and raw preservation | Implemented |
 | Quality, readiness and representativeness scores | Rule-based; not clinically validated |
-| CTGAN generation, quality and privacy reports | Implemented; statistical screening only |
+| Multi-model generation, quality, privacy and condition reports | Implemented; statistical screening only |
 | Clinical equivalence, differential privacy, anonymity guarantees, regulatory validation and real patient data | Out of scope |
 
 Uploading never publishes a dataset. Completed ETL output remains subject to governance approval before broader access. Use synthetic data only.
@@ -135,7 +145,7 @@ backend/
     models/             SQLAlchemy domain models
     schemas/            Pydantic request/response models
     services/           Auth, upload, profiling, mapping, job, storage and report services
-    synthmed/           Source datasets, CTGAN generation, evaluation and downloads
+    synthmed/           Source datasets, multi-model conditional generation, evaluation and downloads
     db/                 Engine, session and Alembic-managed schema
   migrations/versions/  Alembic migrations
   tests/                API, workflow and ETL governance tests

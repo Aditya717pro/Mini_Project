@@ -1,6 +1,5 @@
 ﻿import { Link } from 'react-router-dom';
 import {
-  Download,
   FlaskConical,
   GitCompare,
   ShieldCheck,
@@ -95,10 +94,10 @@ export const SynthMed = () => {
             </li>
 
             <li>
-              <span className="activity-icon activity-publish"><Download size={15} /></span>
+              <span className="activity-icon activity-publish"><FlaskConical size={15} /></span>
               <div>
-                <Link to="/synthmed/downloads"><strong>Download Centre</strong></Link>
-                <span>Download uploaded originals and generated outputs from separate sections.</span>
+                <Link to="/synthmed/generated"><strong>Generated Datasets</strong></Link>
+                <span>View and download synthetic datasets with full quality and privacy evaluation reports.</span>
               </div>
             </li>
           </ul>

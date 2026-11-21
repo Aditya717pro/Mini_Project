@@ -17,12 +17,11 @@ import {
 import {
   ArrowRight,
   BadgeCheck,
-  BrainCircuit,
   Database,
   FileText,
+  FlaskConical,
   KeyRound,
   ShieldAlert,
-  TrendingUp,
   UploadCloud,
   Workflow,
 } from 'lucide-react';
@@ -149,7 +148,7 @@ export const Dashboard = () => {
         actions={
           <>
             <Link to="/synthmed">
-              <Button variant="secondary">SynthMed</Button>
+              <Button variant="secondary" icon={<FlaskConical size={16} />}>SynthMed</Button>
             </Link>
             <Link to="/upload">
               <Button icon={<UploadCloud size={16} />}>Upload dataset</Button>
@@ -353,71 +352,31 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid-2">
-        <Card>
-          <CardHeader
-            title="Pipeline activity"
-            subtitle="Active and review-stage jobs from the backend"
-            action={<Link to="/etl" className="inline-link">ETL workspace <ArrowRight size={13} /></Link>}
-          />
-          <div className="job-mini-list">
-            {activeJobList.length === 0 ? (
-              <p className="muted">No active jobs. All pipelines have completed.</p>
-            ) : (
-              activeJobList.map((job) => (
-                <div key={job.id} className="job-mini">
-                  <div className="job-mini-head">
-                    <div>
-                      <strong>{job.datasetTitle}</strong>
-                      <span>{job.id} · {job.status}</span>
-                    </div>
-                    <span className="muted">{job.progress}%</span>
+      <Card>
+        <CardHeader
+          title="Pipeline activity"
+          subtitle="Active and review-stage jobs from the backend"
+          action={<Link to="/etl" className="inline-link">ETL workspace <ArrowRight size={13} /></Link>}
+        />
+        <div className="job-mini-list">
+          {activeJobList.length === 0 ? (
+            <p className="muted">No active jobs. All pipelines have completed.</p>
+          ) : (
+            activeJobList.map((job) => (
+              <div key={job.id} className="job-mini">
+                <div className="job-mini-head">
+                  <div>
+                    <strong>{job.datasetTitle}</strong>
+                    <span>{job.id} · {job.status}</span>
                   </div>
-                  <ProgressBar value={job.progress} tone={job.status === 'Failed' ? 'danger' : job.status === 'Review required' ? 'warning' : 'info'} />
+                  <span className="muted">{job.progress}%</span>
                 </div>
-              ))
-            )}
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader title="Quick actions" subtitle="Common research data tasks" />
-          <div className="quick-actions">
-            <Link to="/upload" className="quick-action">
-              <span className="quick-icon tone-success"><UploadCloud size={18} /></span>
-              <div>
-                <strong>Upload a dataset</strong>
-                <span>CSV, XLSX or JSON with validation</span>
+                <ProgressBar value={job.progress} tone={job.status === 'Failed' ? 'danger' : job.status === 'Review required' ? 'warning' : 'info'} />
               </div>
-              <ArrowRight size={15} />
-            </Link>
-            <Link to="/readiness" className="quick-action">
-              <span className="quick-icon tone-purple"><BrainCircuit size={18} /></span>
-              <div>
-                <strong>Assess AI readiness</strong>
-                <span>Task-specific, rule-based review</span>
-              </div>
-              <ArrowRight size={15} />
-            </Link>
-            <Link to="/access-requests" className="quick-action">
-              <span className="quick-icon tone-warning"><KeyRound size={18} /></span>
-              <div>
-                <strong>Review access requests</strong>
-                <span>{pendingRequests.length} pending decision(s)</span>
-              </div>
-              <ArrowRight size={15} />
-            </Link>
-            <Link to="/representativeness" className="quick-action">
-              <span className="quick-icon tone-info"><TrendingUp size={18} /></span>
-              <div>
-                <strong>Check representativeness</strong>
-                <span>Women's and paediatric coverage</span>
-              </div>
-              <ArrowRight size={15} />
-            </Link>
-          </div>
-        </Card>
-      </div>
+            ))
+          )}
+        </div>
+      </Card>
     </>
   );
 };

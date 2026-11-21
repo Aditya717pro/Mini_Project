@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+
+import pandas as pd
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -9,7 +13,10 @@ from app.core.security import hash_password
 from app.models.audit import AuditLog
 from app.models.enums import UserRole
 from app.models.user import User
-from app.synthmed.models import SynthMedGenerationJob
+from app.synthmed.models import SynthMedGeneratedDataset, SynthMedGenerationJob, SynthMedSourceDataset
+from app.synthmed.services import condition_service, generation_service
+from app.synthmed.services.dataset_service import json_safe
+from app.synthmed.services.storage_service import SynthMedStorageService
 
 REGISTER = "/api/v1/auth/register"
 LOGIN = "/api/v1/auth/login"
@@ -78,7 +85,7 @@ def start_job(client: TestClient, headers: dict[str, str], source_id: str, **ove
     payload = {
         "sourceDatasetId": source_id,
         "datasetName": "Fictional synthetic cohort",
-        "selectedColumns": ["patient_id", "age", "cholesterol", "diagnosis", "visit_date", "smoker"],
+        "selectedColumns": ["patient_id", "age", "cholesterol", "diagnosis"],
         "categoricalColumns": ["diagnosis"],
         "numericalColumns": ["age", "cholesterol"],
         "identifierColumns": ["patient_id"],
@@ -132,7 +139,7 @@ def test_ctgan_workflow_end_to_end(app: FastAPI, client: TestClient, db_session:
     detail = detail_response.json()
     assert detail["generationJobId"] == job["id"]
     assert detail["recordCount"] == 8
-    assert detail["columnCount"] == 5, detail
+    assert detail["columnCount"] == 3, detail
     assert set(detail["availableFormats"]) == {"CSV", "XLSX", "JSON"}
     assert {"quality", "privacy", "preprocessing", "generation"}.issubset(set(detail["reportTypes"]))
 
@@ -142,7 +149,7 @@ def test_ctgan_workflow_end_to_end(app: FastAPI, client: TestClient, db_session:
     assert preview["totalRecords"] == 8
     assert len(preview["rows"]) == 3
     assert "patient_id" not in preview["columns"]
-    assert set(preview["columns"]) == {"age", "cholesterol", "diagnosis", "visit_date", "smoker"}
+    assert set(preview["columns"]) == {"age", "cholesterol", "diagnosis"}
 
     quality_response = client.get(f"{API}/generated/{generated_id}/quality", headers=headers)
     assert quality_response.status_code == 200, quality_response.text
@@ -229,18 +236,26 @@ def test_generation_authentication_ownership_and_failure(client: TestClient, db_
         assert client.get(path, headers=bob).status_code == 403, path
 
     bad_source = upload(client, alice, IDENTIFIER_ONLY_CSV, "identifier_only.csv")
-    failed = start_job(
-        client,
-        alice,
-        bad_source,
-        selectedColumns=["patient_id"],
-        numericalColumns=[],
-        categoricalColumns=[],
-        identifierColumns=["patient_id"],
-        primaryKey="patient_id",
+    invalid = client.post(
+        f"{API}/generation/start",
+        headers=alice,
+        json={
+            "sourceDatasetId": bad_source,
+            "datasetName": "Identifier-only cohort",
+            "selectedColumns": ["patient_id"],
+            "numericalColumns": [],
+            "categoricalColumns": [],
+            "identifierColumns": ["patient_id"],
+            "primaryKey": "patient_id",
+            "seed": 7,
+            "epochs": 1,
+            "batchSize": 20,
+            "recordCount": 8,
+            "preserveMissingness": True,
+        },
     )
-    assert failed["status"] == "Failed"
-    assert "No modelable columns remain" in failed["error"]
+    assert invalid.status_code == 422, invalid.text
+    assert "No medical output columns remain" in invalid.json()["detail"]
 
 
 def test_admin_can_view_and_list_other_users_generation_jobs(
@@ -272,3 +287,109 @@ def test_admin_can_view_and_list_other_users_generation_jobs(
     jobs = client.get(f"{API}/generation/jobs", headers=admin_headers)
     assert jobs.status_code == 200, jobs.text
     assert job["id"] in [item["id"] for item in jobs.json()]
+
+
+def test_generated_preview_and_download_use_generated_file(
+    app: FastAPI, client: TestClient, db_session: Session
+) -> None:
+    register_user(client, "generated-integrity@example.test")
+    headers = auth_headers(client, "generated-integrity@example.test")
+    source_id = upload(client, headers, FICTIONAL_CSV)
+    job = start_job(client, headers, source_id)
+    assert job["status"] == "Completed", job["error"]
+
+    source = db_session.get(SynthMedSourceDataset, source_id)
+    generated = db_session.get(SynthMedGeneratedDataset, job["generatedDatasetId"])
+    assert source is not None
+    assert generated is not None
+
+    storage = SynthMedStorageService(app.state.settings)
+    source_path = storage.resolve_source(source.stored_path)
+    generated_path = storage.resolve_generated(generated.stored_path)
+    assert source_path != generated_path
+
+    stored_bytes = generated_path.read_bytes()
+    assert hashlib.sha256(stored_bytes).hexdigest() == generated.checksum_sha256
+    assert stored_bytes != FICTIONAL_CSV
+
+    generated_download = client.get(f"{API}/generated/{generated.id}/download", headers=headers)
+    assert generated_download.status_code == 200, generated_download.text
+    assert generated_download.content == stored_bytes
+
+    preview = client.get(f"{API}/generated/{generated.id}/preview", headers=headers, params={"pageSize": 100})
+    assert preview.status_code == 200, preview.text
+    assert preview.json()["rows"] == json_safe(pd.read_csv(generated_path).to_dict(orient="records"))
+
+    stored_job = db_session.get(SynthMedGenerationJob, job["id"])
+    assert stored_job is not None
+    generated_paths = stored_job.config_json["generatedPaths"]
+    for file_format in ("CSV", "XLSX", "JSON"):
+        response = client.get(
+            f"{API}/generated/{generated.id}/download", headers=headers, params={"file_format": file_format}
+        )
+        assert response.status_code == 200, response.text
+        assert response.content == storage.resolve_generated(generated_paths[file_format]).read_bytes()
+
+    source_download = client.get(f"{API}/sources/{source_id}/download", headers=headers)
+    assert source_download.status_code == 200, source_download.text
+    assert source_download.content == FICTIONAL_CSV
+    assert source_path.read_bytes() == FICTIONAL_CSV
+
+
+def test_conditional_generation_passes_conditions_to_sdv_sampling_api(
+    client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    register_user(client, "conditional-sampling@example.test")
+    headers = auth_headers(client, "conditional-sampling@example.test")
+    source_id = upload(client, headers, FICTIONAL_CSV)
+    captured: list[list[dict]] = []
+    base_class = condition_service.MODEL_CLASSES["CTGAN"]
+
+    class RecordingCTGAN(base_class):
+        def sample_from_conditions(self, *args, **kwargs):
+            conditions = kwargs.get("conditions") or (args[0] if args else [])
+            captured.append(
+                [{"columnValues": dict(item.column_values), "numRows": item.num_rows} for item in conditions]
+            )
+            return super().sample_from_conditions(*args, **kwargs)
+
+    monkeypatch.setitem(condition_service.MODEL_CLASSES, "CTGAN", RecordingCTGAN)
+    job = start_job(
+        client,
+        headers,
+        source_id,
+        generationMode="Conditional",
+        conditions=[{"column": "diagnosis", "operator": "eq", "value": "stable", "numRows": 8}],
+    )
+    assert job["status"] == "Completed", job["error"]
+    assert captured
+    assert all(
+        batch == [{"columnValues": {"diagnosis": "stable"}, "numRows": 8}]
+        for batch in captured
+    )
+
+
+def test_failed_evaluation_does_not_expose_generated_dataset(
+    client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    register_user(client, "failed-evaluation@example.test")
+    headers = auth_headers(client, "failed-evaluation@example.test")
+    source_id = upload(client, headers, FICTIONAL_CSV)
+
+    def fail_evaluation(*args, **kwargs):
+        raise RuntimeError("Evaluation failed")
+
+    monkeypatch.setattr(generation_service, "build_quality_report", fail_evaluation)
+    job = start_job(client, headers, source_id)
+    assert job["status"] == "Failed"
+    assert "Evaluation failed" in job["error"]
+    assert job["generatedDatasetId"] == ""
+
+    generated_rows = db_session.scalars(
+        select(SynthMedGeneratedDataset).where(SynthMedGeneratedDataset.source_dataset_id == source_id)
+    ).all()
+    assert generated_rows == []
+
+    listed = client.get(f"{API}/generated", headers=headers)
+    assert listed.status_code == 200, listed.text
+    assert listed.json() == []

@@ -139,6 +139,7 @@ def build_privacy_report(
     metadata_dict: dict[str, Any],
     analysis: dict[str, Any],
     seed: int | None = None,
+    conditional: bool = False,
 ) -> dict[str, Any]:
     shared_columns = [column for column in real_data.columns if column in synthetic_data.columns]
     real_rows = set(real_data[shared_columns].astype("string").fillna("__NA__").itertuples(index=False, name=None))
@@ -217,5 +218,13 @@ def build_privacy_report(
             "No differential privacy mechanism is implemented.",
             "A low re-identification signal does not prove that re-identification is impossible.",
             "Nearest-neighbour distances use a scale-normalised encoding of modelled columns only.",
-        ],
+        ]
+        + (
+            [
+                "Conditional cohorts constrain records to requested values, which can increase uniqueness "
+                "within the synthetic subset without indicating increased privacy risk."
+            ]
+            if conditional
+            else []
+        ),
     }

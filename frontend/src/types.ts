@@ -337,12 +337,183 @@ export interface SynthMedSourceDataset {
   columnCount: number;
 }
 
+export type SynthMedModelName = 'CTGAN' | 'TVAE' | 'GaussianCopula';
+
+export type SynthMedGenerationMode = 'Unconditional' | 'Conditional';
+
+export interface SynthMedModelCapability {
+  model: SynthMedModelName;
+  sdvClass: string;
+  samplingApi: string;
+  conditionalSampling: boolean;
+  multipleConditions: boolean;
+  exactEquality: boolean;
+  rangeOperators: boolean;
+  primaryKeyConditions: boolean;
+  missingValueConditions: boolean;
+  unconditionalSampling?: boolean;
+  implemented?: boolean;
+  sdvVersion?: string;
+  samplingStrategy: string;
+  notes: string[];
+}
+
+export interface SynthMedModelsResponse {
+  models: SynthMedModelCapability[];
+  sdvVersion: string;
+  message: string;
+}
+
+export interface SynthMedEligibleColumn {
+  name: string;
+  sdtype: string;
+  missingCount: number;
+  uniqueCount: number;
+}
+
+export interface SynthMedIneligibleColumn {
+  name: string;
+  reason: string;
+}
+
+export interface SynthMedDatasetColumns {
+  sourceDatasetId: string;
+  totalColumns: number;
+  eligibleColumns: SynthMedEligibleColumn[];
+  ineligibleColumns: SynthMedIneligibleColumn[];
+  numericalColumns: string[];
+  categoricalColumns: string[];
+  booleanColumns: string[];
+  datetimeColumns: string[];
+  potentialIdentifierColumns: string[];
+  generationReady: boolean;
+  guidance: string;
+}
+
+export type SynthMedConditionOperator = 'eq';
+
+export interface SynthMedCondition {
+  column: string;
+  operator: SynthMedConditionOperator;
+  value: string | number | boolean;
+  numRows: number;
+}
+
+export interface SynthMedConditionValidationRequest {
+  sourceDatasetId: string;
+  model: SynthMedModelName;
+  conditions: SynthMedCondition[];
+  recordCount?: number | null;
+  selectedColumns?: string[] | null;
+  identifierColumns: string[];
+  primaryKey: string | null;
+  categoricalColumns: string[];
+  numericalColumns: string[];
+  preserveMissingness: boolean;
+  categoricalValues?: Record<string, string[]>;
+  numericRanges?: Record<string, { min?: number | null; max?: number | null }>;
+}
+
+export interface SynthMedConditionValidationResponse {
+  valid: boolean;
+  model: string;
+  capabilities: SynthMedModelCapability;
+  eligibleColumns: SynthMedEligibleColumn[];
+  ineligibleColumns: SynthMedIneligibleColumn[];
+  normalizedConditions: Record<string, unknown>[];
+  samplingPlan: Record<string, unknown>[];
+  errors: string[];
+  warnings: string[];
+}
+
+export interface SynthMedConditionResult {
+  index: number;
+  column: string;
+  operator: string;
+  requestedValue: unknown;
+  requestedRows: number;
+  totalGeneratedRecords: number;
+  satisfyingRecords: number;
+  nonSatisfyingRecords: number;
+  satisfactionPercentage: number;
+}
+
+export interface SynthMedConditionCohort {
+  index: number;
+  mode: string;
+  conditions: { column: string; operator: string; value: unknown }[];
+  requestedRows: number;
+  totalGeneratedRecords: number;
+  satisfyingRecords: number;
+  nonSatisfyingRecords: number;
+  satisfactionPercentage: number;
+  passed: boolean;
+}
+
+export interface SynthMedConditionSummary {
+  requestedConditions?: number;
+  totalGeneratedRecords: number;
+  satisfyingRecords: number;
+  nonSatisfyingRecords: number;
+  satisfactionPercentage: number;
+}
+
+export interface SynthMedConditionSatisfaction {
+  method?: string;
+  conditional?: boolean;
+  requestedConditions?: SynthMedCondition[];
+  conditions?: SynthMedConditionResult[];
+  cohorts?: SynthMedConditionCohort[];
+  combined?: SynthMedConditionSummary;
+  generatedRecordCount?: number;
+  expectedRecordCount?: number;
+  recordCountMatches?: boolean;
+  allConditionsSatisfied?: boolean;
+  passed?: boolean;
+  limitations?: string[];
+}
+
+export interface SynthMedGeneratedEvaluationSummary {
+  generatedDatasetId?: string;
+  generationMode: SynthMedGenerationMode;
+  selectedModel: SynthMedModelName;
+  availableReports: string[];
+  quality: Record<string, unknown> | null;
+  privacy: Record<string, unknown> | null;
+  conditions: SynthMedConditionSatisfaction | null;
+  clinical?: SynthMedClinicalReportBundle | null;
+  generationProfile?: SynthMedGenerationProfile;
+  limitations?: string[];
+}
+
+export interface SynthMedGeneratedMetadata {
+  model?: string;
+  modelName?: string;
+  generationMode?: string;
+  requestedConditions?: SynthMedCondition[];
+  conditionSatisfaction?: SynthMedConditionSatisfaction;
+  generationDurationSeconds?: number | null;
+  recordCount?: number;
+  generationProfile?: SynthMedGenerationProfile;
+  clinicalValidation?: SynthMedClinicalValidationReport;
+  schemaValidation?: SynthMedSchemaValidation;
+  rejectionSampling?: SynthMedRejectionSampling;
+  clinicalVariables?: SynthMedClinicalVariable[];
+  referenceOverrides?: SynthMedReferenceOverride[];
+  diseaseRules?: SynthMedClinicalRule[];
+  approvedOutputColumns?: string[];
+  excludedOutputColumns?: string[];
+  status?: string;
+}
+
 export interface SynthMedGeneratedDataset {
   id: string;
   sourceDatasetId: string;
   datasetName: string;
   sourceDatasetName: string;
   generationMethod: string;
+  generationMode?: SynthMedGenerationMode;
+  selectedModel?: SynthMedModelName;
   recordCount: number;
   columnCount: number;
   generationDate: string;
@@ -363,6 +534,7 @@ export type SynthMedGenerationStatus =
   | 'Training'
   | 'Generating'
   | 'Validating'
+  | 'Evaluating'
   | 'Completed'
   | 'Failed';
 
@@ -399,9 +571,165 @@ export interface SynthMedGenerationAnalysis {
   guidance: string;
 }
 
+export type SynthMedGenerationProfile = 'Standard' | 'NormalRange' | 'ClinicalDistribution';
+
+export interface SynthMedClinicalVariable {
+  column: string;
+  measurement: string;
+  unit?: string;
+  context?: string;
+  referenceKey?: string;
+  ageColumn?: string;
+  sexColumn?: string;
+  pregnantColumn?: string;
+  ageYears?: number | null;
+  sex?: string;
+  pregnant?: boolean | null;
+  enabled?: boolean;
+}
+
+export interface SynthMedReferenceOverride {
+  key: string;
+  active?: boolean;
+  lower?: number | null;
+  upper?: number | null;
+  plausibleLower?: number | null;
+  plausibleUpper?: number | null;
+  approvalStatus?: 'Approved' | 'PendingReview' | 'Unavailable';
+  sourceOrganization?: string;
+  sourceUrl?: string;
+  citation?: string;
+  version?: string;
+  date?: string;
+}
+
+export interface SynthMedClinicalRule {
+  disease: string;
+  column: string;
+  min?: number | null;
+  max?: number | null;
+  source?: string;
+  reviewed?: boolean;
+}
+
+export interface SynthMedMedicalProfileColumn {
+  originalName: string;
+  standardisedName: string;
+  role: string;
+  kind: string;
+  unit: string;
+  unitEvidence: string;
+  requiresUnitConfirmation: boolean;
+  potentialIdentifier: boolean;
+  approved: boolean;
+  note: string;
+}
+
+export interface SynthMedMedicalProfile {
+  sourceDatasetId?: string;
+  datasetName?: string;
+  totalColumns: number;
+  columns: SynthMedMedicalProfileColumn[];
+  demographicColumns: string[];
+  diseaseColumns: string[];
+  diseaseLevelColumns: string[];
+  clinicalMeasurementColumns: string[];
+  columnsRequiringConfirmation: string[];
+  excludedIdentifierColumns: string[];
+  approvedOutputColumns: string[];
+  warnings: string[];
+  limitations: string[];
+}
+
+export interface SynthMedClinicalReference {
+  key: string;
+  measurement: string;
+  unit: string;
+  population: string;
+  context: string;
+  sourceOrganization: string;
+  sourceUrl: string;
+  citation: string;
+  version: string;
+  date: string;
+  approvalStatus: 'Approved' | 'PendingReview' | 'Unavailable';
+  available: boolean;
+  lower?: number | null;
+  upper?: number | null;
+  lowerInclusive?: boolean;
+  upperInclusive?: boolean;
+  plausibleLower?: number | null;
+  plausibleUpper?: number | null;
+  reason?: string;
+  notes?: string[];
+}
+
+export interface SynthMedClinicalValidationReport {
+  method?: string;
+  generationProfile?: string;
+  totalRecords?: number;
+  classificationCounts?: Record<string, number>;
+  variables?: Record<string, unknown>[];
+  relationships?: Record<string, unknown>[];
+  diseaseConsistency?: Record<string, unknown>[];
+  warnings?: string[];
+  limitations?: string[];
+}
+
+export interface SynthMedSchemaValidation {
+  passed: boolean;
+  errors: string[];
+  approvedColumns?: string[];
+  prohibitedIdentifierColumns?: string[];
+  unapprovedColumns?: string[];
+}
+
+export interface SynthMedRejectionSampling {
+  method?: string;
+  generationProfile?: SynthMedGenerationProfile;
+  attempts?: number;
+  maxAttempts?: number;
+  sampledRecords?: number;
+  acceptedRecords?: number;
+  rejectedRecords?: number;
+  rejectionCounts?: Record<string, number>;
+  limitations?: string[];
+}
+
+export interface SynthMedClinicalReportBundle {
+  clinicalValidation: SynthMedClinicalValidationReport;
+  schemaValidation: SynthMedSchemaValidation;
+  rejectionSampling: SynthMedRejectionSampling;
+}
+
+export interface SynthMedClinicalReferencesResponse {
+  references: SynthMedClinicalReference[];
+  count: number;
+  message?: string;
+}
+
+export interface SynthMedMedicalProfileResponse {
+  sourceDatasetId: string;
+  datasetName: string;
+  profile: SynthMedMedicalProfile;
+  message?: string;
+}
+
+export interface SynthMedSourceClinicalValidationResponse {
+  sourceDatasetId: string;
+  generatedDatasetId?: string;
+  generationProfile: SynthMedGenerationProfile;
+  report: SynthMedClinicalValidationReport;
+  schemaValidation: SynthMedSchemaValidation;
+  warnings?: string[];
+}
+
 export interface SynthMedGenerationStartPayload {
   sourceDatasetId: string;
   datasetName: string;
+  model: SynthMedModelName;
+  generationMode: SynthMedGenerationMode;
+  conditions: SynthMedCondition[];
   selectedColumns: string[];
   categoricalColumns: string[];
   numericalColumns: string[];
@@ -412,6 +740,13 @@ export interface SynthMedGenerationStartPayload {
   batchSize: number;
   recordCount: number;
   preserveMissingness: boolean;
+  generationProfile?: SynthMedGenerationProfile;
+  enforceStrictSchema?: boolean;
+  approvedOutputColumns?: string[];
+  clinicalVariables?: SynthMedClinicalVariable[];
+  referenceOverrides?: SynthMedReferenceOverride[];
+  diseaseRules?: SynthMedClinicalRule[];
+  maxSamplingAttempts?: number;
 }
 
 export interface SynthMedGenerationJob {
@@ -420,32 +755,49 @@ export interface SynthMedGenerationJob {
   generatedDatasetId: string;
   status: SynthMedGenerationStatus;
   modelName: string;
+  generationMode: SynthMedGenerationMode;
+  selectedModel: SynthMedModelName;
   epochs: number;
   batchSize: number;
   seed: number | null;
   requestedRecordCount: number;
   generatedRecordCount: number;
   trainingDurationSeconds: number | null;
+  conditions: SynthMedCondition[];
+  conditionValidation: SynthMedConditionValidationResponse | Record<string, unknown>;
+  conditionSatisfaction: SynthMedConditionSatisfaction | Record<string, unknown>;
   createdAt: string;
   startedAt: string;
   completedAt: string;
   error: string;
   config: Record<string, unknown>;
+  generationProfile?: SynthMedGenerationProfile;
+  clinicalValidation?: SynthMedClinicalValidationReport;
+  schemaValidation?: SynthMedSchemaValidation;
 }
 
 export interface SynthMedGeneratedDatasetDetail extends SynthMedGeneratedDataset {
   generationJobId: string;
   modelName: string;
+  generationMode?: SynthMedGenerationMode;
+  selectedModel?: SynthMedModelName;
   trainingDurationSeconds: number | null;
   availableFormats: FileFormat[];
   reportTypes: string[];
   trainingConfig: {
+    model?: SynthMedModelName;
+    samplingStrategy?: string;
     epochs: number | null;
     batchSize: number | null;
     seed: number | null;
     preserveMissingness: boolean;
     includedColumns: string[];
   };
+  conditions: SynthMedCondition[];
+  conditionSatisfaction: SynthMedConditionSatisfaction | Record<string, unknown>;
+  generationProfile?: SynthMedGenerationProfile;
+  clinicalValidation?: SynthMedClinicalValidationReport;
+  schemaValidation?: SynthMedSchemaValidation;
 }
 
 export interface SynthMedGeneratedPreview {
@@ -465,6 +817,9 @@ export interface SynthMedEvaluationReport {
   score: number | null;
   report: Record<string, unknown>;
   createdAt: string;
+  generationMode?: SynthMedGenerationMode;
+  selectedModel?: SynthMedModelName;
+  conditions?: SynthMedCondition[];
 }
 
 export interface SynthMedExportResponse {
@@ -534,6 +889,18 @@ export interface SynthMedComparisonListItem {
   createdAt: string;
   createdBy: string;
   reportAvailable: boolean;
+  generatedMetadata?: SynthMedGeneratedMetadata;
+}
+
+export interface SynthMedComparisonClinical {
+  generationProfile: SynthMedGenerationProfile;
+  sourceMedicalProfile: SynthMedMedicalProfile;
+  syntheticMedicalProfile: SynthMedMedicalProfile;
+  sourceValidation: SynthMedClinicalValidationReport;
+  syntheticValidation: SynthMedClinicalValidationReport;
+  schemaValidation: SynthMedSchemaValidation;
+  rejectionSampling: SynthMedRejectionSampling;
+  limitations: string[];
 }
 
 export interface SynthMedComparisonDetail extends SynthMedComparisonListItem {
@@ -541,6 +908,7 @@ export interface SynthMedComparisonDetail extends SynthMedComparisonListItem {
   columns: SynthMedComparisonColumnMetric[];
   charts: SynthMedComparisonChart[];
   limitations: string[];
+  clinical?: SynthMedComparisonClinical | null;
 }
 
 export interface ToastMessage {

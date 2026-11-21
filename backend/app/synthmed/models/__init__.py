@@ -59,6 +59,12 @@ class SynthMedGeneratedDataset(Base, TimestampMixin):
     dataset_name: Mapped[str] = mapped_column(String(250), nullable=False)
     source_dataset_name: Mapped[str] = mapped_column(String(250), nullable=False)
     generation_method: Mapped[str] = mapped_column(String(80), nullable=False, default="", server_default=text("''"))
+    generation_mode: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="Unconditional", server_default="Unconditional"
+    )
+    selected_model: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="CTGAN", server_default="CTGAN"
+    )
     record_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     column_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     file_format: Mapped[str] = mapped_column(String(16), nullable=False, default="CSV", server_default="CSV")
@@ -91,6 +97,12 @@ class SynthMedGenerationJob(Base, TimestampMixin):
         String(32), nullable=False, default="Queued", server_default="Queued", index=True
     )
     model_name: Mapped[str] = mapped_column(String(80), nullable=False, default="CTGAN", server_default="CTGAN")
+    generation_mode: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="Unconditional", server_default="Unconditional"
+    )
+    selected_model: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="CTGAN", server_default="CTGAN"
+    )
     epochs: Mapped[int] = mapped_column(Integer, nullable=False)
     batch_size: Mapped[int] = mapped_column(Integer, nullable=False)
     seed: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -99,6 +111,9 @@ class SynthMedGenerationJob(Base, TimestampMixin):
     training_duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
     config_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     error_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    normalized_conditions_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    condition_validation_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    satisfaction_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 

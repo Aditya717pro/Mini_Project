@@ -16,11 +16,13 @@ from app.services.audit_service import log_audit
 from app.synthmed.models import SynthMedComparison
 from app.synthmed.schemas import (
     SynthMedComparisonChart,
+    SynthMedComparisonClinical,
     SynthMedComparisonColumnMetric,
     SynthMedComparisonListItem,
     SynthMedComparisonResponse,
     SynthMedComparisonSummary,
 )
+from app.synthmed.services import clinical_reference_service, medical_schema_service
 from app.synthmed.services.dataset_service import (
     analyse_dataframe,
     dump_json,
@@ -42,6 +44,8 @@ LIMITATIONS = [
     "Identifier-style columns are excluded during generation and may legitimately be absent from synthetic output.",
     "Only columns shared by both files are compared numerically; inspect column coverage before interpreting scores.",
     "No differential privacy mechanism or re-identification guarantee is implied by this comparison.",
+    "Condition satisfaction, statistical similarity, data quality and privacy risk are reported separately.",
+    "Clinical classifications describe configured reference checks, not clinical validity or fitness for care.",
 ]
 
 
@@ -74,17 +78,11 @@ def _kind_map(frame: pd.DataFrame) -> dict[str, str]:
 
 
 def _missing_map(frame: pd.DataFrame) -> dict[str, float]:
-    return {
-        item["name"]: float(item["missingPercentage"])
-        for item in analyse_dataframe(frame)["columns"]
-    }
+    return {item["name"]: float(item["missingPercentage"]) for item in analyse_dataframe(frame)["columns"]}
 
 
 def _unique_map(frame: pd.DataFrame) -> dict[str, int]:
-    return {
-        item["name"]: int(item["uniqueCount"])
-        for item in analyse_dataframe(frame)["columns"]
-    }
+    return {item["name"]: int(item["uniqueCount"]) for item in analyse_dataframe(frame)["columns"]}
 
 
 def _numeric_values(series: pd.Series) -> np.ndarray:
@@ -220,11 +218,53 @@ def _categorical_chart(column: str, original: pd.Series, synthetic: pd.Series) -
     return json_safe({"column": column, "kind": "categorical", "title": f"{column} categories", "points": points})
 
 
+def _clinical_comparison(
+    source_frame: pd.DataFrame,
+    synthetic_frame: pd.DataFrame,
+    metadata: dict[str, Any],
+) -> dict[str, Any] | None:
+    profile = str(metadata.get("generationProfile") or "Standard")
+    if profile == "Standard" and not metadata.get("clinicalValidation"):
+        return None
+    from app.synthmed.services.generation_service import _public_clinical_report
+
+    variables = metadata.get("clinicalVariables") or []
+    overrides = metadata.get("referenceOverrides") or []
+    disease_rules = metadata.get("diseaseRules") or []
+    source_validation = clinical_reference_service.validate_clinical_records(
+        source_frame,
+        generation_profile=profile,
+        clinical_variables=variables,
+        overrides=overrides,
+        disease_rules=disease_rules,
+    )
+    synthetic_validation = clinical_reference_service.validate_clinical_records(
+        synthetic_frame,
+        generation_profile=profile,
+        clinical_variables=variables,
+        overrides=overrides,
+        disease_rules=disease_rules,
+    )
+    return json_safe(
+        {
+            "generationProfile": profile,
+            "sourceMedicalProfile": medical_schema_service.profile_medical_schema(source_frame),
+            "syntheticMedicalProfile": medical_schema_service.profile_medical_schema(synthetic_frame),
+            "sourceValidation": _public_clinical_report(source_validation),
+            "syntheticValidation": _public_clinical_report(synthetic_validation),
+            "schemaValidation": metadata.get("schemaValidation") or {},
+            "rejectionSampling": metadata.get("rejectionSampling") or {},
+            "limitations": clinical_reference_service.CLINICAL_LIMITATIONS,
+        }
+    )
+
+
 def build_comparison_report(
     source_frame: pd.DataFrame,
     synthetic_frame: pd.DataFrame,
     source_name: str,
     generated_name: str,
+    generated_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_kinds = _kind_map(source_frame)
     synthetic_kinds = _kind_map(synthetic_frame)
@@ -344,6 +384,8 @@ def build_comparison_report(
             "columns": columns,
             "charts": charts,
             "limitations": LIMITATIONS,
+            "generatedMetadata": generated_metadata or {},
+            "clinical": _clinical_comparison(source_frame, synthetic_frame, generated_metadata or {}),
         }
     )
 
@@ -362,6 +404,7 @@ def _base_item(row: SynthMedComparison) -> SynthMedComparisonListItem:
         createdAt=_iso(row.created_at),
         createdBy=row.owner.full_name if row.owner else "Unknown",
         reportAvailable=bool(row.file_path),
+        generatedMetadata=report.get("generatedMetadata") or {},
     )
 
 
@@ -395,12 +438,14 @@ def to_list_response(row: SynthMedComparison) -> SynthMedComparisonListItem:
 
 def to_response(row: SynthMedComparison) -> SynthMedComparisonResponse:
     report = row.report_json or {}
+    clinical_payload = report.get("clinical")
     return SynthMedComparisonResponse(
         **_base_item(row).model_dump(),
         method=report.get("method") or row.method or METHOD,
         columns=[SynthMedComparisonColumnMetric.model_validate(item) for item in report.get("columns", [])],
         charts=[SynthMedComparisonChart.model_validate(item) for item in report.get("charts", [])],
         limitations=[str(item) for item in report.get("limitations", [])],
+        clinical=SynthMedComparisonClinical.model_validate(clinical_payload) if clinical_payload else None,
     )
 
 
@@ -437,9 +482,17 @@ def create_comparison(
     except (ValueError, FileNotFoundError) as error:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset file not found on disk.") from error
 
+    from app.synthmed.services.generation_service import generation_metadata
+
     source_frame = read_source_dataframe(source_path, source.file_format)
     synthetic_frame = read_source_dataframe(generated_path, generated.file_format)
-    report = build_comparison_report(source_frame, synthetic_frame, source.dataset_name, generated.dataset_name)
+    report = build_comparison_report(
+        source_frame,
+        synthetic_frame,
+        source.dataset_name,
+        generated.dataset_name,
+        generation_metadata(db, generated.id),
+    )
 
     comparison_id = str(uuid4())
     _, relative_path = storage.save_report(comparison_id, "comparison_report.json", dump_json(report))

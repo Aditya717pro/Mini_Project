@@ -1,5 +1,5 @@
 ﻿import { lazy } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { DemoProvider } from './store/DemoStore';
 import { AppLayout } from './layouts/AppLayout';
 
@@ -31,9 +31,6 @@ const SynthMedGeneratedDetail = lazy(() =>
 const SynthMedEvaluation = lazy(() =>
   import('./pages/SynthMedEvaluation').then((module) => ({ default: module.SynthMedEvaluation })),
 );
-const SynthMedDownloads = lazy(() =>
-  import('./pages/SynthMedDownloads').then((module) => ({ default: module.SynthMedDownloads })),
-);
 const SynthMedComparison = lazy(() =>
   import('./pages/SynthMedComparison').then((module) => ({ default: module.SynthMedComparison })),
 );
@@ -60,7 +57,7 @@ export const App = () => (
           <Route path="synthmed/generated/:generatedId" element={<SynthMedGeneratedDetail />} />
           <Route path="synthmed/generated" element={<SynthMedGenerated />} />
           <Route path="synthmed/evaluation" element={<SynthMedEvaluation />} />
-          <Route path="synthmed/downloads" element={<SynthMedDownloads />} />
+          <Route path="synthmed/downloads" element={<Navigate to="/synthmed/generated" replace />} />
           <Route path="synthmed/comparison" element={<SynthMedComparison />} />
           <Route path="synthmed/comparison/:comparisonId" element={<SynthMedComparison />} />
           <Route path="*" element={<NotFound />} />

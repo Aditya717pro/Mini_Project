@@ -7,7 +7,6 @@ import {
   BrainCircuit,
   Check,
   Database,
-  Download,
   FlaskConical,
   GitCompare,
   KeyRound,
@@ -19,8 +18,8 @@ import {
   Settings,
   Sun,
   ShieldCheck,
+  UploadCloud,
   Users,
-  Wand2,
   Workflow,
   X,
 } from 'lucide-react';
@@ -35,7 +34,7 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; icon: typeof Monitor }[]
   { value: 'dark', label: 'Dark', icon: Moon },
 ];
 
-const navGroups = [
+const mainNavGroups = [
   {
     label: 'Overview',
     items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true }],
@@ -54,21 +53,24 @@ const navGroups = [
     ],
   },
   {
-    label: 'SynthMed',
-    items: [
-      { to: '/synthmed', label: 'SynthMed Overview', icon: FlaskConical, end: true },
-      { to: '/synthmed/generate', label: 'Generate Synthetic Data', icon: Wand2, end: false },
-      { to: '/synthmed/generated', label: 'Generated Datasets', icon: FlaskConical, end: false },
-      { to: '/synthmed/comparison', label: 'Comparison Dashboard', icon: GitCompare, end: false },
-      { to: '/synthmed/evaluation', label: 'Quality & Privacy', icon: ShieldCheck, end: false },
-      { to: '/synthmed/downloads', label: 'Download Centre', icon: Download, end: false },
-    ],
-  },
-  {
     label: 'Governance',
     items: [
       { to: '/access-requests', label: 'Access Requests', icon: KeyRound, end: false },
       { to: '/settings', label: 'Settings', icon: Settings, end: false },
+    ],
+  },
+];
+
+const synthMedNavGroups = [
+  {
+    label: 'SynthMed',
+    items: [
+      { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+      { to: '/synthmed', label: 'SynthMed Overview', icon: FlaskConical, end: true },
+      { to: '/synthmed/upload', label: 'Upload Source Dataset', icon: UploadCloud, end: false },
+      { to: '/synthmed/generated', label: 'Generated Datasets', icon: FlaskConical, end: false },
+      { to: '/synthmed/comparison', label: 'Comparison Dashboard', icon: GitCompare, end: false },
+      { to: '/synthmed/evaluation', label: 'Quality & Privacy', icon: ShieldCheck, end: false },
     ],
   },
 ];
@@ -83,6 +85,8 @@ export const AppLayout = () => {
   const { user, role, theme, setTheme, requests, jobs, datasets } = useDemo();
   const navigate = useNavigate();
   const location = useLocation();
+  const inSynthMed = location.pathname.startsWith('/synthmed');
+  const activeNavGroups = inSynthMed ? synthMedNavGroups : mainNavGroups;
 
   useEffect(() => {
     if (!themeMenuOpen) return;
@@ -122,7 +126,7 @@ export const AppLayout = () => {
 
   const currentTitle = location.pathname.startsWith('/datasets/')
     ? 'Dataset Details'
-    : [...navGroups.flatMap((group) => group.items)].find((item) =>
+    : [...activeNavGroups.flatMap((group) => group.items)].find((item) =>
         item.end ? location.pathname === item.to : location.pathname.startsWith(item.to),
       )?.label ?? 'MedDataHub';
 
@@ -153,7 +157,7 @@ export const AppLayout = () => {
         </div>
 
         <nav className="nav">
-          {navGroups.map((group) => (
+          {activeNavGroups.map((group) => (
             <div className="nav-group" key={group.label}>
               <div className="nav-label">{group.label}</div>
               {group.items.map((item) => {

@@ -1,6 +1,6 @@
 # MedDataHub backend
 
-FastAPI service for the MedDataHub dataset repository. It provides JWT authentication, RBAC, persistent SQLAlchemy models, Alembic migrations, secure file storage, upload APIs, a governed ETL engine, rule-based assessment reports and real CTGAN synthetic data generation via SDV.
+FastAPI service for the MedDataHub dataset repository. It provides JWT authentication, RBAC, persistent SQLAlchemy models, Alembic migrations, secure file storage, upload APIs, a governed ETL engine, rule-based assessment reports and real SDV 2.2.0 CTGAN, TVAE and GaussianCopula synthetic data generation, including exact-equality conditional sampling.
 
 ## Requirements
 
@@ -77,7 +77,7 @@ Roll back the latest migration:
 alembic downgrade -1
 ```
 
-The `b7c4e1d9a3f2_etl_governance` migration adds ETL approval/decision columns and the `etl_mapping_decisions` table, and migrates the previous `Running` status to `Processing`. SynthMed adds `d4a8c1f0b2e3_synthmed_source_and_generated_tables` for source/generated datasets and `f6b2c9d4e7a1_ctgan_generation_jobs_configs_and_reports` for generation jobs, configs and evaluation reports. `a1f4d7e9c2b6_reconcile_schema_drift` aligns unique indexes/constraints and adds the generation status index; Alembic autogenerate now also compares server defaults.
+The current head is `b2f6d8a9c1e3_add_conditional_generation`, parented on `c74e9b1a6d02_add_synthmed_comparisons`. It adds generation mode and selected model to generation jobs and generated datasets, plus normalized conditions, condition validation and satisfaction metadata to jobs; `alembic downgrade -1` reverses it. Earlier revisions add ETL governance (`b7c4e1d9a3f2`), SynthMed source/generated tables (`d4a8c1f0b2e3`), generation jobs, configs and reports (`f6b2c9d4e7a1`), schema drift reconciliation (`a1f4d7e9c2b6`) and comparisons (`c74e9b1a6d02`). Alembic autogenerate compares server defaults.
 
 ## ETL API
 
@@ -105,24 +105,33 @@ Example mapping decision payload:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
+| `GET` | `/api/v1/synthmed/models` | Supported models, SDV version and compatibility |
 | `POST` | `/api/v1/synthmed/generation/analyse/{source_dataset_id}` | Analyse columns and generation readiness |
-| `POST` | `/api/v1/synthmed/generation/start` | Start a real CTGAN training job |
+| `GET` | `/api/v1/synthmed/datasets/{dataset_id}/columns` | Eligible/ineligible columns and model guidance |
+| `POST` | `/api/v1/synthmed/generation/validate-conditions` | Validate model, conditions and cohorts |
+| `POST` | `/api/v1/synthmed/conditions/validate` | Alias for condition validation |
+| `POST` | `/api/v1/synthmed/generation/start` | Start a job with `model`, `generationMode` and `conditions` |
 | `GET` | `/api/v1/synthmed/generation/jobs/{job_id}` | Job status and error message |
 | `GET` | `/api/v1/synthmed/generation/jobs` | Job history |
+| `GET` | `/api/v1/synthmed/generation/jobs/{job_id}/conditions` | Condition result for a job |
 | `GET` | `/api/v1/synthmed/generated` | Generated datasets |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}` | Generated dataset detail |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}/preview` | Generated data preview |
+| `GET` | `/api/v1/synthmed/generated/{generation_id}/conditions` | Condition-satisfaction report |
+| `GET` | `/api/v1/synthmed/generated/{generation_id}/evaluation` | Combined evaluation summary |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}/quality` | SDMetrics quality report |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}/privacy` | Privacy-risk report |
 | `GET` | `/api/v1/synthmed/generated/{dataset_id}/download` | Download generated dataset |
 | `POST` | `/api/v1/synthmed/generated/{generation_id}/export` | Export generated data to another format |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}/reports/{report_type}/download` | Download report JSON |
 
-Generation runs on CPU with configurable epochs, batch size and seed. Batch size must be a multiple of 10 between 20 and 10000. Set `SYNTHMED_GENERATION_INLINE=true` for inline test execution; production uses in-process background workers.
+Supported models are CTGAN (`CTGANSynthesizer`), TVAE (`TVAESynthesizer`) and GaussianCopula (`GaussianCopulaSynthesizer`), both unconditionally and conditionally. One fitted synthesizer instance generates all records in a job. Conditional generation uses `sample_from_conditions` with `sdv.sampling.Condition` exact-equality conditions: CTGAN and TVAE use SDV reject sampling, while GaussianCopula uses native conditioned Gaussian multivariate sampling. Range operators, missing/null values, primary keys and patient identifiers are rejected. Exact conditions on different columns with equal `numRows` are combined with AND; unequal `numRows` produce separate cohorts whose values sum to `recordCount`. Job states include `Evaluating` between `Validating` and `Completed`.
+
+CTGAN/TVAE training runs on CPU with configurable epochs, batch size and seed. Batch size must be a multiple of 10 between 20 and 10000. Set `SYNTHMED_GENERATION_INLINE=true` for inline test execution; production uses in-process background workers.
 
 Set `SYNTHMED_STALE_JOB_RECOVERY_ENABLED=false` to skip startup recovery. `SYNTHMED_STALE_JOB_AFTER_SECONDS` is an optional minimum age for recovery; `0` marks all active jobs found at startup as interrupted. Recovery runs before requests are accepted, writes an `InterruptedJob` error and an audit entry, and is idempotent. If recovery fails, the error is logged and startup continues. On shutdown the executor stops accepting submissions, running tasks are awaited, SQLAlchemy engine disposal happens last, and shutdown errors are logged.
 
-This P0 does not add a durable queue. The SynthMed worker is in-process, so a process crash before completion cannot resume CTGAN training; recovery only converts stranded active jobs into a terminal failed state so users can resubmit. ETL jobs run synchronously in request handlers and do not use a separate executor.
+There is no durable queue. The SynthMed worker is in-process, so a process crash before completion cannot resume training or sampling; recovery only converts stranded active jobs into a terminal failed state so users can resubmit. ETL jobs run synchronously in request handlers and do not use a separate executor.
 
 ## Verify
 
@@ -153,7 +162,7 @@ app/
   models/         Domain models
   schemas/        Pydantic request/response models
    services/       Business services
-   synthmed/       Source datasets, CTGAN generation, evaluation and routes
+    synthmed/       Source datasets, model selection, conditional generation, evaluation and routes
    utils/          Upload validation helpers
 
 migrations/       Alembic environment and revisions
@@ -163,7 +172,8 @@ tests/            API, workflow and ETL governance tests
 ## Boundaries
 
 - Quality, readiness and representativeness scores are rule-based, not clinically validated.
-- CTGAN quality and privacy reports are statistical screening signals, not clinical equivalence, differential privacy or anonymity guarantees.
+- SynthMed quality, privacy and condition reports are statistical screening signals, not clinical equivalence, differential privacy or anonymity guarantees; condition satisfaction is measured from generated records and is separate from quality and privacy.
+- Conditional cohorts can introduce selection artefacts; rare exact values may yield fewer rows or fail under reject sampling.
 - Only synthetic data should be used.
 - Ambiguous dates are never inferred; missing values are never imputed; invalid rows are flagged and retained.
 - Raw files are immutable and processed outputs are atomically replaced with rollback on validation failure.

@@ -8,9 +8,17 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LoginScreen } from '../components/LoginScreen';
 import { LoadingState } from '../components/ui';
-import { ApiError, api, reportMaps, tokenStore, type SynthMedUploadPayload } from '../lib/api';
+import {
+  ApiError,
+  api,
+  reportMaps,
+  tokenStore,
+  type SynthMedSourceClinicalValidationPayload,
+  type SynthMedUploadPayload,
+} from '../lib/api';
 import type {
   AccessLevel,
   AccessRequest,
@@ -27,17 +35,26 @@ import type {
   RequestStatus,
   Role,
   SynthMedComparisonCreatePayload,
+  SynthMedClinicalReferencesResponse,
   SynthMedComparisonDetail,
   SynthMedComparisonListItem,
+  SynthMedConditionValidationRequest,
+  SynthMedConditionValidationResponse,
+  SynthMedDatasetColumns,
   SynthMedDownloads,
   SynthMedEvaluationReport,
   SynthMedExportResponse,
   SynthMedGeneratedDataset,
   SynthMedGeneratedDatasetDetail,
+  SynthMedGeneratedEvaluationSummary,
   SynthMedGeneratedPreview,
   SynthMedGenerationAnalysis,
   SynthMedGenerationJob,
   SynthMedGenerationStartPayload,
+  SynthMedMedicalProfileResponse,
+  SynthMedModelName,
+  SynthMedModelsResponse,
+  SynthMedSourceClinicalValidationResponse,
   SynthMedSourceDataset,
   ThemeMode,
   ToastMessage,
@@ -99,15 +116,32 @@ interface DemoStore {
   downloadSynthMedSource: (dataset: SynthMedSourceDataset) => Promise<void>;
   downloadSynthMedGenerated: (dataset: SynthMedGeneratedDataset) => Promise<void>;
   analyseSynthMedGeneration: (sourceDatasetId: string) => Promise<SynthMedGenerationAnalysis>;
+  listSynthMedModels: () => Promise<SynthMedModelsResponse>;
+  getSynthMedDatasetColumns: (
+    datasetId: string,
+    model: SynthMedModelName,
+  ) => Promise<SynthMedDatasetColumns>;
+  listSynthMedClinicalReferences: () => Promise<SynthMedClinicalReferencesResponse>;
+  getSynthMedMedicalProfile: (datasetId: string) => Promise<SynthMedMedicalProfileResponse>;
+  validateSynthMedSourceClinical: (
+    payload: SynthMedSourceClinicalValidationPayload,
+  ) => Promise<SynthMedSourceClinicalValidationResponse>;
+  validateSynthMedConditions: (
+    payload: SynthMedConditionValidationRequest,
+  ) => Promise<SynthMedConditionValidationResponse>;
   startSynthMedGeneration: (payload: SynthMedGenerationStartPayload) => Promise<SynthMedGenerationJob>;
   listSynthMedGenerationJobs: () => Promise<SynthMedGenerationJob[]>;
   getSynthMedGenerationJob: (jobId: string) => Promise<SynthMedGenerationJob>;
+  getSynthMedGenerationJobConditions: (jobId: string) => Promise<SynthMedEvaluationReport>;
+  getSynthMedGeneratedConditions: (generatedId: string) => Promise<SynthMedEvaluationReport>;
+  getSynthMedGeneratedEvaluation: (generatedId: string) => Promise<SynthMedGeneratedEvaluationSummary>;
   getSynthMedGeneratedDetail: (generatedId: string) => Promise<SynthMedGeneratedDatasetDetail>;
   getSynthMedGeneratedPreview: (
     generatedId: string,
     page: number,
     pageSize: number,
   ) => Promise<SynthMedGeneratedPreview>;
+  getSynthMedClinicalReport: (generatedId: string) => Promise<SynthMedEvaluationReport>;
   getSynthMedQualityReport: (generatedId: string) => Promise<SynthMedEvaluationReport>;
   getSynthMedPrivacyReport: (generatedId: string) => Promise<SynthMedEvaluationReport>;
   exportSynthMedGenerated: (generatedId: string, format: FileFormat) => Promise<SynthMedExportResponse>;
@@ -153,6 +187,7 @@ const initialTheme = (): ThemeMode => {
 };
 
 export const DemoProvider = ({ children }: { children: ReactNode }) => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [theme, setThemeState] = useState<ThemeMode>(initialTheme);
   const [booting, setBooting] = useState(true);
@@ -320,7 +355,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     tokenStore.clear();
     setUser(null);
     resetWorkspace();
-  }, [resetWorkspace]);
+    navigate('/', { replace: true });
+  }, [resetWorkspace, navigate]);
 
   useEffect(() => {
     const handleUnauthorized = () => logout();
@@ -372,9 +408,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       setUser(current);
+      navigate('/', { replace: true });
       await loadWorkspace();
     },
-    [loadWorkspace],
+    [loadWorkspace, navigate],
   );
 
   const register = useCallback(
@@ -401,9 +438,10 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       setUser(current);
+      navigate('/', { replace: true });
       await loadWorkspace();
     },
-    [loadWorkspace],
+    [loadWorkspace, navigate],
   );
 
   const updateProfile = useCallback(
@@ -561,6 +599,84 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [notify]);
 
+  const listSynthMedModels = useCallback(async () => {
+    try {
+      return await api.listSynthMedModels();
+    } catch (error) {
+      notify('error', 'Could not load synthesis models', errorMessage(error));
+      throw error;
+    }
+  }, [notify]);
+
+  const getSynthMedDatasetColumns = useCallback(
+    async (datasetId: string, model: SynthMedModelName) => {
+      try {
+        return await api.getSynthMedDatasetColumns(datasetId, model);
+      } catch (error) {
+        notify('error', 'Could not load condition columns', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const listSynthMedClinicalReferences = useCallback(async () => {
+    try {
+      return await api.listSynthMedClinicalReferences();
+    } catch (error) {
+      notify('error', 'Could not load clinical references', errorMessage(error));
+      throw error;
+    }
+  }, [notify]);
+
+  const getSynthMedMedicalProfile = useCallback(
+    async (datasetId: string) => {
+      try {
+        return await api.getSynthMedMedicalProfile(datasetId);
+      } catch (error) {
+        notify('error', 'Could not load medical profile', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const validateSynthMedSourceClinical = useCallback(
+    async (payload: SynthMedSourceClinicalValidationPayload) => {
+      try {
+        const response = await api.validateSynthMedSourceClinical(payload);
+        notify(
+          response.report.limitations?.length ? 'info' : 'success',
+          'Clinical validation complete',
+          `${response.generationProfile} profile returned.`,
+        );
+        return response;
+      } catch (error) {
+        notify('error', 'Clinical validation failed', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const validateSynthMedConditions = useCallback(
+    async (payload: SynthMedConditionValidationRequest) => {
+      try {
+        const result = await api.validateSynthMedConditions(payload);
+        if (result.valid) {
+          notify('success', 'Configuration validated', `${result.normalizedConditions.length} condition(s) accepted.`);
+        } else {
+          notify('error', 'Configuration is invalid', `${result.errors.length} error(s) returned by the server.`);
+        }
+        return result;
+      } catch (error) {
+        notify('error', 'Validation failed', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
   const startSynthMedGeneration = useCallback(
     async (payload: SynthMedGenerationStartPayload) => {
       try {
@@ -593,6 +709,42 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     return job;
   }, []);
 
+  const getSynthMedGenerationJobConditions = useCallback(
+    async (jobId: string) => {
+      try {
+        return await api.getSynthMedGenerationJobConditions(jobId);
+      } catch (error) {
+        notify('error', 'Could not load condition report', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const getSynthMedGeneratedConditions = useCallback(
+    async (generatedId: string) => {
+      try {
+        return await api.getSynthMedGeneratedConditions(generatedId);
+      } catch (error) {
+        notify('error', 'Could not load condition report', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const getSynthMedGeneratedEvaluation = useCallback(
+    async (generatedId: string) => {
+      try {
+        return await api.getSynthMedGeneratedEvaluation(generatedId);
+      } catch (error) {
+        notify('error', 'Could not load evaluation summary', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
   const getSynthMedGeneratedDetail = useCallback(
     async (generatedId: string) => api.getSynthMedGeneratedDetail(generatedId),
     [],
@@ -601,6 +753,11 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const getSynthMedGeneratedPreview = useCallback(
     async (generatedId: string, page: number, pageSize: number) =>
       api.getSynthMedGeneratedPreview(generatedId, page, pageSize),
+    [],
+  );
+
+  const getSynthMedClinicalReport = useCallback(
+    async (generatedId: string) => api.getSynthMedClinicalReport(generatedId),
     [],
   );
 
@@ -677,6 +834,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
           createdAt: detail.createdAt,
           createdBy: detail.createdBy,
           reportAvailable: detail.reportAvailable,
+          generatedMetadata: detail.generatedMetadata,
         };
         setSynthComparisons((prev) =>
           prev.some((entry) => entry.id === item.id)
@@ -707,6 +865,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
           createdAt: detail.createdAt,
           createdBy: detail.createdBy,
           reportAvailable: detail.reportAvailable,
+          generatedMetadata: detail.generatedMetadata,
         };
         setSynthComparisons((prev) => [item, ...prev.filter((entry) => entry.id !== item.id)]);
         notify('success', 'Comparison ready', `${detail.name} was calculated from the stored datasets.`);
@@ -950,11 +1109,21 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       downloadSynthMedSource,
       downloadSynthMedGenerated,
       analyseSynthMedGeneration,
+      listSynthMedModels,
+      getSynthMedDatasetColumns,
+      listSynthMedClinicalReferences,
+      getSynthMedMedicalProfile,
+      validateSynthMedSourceClinical,
+      validateSynthMedConditions,
       startSynthMedGeneration,
       listSynthMedGenerationJobs,
       getSynthMedGenerationJob,
+      getSynthMedGenerationJobConditions,
+      getSynthMedGeneratedConditions,
+      getSynthMedGeneratedEvaluation,
       getSynthMedGeneratedDetail,
       getSynthMedGeneratedPreview,
+      getSynthMedClinicalReport,
       getSynthMedQualityReport,
       getSynthMedPrivacyReport,
       exportSynthMedGenerated,
@@ -1008,11 +1177,21 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     downloadSynthMedSource,
     downloadSynthMedGenerated,
     analyseSynthMedGeneration,
+    listSynthMedModels,
+    getSynthMedDatasetColumns,
+    listSynthMedClinicalReferences,
+    getSynthMedMedicalProfile,
+    validateSynthMedSourceClinical,
+    validateSynthMedConditions,
     startSynthMedGeneration,
     listSynthMedGenerationJobs,
     getSynthMedGenerationJob,
+    getSynthMedGenerationJobConditions,
+    getSynthMedGeneratedConditions,
+    getSynthMedGeneratedEvaluation,
     getSynthMedGeneratedDetail,
     getSynthMedGeneratedPreview,
+    getSynthMedClinicalReport,
     getSynthMedQualityReport,
     getSynthMedPrivacyReport,
     exportSynthMedGenerated,

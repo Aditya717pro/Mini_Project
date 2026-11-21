@@ -1,4 +1,4 @@
-﻿from typing import Any, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -34,6 +34,8 @@ class SynthMedGeneratedDatasetResponse(BaseModel):
     sourceDatasetName: str
 
     generationMethod: str
+    generationMode: str = "Unconditional"
+    selectedModel: str = "CTGAN"
     recordCount: int
     columnCount: int
     generationDate: str
@@ -79,9 +81,173 @@ class SynthMedGenerationAnalysisResponse(BaseModel):
     guidance: str = ""
 
 
+class SynthMedCondition(BaseModel):
+    column: str
+    operator: str = "eq"
+    value: Any | None = None
+    values: list[Any] | None = None
+    min: float | None = None
+    max: float | None = None
+    numRows: int = Field(default=1, ge=1)
+
+
+class SynthMedClinicalVariable(BaseModel):
+    column: str
+    measurement: str
+    unit: str = ""
+    context: str = ""
+    referenceKey: str = ""
+    ageColumn: str = ""
+    sexColumn: str = ""
+    pregnantColumn: str = ""
+    ageYears: float | None = None
+    sex: str = ""
+    pregnant: bool | None = None
+    enabled: bool = True
+
+
+class SynthMedClinicalRule(BaseModel):
+    disease: str
+    column: str
+    min: float | None = None
+    max: float | None = None
+    source: str = ""
+    reviewed: bool = False
+
+
+class SynthMedReferenceOverride(BaseModel):
+    key: str
+    active: bool = True
+    lower: float | None = None
+    upper: float | None = None
+    plausibleLower: float | None = None
+    plausibleUpper: float | None = None
+    approvalStatus: Literal["Approved", "PendingReview", "Unavailable"] = "Approved"
+    sourceOrganization: str = ""
+    sourceUrl: str = ""
+    citation: str = ""
+    version: str = ""
+    date: str = ""
+
+
+class SynthMedMedicalProfileResponse(BaseModel):
+    sourceDatasetId: str
+    datasetName: str
+    profile: dict[str, Any]
+    message: str = ""
+
+
+class SynthMedClinicalReferenceListResponse(BaseModel):
+    references: list[dict[str, Any]]
+    count: int
+    message: str = ""
+
+
+class SynthMedClinicalValidationRequest(BaseModel):
+    sourceDatasetId: str
+    generationProfile: Literal["Standard", "NormalRange", "ClinicalDistribution"] = "Standard"
+    clinicalVariables: list[SynthMedClinicalVariable] = Field(default_factory=list)
+    referenceOverrides: list[SynthMedReferenceOverride] = Field(default_factory=list)
+    diseaseRules: list[SynthMedClinicalRule] = Field(default_factory=list)
+    approvedOutputColumns: list[str] | None = None
+    enforceStrictSchema: bool = False
+
+
+class SynthMedClinicalValidationResponse(BaseModel):
+    sourceDatasetId: str
+    generatedDatasetId: str = ""
+    generationProfile: str
+    report: dict[str, Any]
+    schemaValidation: dict[str, Any] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class SynthMedEligibleColumn(BaseModel):
+    name: str
+    sdtype: str
+    missingCount: int
+    uniqueCount: int
+
+
+class SynthMedIneligibleColumn(BaseModel):
+    name: str
+    reason: str
+
+
+class SynthMedModelCapability(BaseModel):
+    model: str
+    sdvClass: str
+    samplingApi: str
+    conditionalSampling: bool
+    multipleConditions: bool
+    exactEquality: bool
+    rangeOperators: bool
+    primaryKeyConditions: bool
+    missingValueConditions: bool
+    samplingStrategy: str
+    notes: list[str] = Field(default_factory=list)
+
+
+class SynthMedConditionValidationRequest(BaseModel):
+    sourceDatasetId: str
+    model: str = "CTGAN"
+    conditions: list[SynthMedCondition] = Field(default_factory=list)
+    recordCount: int | None = Field(default=None, ge=1)
+    selectedColumns: list[str] | None = None
+    identifierColumns: list[str] = Field(default_factory=list)
+    primaryKey: str | None = None
+    categoricalColumns: list[str] = Field(default_factory=list)
+    numericalColumns: list[str] = Field(default_factory=list)
+    categoricalValues: dict[str, list[str]] = Field(default_factory=dict)
+    numericRanges: dict[str, dict[str, float | None]] = Field(default_factory=dict)
+    preserveMissingness: bool = True
+    generationProfile: Literal["Standard", "NormalRange", "ClinicalDistribution"] = "Standard"
+    clinicalVariables: list[SynthMedClinicalVariable] = Field(default_factory=list)
+    referenceOverrides: list[SynthMedReferenceOverride] = Field(default_factory=list)
+    diseaseRules: list[SynthMedClinicalRule] = Field(default_factory=list)
+    approvedOutputColumns: list[str] | None = None
+    enforceStrictSchema: bool = False
+    maxSamplingAttempts: int = Field(default=4, ge=1, le=20)
+
+
+class SynthMedConditionValidationResponse(BaseModel):
+    valid: bool
+    model: str
+    capabilities: SynthMedModelCapability
+    eligibleColumns: list[SynthMedEligibleColumn] = Field(default_factory=list)
+    ineligibleColumns: list[SynthMedIneligibleColumn] = Field(default_factory=list)
+    normalizedConditions: list[dict[str, Any]] = Field(default_factory=list)
+    samplingPlan: list[dict[str, Any]] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class SynthMedModelCapabilityListResponse(BaseModel):
+    models: list[SynthMedModelCapability]
+    sdvVersion: str
+    message: str = ""
+
+
+class SynthMedDatasetColumnsResponse(BaseModel):
+    sourceDatasetId: str
+    totalColumns: int
+    eligibleColumns: list[SynthMedEligibleColumn] = Field(default_factory=list)
+    ineligibleColumns: list[SynthMedIneligibleColumn] = Field(default_factory=list)
+    numericalColumns: list[str] = Field(default_factory=list)
+    categoricalColumns: list[str] = Field(default_factory=list)
+    booleanColumns: list[str] = Field(default_factory=list)
+    datetimeColumns: list[str] = Field(default_factory=list)
+    potentialIdentifierColumns: list[str] = Field(default_factory=list)
+    generationReady: bool
+    guidance: str = ""
+
+
 class SynthMedGenerationStartRequest(BaseModel):
     sourceDatasetId: str
     datasetName: str = ""
+    model: str = "CTGAN"
+    generationMode: Literal["Unconditional", "Conditional"] = "Unconditional"
+    conditions: list[SynthMedCondition] = Field(default_factory=list)
     selectedColumns: list[str] | None = None
     categoricalColumns: list[str] = Field(default_factory=list)
     numericalColumns: list[str] = Field(default_factory=list)
@@ -94,6 +260,13 @@ class SynthMedGenerationStartRequest(BaseModel):
     preserveMissingness: bool = True
     numericRanges: dict[str, dict[str, float | None]] = Field(default_factory=dict)
     categoricalValues: dict[str, list[str]] = Field(default_factory=dict)
+    generationProfile: Literal["Standard", "NormalRange", "ClinicalDistribution"] = "Standard"
+    clinicalVariables: list[SynthMedClinicalVariable] = Field(default_factory=list)
+    referenceOverrides: list[SynthMedReferenceOverride] = Field(default_factory=list)
+    diseaseRules: list[SynthMedClinicalRule] = Field(default_factory=list)
+    approvedOutputColumns: list[str] | None = None
+    enforceStrictSchema: bool = False
+    maxSamplingAttempts: int = Field(default=4, ge=1, le=20)
 
 
 class SynthMedGenerationJobResponse(BaseModel):
@@ -102,17 +275,25 @@ class SynthMedGenerationJobResponse(BaseModel):
     generatedDatasetId: str = ""
     status: str
     modelName: str
+    generationMode: str = "Unconditional"
+    selectedModel: str = "CTGAN"
     epochs: int
     batchSize: int
     seed: int | None = None
     requestedRecordCount: int
     generatedRecordCount: int = 0
     trainingDurationSeconds: float | None = None
+    conditions: list[dict[str, Any]] = Field(default_factory=list)
+    conditionValidation: dict[str, Any] = Field(default_factory=dict)
+    conditionSatisfaction: dict[str, Any] = Field(default_factory=dict)
     createdAt: str
     startedAt: str = ""
     completedAt: str = ""
     error: str = ""
     config: dict[str, Any] = Field(default_factory=dict)
+    generationProfile: str = "Standard"
+    clinicalValidation: dict[str, Any] = Field(default_factory=dict)
+    schemaValidation: dict[str, Any] = Field(default_factory=dict)
 
 
 class SynthMedGeneratedDatasetDetailResponse(SynthMedGeneratedDatasetResponse):
@@ -121,6 +302,11 @@ class SynthMedGeneratedDatasetDetailResponse(SynthMedGeneratedDatasetResponse):
     availableFormats: list[str] = Field(default_factory=list)
     reportTypes: list[str] = Field(default_factory=list)
     trainingConfig: dict[str, Any] = Field(default_factory=dict)
+    conditions: list[dict[str, Any]] = Field(default_factory=list)
+    conditionSatisfaction: dict[str, Any] = Field(default_factory=dict)
+    generationProfile: str = "Standard"
+    clinicalValidation: dict[str, Any] = Field(default_factory=dict)
+    schemaValidation: dict[str, Any] = Field(default_factory=dict)
 
 
 class SynthMedGeneratedPreviewResponse(BaseModel):
@@ -195,6 +381,17 @@ class SynthMedComparisonChart(BaseModel):
     points: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class SynthMedComparisonClinical(BaseModel):
+    generationProfile: str
+    sourceMedicalProfile: dict[str, Any] = Field(default_factory=dict)
+    syntheticMedicalProfile: dict[str, Any] = Field(default_factory=dict)
+    sourceValidation: dict[str, Any] = Field(default_factory=dict)
+    syntheticValidation: dict[str, Any] = Field(default_factory=dict)
+    schemaValidation: dict[str, Any] = Field(default_factory=dict)
+    rejectionSampling: dict[str, Any] = Field(default_factory=dict)
+    limitations: list[str] = Field(default_factory=list)
+
+
 class SynthMedComparisonListItem(BaseModel):
     id: str
     name: str
@@ -206,6 +403,7 @@ class SynthMedComparisonListItem(BaseModel):
     createdAt: str
     createdBy: str
     reportAvailable: bool = False
+    generatedMetadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class SynthMedComparisonResponse(SynthMedComparisonListItem):
@@ -213,3 +411,5 @@ class SynthMedComparisonResponse(SynthMedComparisonListItem):
     columns: list[SynthMedComparisonColumnMetric] = Field(default_factory=list)
     charts: list[SynthMedComparisonChart] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
+    generatedMetadata: dict[str, Any] = Field(default_factory=dict)
+    clinical: SynthMedComparisonClinical | None = None

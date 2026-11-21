@@ -78,7 +78,7 @@ def generate(client: TestClient, headers: dict[str, str], source_id: str, name: 
     payload = {
         "sourceDatasetId": source_id,
         "datasetName": name,
-        "selectedColumns": ["patient_id", "age", "cholesterol", "diagnosis", "visit_date", "smoker"],
+        "selectedColumns": ["patient_id", "age", "cholesterol", "diagnosis"],
         "categoricalColumns": ["diagnosis"],
         "numericalColumns": ["age", "cholesterol"],
         "identifierColumns": ["patient_id"],
@@ -122,15 +122,15 @@ def test_comparison_workflow_uses_real_data(app: FastAPI, client: TestClient, db
     assert summary["syntheticRows"] == 8
     assert summary["rowDifference"] == -12
     assert summary["sourceColumns"] == 6
-    assert summary["syntheticColumns"] == 5
-    assert summary["sharedColumns"] == 5
-    assert summary["onlySourceColumns"] == ["patient_id"]
+    assert summary["syntheticColumns"] == 3
+    assert summary["sharedColumns"] == 3
+    assert summary["onlySourceColumns"] == ["patient_id", "visit_date", "smoker"]
     assert summary["onlySyntheticColumns"] == []
     assert 0 <= summary["overallSimilarity"] <= 1
     assert 0 <= summary["numericSimilarity"] <= 1
     assert 0 <= summary["categoricalSimilarity"] <= 1
     assert summary["missingnessDeltaPercentage"] >= 0
-    assert len(detail["columns"]) == 5
+    assert len(detail["columns"]) == 3
     assert any(column["metric"] == "1 − Kolmogorov-Smirnov distance" for column in detail["columns"])
     assert any(column["metric"] == "1 − categorical total variation distance" for column in detail["columns"])
     assert detail["charts"]

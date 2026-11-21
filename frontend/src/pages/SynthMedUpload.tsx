@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEv
 import { Link } from 'react-router-dom';
 import {
   CheckCircle2,
-  Download,
   FileJson,
   FileSpreadsheet,
   FileText,
+  FlaskConical,
   UploadCloud,
+  Wand2,
   X,
 } from 'lucide-react';
 import { Alert, Badge, Button, Card, CardHeader, Field, PageHeader, ProgressBar } from '../components/ui';
@@ -152,8 +153,8 @@ export const SynthMedUpload = () => {
         title="Upload source dataset"
         description="Upload an authorised source file to SynthMed. The original bytes are preserved exactly and validated independently by the server."
         actions={
-          <Link to="/synthmed/downloads">
-            <Button variant="secondary">Download Centre</Button>
+          <Link to="/synthmed/generated">
+            <Button variant="secondary" icon={<FlaskConical size={16} />}>Generated datasets</Button>
           </Link>
         }
       />
@@ -172,13 +173,29 @@ export const SynthMedUpload = () => {
             }
             subtitle="The source file is stored separately from generated synthetic datasets."
             action={
-              <Link to="/synthmed/downloads">
-                <Button variant="secondary" size="sm" icon={<Download size={14} />}>
-                  Go to downloads
-                </Button>
-              </Link>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <Link to={`/synthmed/generate?sourceId=${encodeURIComponent(created.id)}`}>
+                  <Button icon={<Wand2 size={14} />}>Generate</Button>
+                </Link>
+                <Link to="/synthmed/generated">
+                  <Button variant="secondary" size="sm" icon={<FlaskConical size={14} />}>
+                    Generated datasets
+                  </Button>
+                </Link>
+              </div>
             }
           />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '14px 16px', background: 'var(--surface-2)', borderRadius: '8px', margin: '14px 0' }}>
+            <div>
+              <strong style={{ fontSize: '14px', display: 'block' }}>Ready to generate synthetic data</strong>
+              <span style={{ fontSize: '12px', color: 'var(--text-2)' }}>Proceed to model selection, column conditioning, and training with this dataset.</span>
+            </div>
+            <Link to={`/synthmed/generate?sourceId=${encodeURIComponent(created.id)}`}>
+              <Button icon={<Wand2 size={15} />}>
+                Generate
+              </Button>
+            </Link>
+          </div>
           <div className="table-wrap">
             <table className="table table-compact">
               <thead>
@@ -257,7 +274,7 @@ export const SynthMedUpload = () => {
           </Card>
 
           <Card>
-            <CardHeader title="2. Describe the dataset" subtitle="The name is shown in the Download Centre." />
+            <CardHeader title="2. Describe the dataset" subtitle="The name is shown across generated datasets and pipelines." />
             <Field label="Dataset name" htmlFor="synthmed-dataset-name" required error={nameError}>
               <input
                 id="synthmed-dataset-name"
@@ -294,10 +311,26 @@ export const SynthMedUpload = () => {
 
         <aside className="upload-side">
           <Card>
-            <CardHeader title="Upload controls" subtitle="Server-verified" />
-            <Button type="submit" disabled={uploading || !file || Boolean(fileError)} icon={<UploadCloud size={16} />}>
-              {uploading ? 'Uploading…' : 'Upload source dataset'}
-            </Button>
+            <CardHeader
+              title={created ? 'Next step' : 'Upload controls'}
+              subtitle={created ? 'Ready for generation' : 'Server-verified'}
+            />
+            {created ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <Link to={`/synthmed/generate?sourceId=${encodeURIComponent(created.id)}`}>
+                  <Button style={{ width: '100%' }} icon={<Wand2 size={16} />}>
+                    Generate
+                  </Button>
+                </Link>
+                <Button variant="secondary" style={{ width: '100%' }} onClick={clearFile}>
+                  Upload another file
+                </Button>
+              </div>
+            ) : (
+              <Button type="submit" disabled={uploading || !file || Boolean(fileError)} icon={<UploadCloud size={16} />}>
+                {uploading ? 'Uploading…' : 'Upload source dataset'}
+              </Button>
+            )}
             <p className="muted">
               Signed in as {user.name}. Uploaded files are private to your account unless an administrator accesses them.
             </p>
@@ -308,7 +341,7 @@ export const SynthMedUpload = () => {
               <li>Extension, MIME type, size and content are validated on the backend.</li>
               <li>The exact uploaded bytes are written to sources storage.</li>
               <li>Metadata, including SHA-256 checksum, is saved in the database.</li>
-              <li>The file appears under Uploaded Source Datasets in the Download Centre.</li>
+              <li>The file is saved securely and ready to train synthetic models.</li>
             </ul>
           </Card>
           <Card>
