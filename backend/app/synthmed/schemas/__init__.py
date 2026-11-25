@@ -2,6 +2,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.enums import AccessClassification
+from app.schemas.dataset import DOMAIN_PATTERN, DatasetSummary
+
 
 class SynthMedSourceDatasetResponse(BaseModel):
     model_config = ConfigDict(from_attributes=False)
@@ -43,9 +46,13 @@ class SynthMedGeneratedDatasetResponse(BaseModel):
     fileSizeBytes: int
     fileName: str = ""
     status: str
+    repositoryRegistrationStatus: str = "Not registered"
+    repositoryDatasetId: str | None = None
+    repositoryDatasetTitle: str | None = None
 
 
 class SynthMedDownloadsResponse(BaseModel):
+
     sources: list[SynthMedSourceDatasetResponse] = Field(default_factory=list)
     generated: list[SynthMedGeneratedDatasetResponse] = Field(default_factory=list)
 
@@ -208,6 +215,11 @@ class SynthMedConditionValidationRequest(BaseModel):
     approvedOutputColumns: list[str] | None = None
     enforceStrictSchema: bool = False
     maxSamplingAttempts: int = Field(default=4, ge=1, le=20)
+    sourcePreservingMode: bool = False
+    ageToleranceYears: int = Field(default=5, ge=0, le=120)
+    numericTolerances: dict[str, float] = Field(default_factory=dict)
+    numericTolerance: float | None = Field(default=None, ge=0)
+    numericTolerancePercent: float | None = Field(default=None, ge=0)
 
 
 class SynthMedConditionValidationResponse(BaseModel):
@@ -267,6 +279,11 @@ class SynthMedGenerationStartRequest(BaseModel):
     approvedOutputColumns: list[str] | None = None
     enforceStrictSchema: bool = False
     maxSamplingAttempts: int = Field(default=4, ge=1, le=20)
+    sourcePreservingMode: bool = False
+    ageToleranceYears: int = Field(default=5, ge=0, le=120)
+    numericTolerances: dict[str, float] = Field(default_factory=dict)
+    numericTolerance: float | None = Field(default=None, ge=0)
+    numericTolerancePercent: float | None = Field(default=None, ge=0)
 
 
 class SynthMedGenerationJobResponse(BaseModel):
@@ -294,6 +311,10 @@ class SynthMedGenerationJobResponse(BaseModel):
     generationProfile: str = "Standard"
     clinicalValidation: dict[str, Any] = Field(default_factory=dict)
     schemaValidation: dict[str, Any] = Field(default_factory=dict)
+    sourcePreservingMode: bool = False
+    ageToleranceYears: int = 5
+    validationStatus: str = ""
+    sourcePreservation: dict[str, Any] = Field(default_factory=dict)
 
 
 class SynthMedGeneratedDatasetDetailResponse(SynthMedGeneratedDatasetResponse):
@@ -307,6 +328,10 @@ class SynthMedGeneratedDatasetDetailResponse(SynthMedGeneratedDatasetResponse):
     generationProfile: str = "Standard"
     clinicalValidation: dict[str, Any] = Field(default_factory=dict)
     schemaValidation: dict[str, Any] = Field(default_factory=dict)
+    sourcePreservingMode: bool = False
+    ageToleranceYears: int = 5
+    validationStatus: str = ""
+    sourcePreservation: dict[str, Any] = Field(default_factory=dict)
 
 
 class SynthMedGeneratedPreviewResponse(BaseModel):
@@ -389,6 +414,7 @@ class SynthMedComparisonClinical(BaseModel):
     syntheticValidation: dict[str, Any] = Field(default_factory=dict)
     schemaValidation: dict[str, Any] = Field(default_factory=dict)
     rejectionSampling: dict[str, Any] = Field(default_factory=dict)
+    sourcePreservation: dict[str, Any] = Field(default_factory=dict)
     limitations: list[str] = Field(default_factory=list)
 
 
@@ -413,3 +439,188 @@ class SynthMedComparisonResponse(SynthMedComparisonListItem):
     limitations: list[str] = Field(default_factory=list)
     generatedMetadata: dict[str, Any] = Field(default_factory=dict)
     clinical: SynthMedComparisonClinical | None = None
+
+
+class SynthMedUtilityTrainTestSplit(BaseModel):
+    testSize: float = Field(default=0.2, ge=0.1, le=0.5)
+    randomSeed: int = Field(default=42, ge=0)
+    stratify: bool = True
+
+
+class SynthMedUtilityEvaluationCreateRequest(BaseModel):
+    sourceDatasetId: str
+    generatedDatasetId: str
+    evaluationName: str = ""
+    evaluationType: Literal["TSTR", "TRTR", "BOTH"] = "BOTH"
+    modelName: Literal[
+        "LogisticRegression",
+        "RandomForestClassifier",
+        "DecisionTreeClassifier",
+        "GradientBoostingClassifier",
+        "LinearRegression",
+        "Ridge",
+        "RandomForestRegressor",
+        "GradientBoostingRegressor",
+    ]
+    targetColumn: str
+    featureColumns: list[str] = Field(default_factory=list)
+    trainTestSplit: SynthMedUtilityTrainTestSplit = Field(default_factory=SynthMedUtilityTrainTestSplit)
+    preprocessing: dict[str, Any] = Field(default_factory=dict)
+
+
+class SynthMedUtilityEvaluationResponse(BaseModel):
+    id: str
+    sourceDatasetId: str
+    generatedDatasetId: str
+    status: str
+    evaluationName: str
+    evaluationType: str
+    modelName: str
+    targetColumn: str
+    featureColumns: list[str] = Field(default_factory=list)
+    trainTestSplit: dict[str, Any] = Field(default_factory=dict)
+    preprocessing: dict[str, Any] = Field(default_factory=dict)
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    comparison: dict[str, Any] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+    reportAvailable: bool = False
+    reportCsvAvailable: bool = False
+    reportPdfAvailable: bool = False
+    error: str = ""
+    createdAt: str = ""
+    startedAt: str = ""
+    completedAt: str = ""
+    report: dict[str, Any] | None = None
+
+
+class SynthMedVersionResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+    id: str
+    ownerId: str
+    datasetKind: str
+    logicalDatasetId: str = ""
+    sourceDatasetId: str | None = None
+    generatedDatasetId: str | None = None
+    parentVersionId: str | None = None
+    versionNumber: int
+    versionLabel: str
+    isActive: bool
+    datasetName: str
+    fileFormat: str
+    storedPath: str
+    checksumSha256: str
+    fileSizeBytes: int
+    recordCount: int
+    columnCount: int
+    datasetSchema: dict[str, Any] = Field(default_factory=dict)
+    missingSummary: dict[str, Any] = Field(default_factory=dict)
+    distributionSummary: dict[str, Any] = Field(default_factory=dict)
+    transformHistory: list[dict[str, Any]] = Field(default_factory=list)
+    validationSummary: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    restoredFromVersionId: str | None = None
+    createdAt: str = ""
+    updatedAt: str = ""
+
+
+class SynthMedLineageResponse(BaseModel):
+    id: str
+    eventType: str
+    parentResourceType: str
+    parentResourceId: str
+    childResourceType: str
+    childResourceId: str
+    sourceDatasetId: str | None = None
+    generatedDatasetId: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    createdAt: str = ""
+
+
+class SynthMedDatasetLineageResponse(BaseModel):
+    datasetId: str
+    versions: list[SynthMedVersionResponse] = Field(default_factory=list)
+    lineage: list[SynthMedLineageResponse] = Field(default_factory=list)
+
+
+class SynthMedVersionCompareRequest(BaseModel):
+    versionAId: str
+    versionBId: str
+
+
+class SynthMedExperimentCreateRequest(BaseModel):
+    name: str
+    description: str = ""
+    status: str = "Draft"
+    sourceDatasetId: str | None = None
+    sourceVersionId: str | None = None
+    generatedDatasetId: str | None = None
+    generatedVersionId: str | None = None
+    generationJobId: str | None = None
+    configurationSnapshotId: str | None = None
+    comparisonId: str | None = None
+    utilityEvaluationId: str | None = None
+    notes: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SynthMedConfigSnapshotResponse(BaseModel):
+    id: str
+    ownerId: str
+    sourceDatasetId: str | None = None
+    jobId: str | None = None
+    modelName: str = ""
+    config: dict[str, Any] = Field(default_factory=dict)
+    configHash: str = ""
+    isImmutable: bool = True
+    createdAt: str = ""
+
+
+class SynthMedExperimentResponse(BaseModel):
+    id: str
+    ownerId: str
+    name: str
+    description: str = ""
+    status: str
+    sourceDatasetId: str | None = None
+    sourceVersionId: str | None = None
+    generatedDatasetId: str | None = None
+    generatedVersionId: str | None = None
+    generationJobId: str | None = None
+    configurationSnapshotId: str | None = None
+    comparisonId: str | None = None
+    utilityEvaluationId: str | None = None
+    notes: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    configurationSnapshot: SynthMedConfigSnapshotResponse | None = None
+    lineage: list[SynthMedLineageResponse] = Field(default_factory=list)
+    privacyReport: dict[str, Any] = Field(default_factory=dict)
+    utilityEvaluation: dict[str, Any] = Field(default_factory=dict)
+    comparisonSummary: dict[str, Any] = Field(default_factory=dict)
+    reportAvailability: dict[str, bool] = Field(default_factory=dict)
+    createdAt: str = ""
+    updatedAt: str = ""
+
+
+class SynthMedGeneratedDatasetRegisterRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    title: str = Field(min_length=3, max_length=250)
+    description: str = Field(default="", max_length=5000)
+    domain: str = Field(pattern=DOMAIN_PATTERN)
+    access: AccessClassification = AccessClassification.CONTROLLED
+    tags: list[str] = Field(default_factory=list, max_length=30)
+    age_range: str = Field(default="", alias="ageRange", max_length=100)
+    geography: list[str] = Field(default_factory=list, max_length=50)
+    study_design: str = Field(default="", alias="studyDesign", max_length=120)
+    license: str = Field(default="", max_length=100)
+    ethics_approved: bool = Field(default=False, alias="ethicsApproved")
+    data_dictionary_available: bool = Field(default=False, alias="dataDictionaryAvailable")
+    intended_tasks: list[str] = Field(default_factory=list, alias="intendedTasks", max_length=20)
+    label_column: str | None = Field(default=None, alias="labelColumn", max_length=120)
+    research_task: str = Field(default="", alias="researchTask", max_length=250)
+
+
+class SynthMedGeneratedDatasetRegisterResponse(BaseModel):
+    dataset: DatasetSummary
+    message: str

@@ -1,0 +1,155 @@
+{
+  "columnLevel": [
+    {
+      "Column": "Age",
+      "Metric": "KSComplement",
+      "Score": 0.6516130653266332,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "SystolicBP",
+      "Metric": "KSComplement",
+      "Score": 0.737211055276382,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "DiastolicBP",
+      "Metric": "KSComplement",
+      "Score": 0.4639698492462312,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "BS",
+      "Metric": "KSComplement",
+      "Score": 0.31688944723618095,
+      "Table": "synthmed"
+    }
+  ],
+  "columnPairLevel": [
+    {
+      "Column 1": "Age",
+      "Column 2": "SystolicBP",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.352521354010788,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "Age",
+      "Column 2": "DiastolicBP",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.32605045518934384,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "Age",
+      "Column 2": "BS",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.3526398936654391,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "SystolicBP",
+      "Column 2": "DiastolicBP",
+      "Meets Threshold?": true,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.794700097548426,
+      "Score": 0.5913520888472825,
+      "Synthetic Correlation": -0.022595724757008905,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "SystolicBP",
+      "Column 2": "BS",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.33320546417993413,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "DiastolicBP",
+      "Column 2": "BS",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.284655362527631,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    }
+  ],
+  "diagnosticProperties": {
+    "Constraint Validity": null,
+    "Data Structure": 1.0,
+    "Data Validity": 1.0
+  },
+  "diagnosticScore": 1.0,
+  "diagnostics": [
+    {
+      "Column": "Age",
+      "Metric": "BoundaryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "SystolicBP",
+      "Metric": "BoundaryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "DiastolicBP",
+      "Metric": "BoundaryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "BS",
+      "Metric": "BoundaryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Metric": "TableStructure",
+      "Property": "Data Structure",
+      "Score": 1.0,
+      "Table": "synthmed"
+    }
+  ],
+  "explanations": {
+    "columnLevel": "Per-column distribution similarity against the uploaded source data.",
+    "columnPairLevel": "Pairwise correlation or association similarity against the uploaded source data.",
+    "diagnosticScore": "Share of SDMetrics validity checks passed; 1.0 means all configured checks passed.",
+    "diagnostics": "Data validity diagnostics such as boundary and schema checks.",
+    "overallQualityScore": "Average of SDMetrics column-shape and column-pair similarity scores; 1.0 is the closest match."
+  },
+  "limitations": [
+    "Statistical similarity does not mean the synthetic data is clinically valid.",
+    "Scores are computed only over the columns and transformations used for training."
+  ],
+  "method": "SDMetrics QualityReport and DiagnosticReport",
+  "overallQualityScore": 0.5668864715593197,
+  "propertyScores": {
+    "Column Pair Trends": 0.5913520888472825,
+    "Column Shapes": 0.5424208542713569
+  }
+}

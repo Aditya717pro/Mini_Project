@@ -11,7 +11,8 @@ from app.api.v1 import api_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.db.session import SessionLocal, engine
-from app.synthmed.services import generation_service
+from app.research_reports import service as research_report_service
+from app.synthmed.services import generation_service, utility_evaluation_service
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             generation_service.shutdown_executor(wait=True)
         except Exception:
             logger.exception("SynthMed generation executor shutdown failed")
+        try:
+            utility_evaluation_service.shutdown_executor(wait=True)
+        except Exception:
+            logger.exception("SynthMed utility executor shutdown failed")
+        try:
+            research_report_service.shutdown_executor(wait=True)
+        except Exception:
+            logger.exception("Research report executor shutdown failed")
         engine.dispose()
         logger.info("MedDataHub API stopped")
 

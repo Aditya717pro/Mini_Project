@@ -22,7 +22,7 @@ from app.synthmed.schemas import (
     SynthMedComparisonResponse,
     SynthMedComparisonSummary,
 )
-from app.synthmed.services import clinical_reference_service, medical_schema_service
+from app.synthmed.services import clinical_reference_service, medical_schema_service, versioning_service
 from app.synthmed.services.dataset_service import (
     analyse_dataframe,
     dump_json,
@@ -254,6 +254,7 @@ def _clinical_comparison(
             "syntheticValidation": _public_clinical_report(synthetic_validation),
             "schemaValidation": metadata.get("schemaValidation") or {},
             "rejectionSampling": metadata.get("rejectionSampling") or {},
+            "sourcePreservation": metadata.get("sourcePreservation") or {},
             "limitations": clinical_reference_service.CLINICAL_LIMITATIONS,
         }
     )
@@ -375,14 +376,19 @@ def build_comparison_report(
         "missingnessDeltaPercentage": _round(float(np.mean(missingness_values)) if missingness_values else None),
     }
 
+    # strict medical-only view for comparison UI: only approved output columns present in both
+    approved = list((generated_metadata or {}).get("approvedOutputColumns") or shared)
+    comparison_columns = [c for c in approved if c in source_frame.columns and c in synthetic_frame.columns]
+    filtered_columns = [c for c in columns if c.get("name") in comparison_columns]
+    filtered_charts = [c for c in charts if c.get("column") in comparison_columns]
     return json_safe(
         {
             "method": METHOD,
             "sourceName": source_name,
             "generatedName": generated_name,
-            "summary": summary,
-            "columns": columns,
-            "charts": charts,
+            "summary": {**summary, "comparedColumns": comparison_columns},
+            "columns": filtered_columns,
+            "charts": filtered_charts,
             "limitations": LIMITATIONS,
             "generatedMetadata": generated_metadata or {},
             "clinical": _clinical_comparison(source_frame, synthetic_frame, generated_metadata or {}),
@@ -509,6 +515,28 @@ def create_comparison(
         file_path=relative_path,
     )
     db.add(row)
+    db.flush()
+    try:
+        src_v = versioning_service.ensure_source_version(db, user=user, settings=settings, source=source)
+        gen_v = versioning_service.ensure_generated_version(db, user=user, settings=settings, generated=generated)
+        versioning_service.record_lineage(
+            db,
+            owner_id=user.id,
+            event_type="comparison",
+            parent_type="synthmed_dataset_version",
+            parent_id=gen_v.id,
+            child_type="synthmed_comparison",
+            child_id=row.id,
+            source_dataset_id=source.id,
+            generated_dataset_id=generated.id,
+            metadata={"sourceVersionId": src_v.id},
+        )
+    except Exception as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Comparison lineage could not be recorded.",
+        ) from error
     log_audit(
         db,
         action="synthmed.comparison_created",

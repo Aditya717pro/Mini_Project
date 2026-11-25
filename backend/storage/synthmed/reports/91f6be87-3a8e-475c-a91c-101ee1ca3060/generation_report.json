@@ -1,0 +1,180 @@
+{
+  "batchSize": 100,
+  "clinicalReportPath": "reports/91f6be87-3a8e-475c-a91c-101ee1ca3060/clinical_validation.json",
+  "clinicalValidation": {
+    "classificationCounts": {},
+    "generationProfile": "Standard",
+    "limitations": [
+      "Reference intervals are screening aids for research datasets, not clinical decision support.",
+      "A value outside a reference interval may be abnormal but clinically plausible; it is not automatically invalid.",
+      "Passing configured numerical ranges does not establish clinical validity, safety or fitness for patient care.",
+      "Relationship rules are applied only when the required measurements and context are present.",
+      "Operational plausible limits are configurable data-quality bounds, not medical reference limits."
+    ],
+    "method": "Not applied to the Standard generation profile",
+    "totalRecords": 1000,
+    "warnings": []
+  },
+  "columns": [
+    "Age",
+    "Gender",
+    "Height_cm",
+    "Weight_kg",
+    "BMI",
+    "Systolic_BP_mmHg",
+    "Diastolic_BP_mmHg",
+    "Heart_Rate_bpm",
+    "Body_Temperature_C",
+    "SpO2_Percentage",
+    "Respiratory_Rate_bpm",
+    "Haemoglobin_g_dL",
+    "Total_Cholesterol_mg_dL",
+    "HDL_Cholesterol_mg_dL",
+    "LDL_Cholesterol_mg_dL",
+    "Triglycerides_mg_dL",
+    "Diagnosis",
+    "Risk_Level"
+  ],
+  "conditionSatisfaction": {
+    "combined": {
+      "satisfactionPercentage": 100.0,
+      "totalGeneratedRecords": 1000
+    },
+    "conditional": false,
+    "limitations": [
+      "No conditions were requested for this generation job."
+    ],
+    "method": "Not applicable to unconditional generation",
+    "passed": true
+  },
+  "conditions": [],
+  "conditionsReportPath": "",
+  "epochs": 20,
+  "generatedDatasetId": "9d67978c-80d9-4113-a29b-d4efa4e3a435",
+  "generatedPaths": {
+    "CSV": "generated/9d67978c-80d9-4113-a29b-d4efa4e3a435/synthetic_data.csv",
+    "JSON": "generated/9d67978c-80d9-4113-a29b-d4efa4e3a435/synthetic_data.json",
+    "XLSX": "generated/9d67978c-80d9-4113-a29b-d4efa4e3a435/synthetic_data.xlsx"
+  },
+  "generatedRecordCount": 1000,
+  "generationMode": "Unconditional",
+  "generationProfile": "Standard",
+  "jobId": "91f6be87-3a8e-475c-a91c-101ee1ca3060",
+  "metadataPath": "reports/91f6be87-3a8e-475c-a91c-101ee1ca3060/metadata.json",
+  "model": "SDV CTGANSynthesizer",
+  "modelPath": "reports/91f6be87-3a8e-475c-a91c-101ee1ca3060/ctgan_model.pkl",
+  "notes": [
+    "SDV CTGANSynthesizer training ran on CPU.",
+    "Original source files were not modified.",
+    "The same fitted synthesizer instance produced all requested records.",
+    "Synthetic data is for research and software testing, not clinical decision-making."
+  ],
+  "privacyReportPath": "reports/91f6be87-3a8e-475c-a91c-101ee1ca3060/privacy_report.json",
+  "qualityReportPath": "reports/91f6be87-3a8e-475c-a91c-101ee1ca3060/quality_report.json",
+  "rejectionSampling": {
+    "acceptedRecords": 1000,
+    "attempts": 1,
+    "bmiConsistency": {
+      "bmiColumn": "BMI",
+      "checked": true,
+      "correctedRecords": 0,
+      "correction": "Derived BMI recalculated from final validated height and weight when inconsistent or missing.",
+      "formula": "BMI = weight_kg / (height_m^2), height_m = height_cm / 100",
+      "heightColumn": "Height_cm",
+      "inconsistentRecords": 0,
+      "missingBmiFilled": 0,
+      "tolerance": 0.1,
+      "weightColumn": "Weight_kg"
+    },
+    "generationProfile": "Standard",
+    "method": "Not applied",
+    "rejectedRecords": 0,
+    "rejectionCounts": {},
+    "sampledRecords": 1000
+  },
+  "requestedRecordCount": 1000,
+  "samplingApi": "sample_from_conditions",
+  "samplingPlan": [],
+  "samplingStrategy": "reject_sampling",
+  "schemaValidation": {
+    "actualColumns": [
+      "Age",
+      "Gender",
+      "Height_cm",
+      "Weight_kg",
+      "BMI",
+      "Systolic_BP_mmHg",
+      "Diastolic_BP_mmHg",
+      "Heart_Rate_bpm",
+      "Body_Temperature_C",
+      "SpO2_Percentage",
+      "Respiratory_Rate_bpm",
+      "Haemoglobin_g_dL",
+      "Total_Cholesterol_mg_dL",
+      "HDL_Cholesterol_mg_dL",
+      "LDL_Cholesterol_mg_dL",
+      "Triglycerides_mg_dL",
+      "Diagnosis",
+      "Risk_Level"
+    ],
+    "approvedColumns": [
+      "Age",
+      "Gender",
+      "Height_cm",
+      "Weight_kg",
+      "BMI",
+      "Systolic_BP_mmHg",
+      "Diastolic_BP_mmHg",
+      "Heart_Rate_bpm",
+      "Body_Temperature_C",
+      "SpO2_Percentage",
+      "Respiratory_Rate_bpm",
+      "Haemoglobin_g_dL",
+      "Total_Cholesterol_mg_dL",
+      "HDL_Cholesterol_mg_dL",
+      "LDL_Cholesterol_mg_dL",
+      "Triglycerides_mg_dL",
+      "Diagnosis",
+      "Risk_Level"
+    ],
+    "columnCount": 18,
+    "contentHits": [],
+    "errors": [],
+    "missingApprovedColumns": [],
+    "nonMedicalColumns": [],
+    "notes": [
+      "Approved columns are the demographic, disease and clinical measurements selected for this job.",
+      "Generated output must contain only approved medical columns and no identifiers/PII.",
+      "Content scanning covers email, phone and long identifier-like tokens in the final output only."
+    ],
+    "passed": true,
+    "prohibitedColumns": [],
+    "unapprovedColumns": []
+  },
+  "sdvVersion": "2.2.0",
+  "seed": null,
+  "selectedModel": "CTGAN",
+  "sourcePreservation": {
+    "ageBounds": {
+      "max": 65,
+      "min": 18
+    },
+    "ageColumn": "Age",
+    "ageToleranceYears": 5,
+    "enabled": false,
+    "limitations": [
+      "Source-Preserving Mode was disabled for this generation job."
+    ],
+    "method": "Source anchor preservation and population distribution comparison",
+    "mode": "Disabled",
+    "notes": [
+      "Record-level constraint satisfaction and population-level distribution similarity are reported separately.",
+      "Clinical plausibility is assessed by clinical/schema validation, not by distribution similarity alone.",
+      "Source anchors and source row identifiers are internal only and are never exported."
+    ],
+    "validationFailures": [],
+    "validationWarnings": []
+  },
+  "sourcePreservationReportPath": "reports/91f6be87-3a8e-475c-a91c-101ee1ca3060/source_preservation_report.json",
+  "trainingDurationSeconds": 28.629
+}

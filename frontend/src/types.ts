@@ -29,6 +29,8 @@ export interface DatasetVersion {
   status: 'Current' | 'Superseded';
 }
 
+export type DatasetOrigin = 'Original' | 'Synthetic';
+
 export interface Dataset {
   id: string;
   title: string;
@@ -63,6 +65,12 @@ export interface Dataset {
   intendedTasks: string[];
   labelColumn: string | null;
   versions: DatasetVersion[];
+  origin?: DatasetOrigin;
+  sourceGeneratedDatasetId?: string | null;
+  sourceRepositoryDatasetId?: string | null;
+  generationJobId?: string | null;
+  generationModel?: string | null;
+  provenance?: Record<string, unknown> | null;
   isLocalPreview?: boolean;
 }
 
@@ -412,6 +420,15 @@ export interface SynthMedConditionValidationRequest {
   preserveMissingness: boolean;
   categoricalValues?: Record<string, string[]>;
   numericRanges?: Record<string, { min?: number | null; max?: number | null }>;
+  generationProfile?: SynthMedGenerationProfile;
+  clinicalVariables?: SynthMedClinicalVariable[];
+  referenceOverrides?: SynthMedReferenceOverride[];
+  diseaseRules?: SynthMedClinicalRule[];
+  approvedOutputColumns?: string[];
+  enforceStrictSchema?: boolean;
+  maxSamplingAttempts?: number;
+  sourcePreservingMode?: boolean;
+  ageToleranceYears?: number;
 }
 
 export interface SynthMedConditionValidationResponse {
@@ -474,16 +491,69 @@ export interface SynthMedConditionSatisfaction {
 }
 
 export interface SynthMedGeneratedEvaluationSummary {
-  generatedDatasetId?: string;
+  generatedDatasetId: string;
   generationMode: SynthMedGenerationMode;
   selectedModel: SynthMedModelName;
   availableReports: string[];
-  quality: Record<string, unknown> | null;
-  privacy: Record<string, unknown> | null;
+  quality?: Record<string, unknown> | null;
+  privacy?: Record<string, unknown> | null;
   conditions: SynthMedConditionSatisfaction | null;
   clinical?: SynthMedClinicalReportBundle | null;
   generationProfile?: SynthMedGenerationProfile;
-  limitations?: string[];
+  sourcePreservation?: SynthMedSourcePreservationReport | Record<string, unknown> | null;
+  validationStatus?: string;
+  limitations: string[];
+}
+
+export interface SynthMedUtilityTrainTestSplit {
+  testSize: number;
+  randomSeed: number;
+  stratify: boolean;
+}
+
+export interface SynthMedUtilityEvaluationCreatePayload {
+  sourceDatasetId: string;
+  generatedDatasetId: string;
+  evaluationName?: string;
+  evaluationType?: 'TSTR' | 'TRTR' | 'BOTH';
+  modelName:
+    | 'LogisticRegression'
+    | 'RandomForestClassifier'
+    | 'DecisionTreeClassifier'
+    | 'GradientBoostingClassifier'
+    | 'LinearRegression'
+    | 'Ridge'
+    | 'RandomForestRegressor'
+    | 'GradientBoostingRegressor';
+  targetColumn: string;
+  featureColumns?: string[];
+  trainTestSplit?: Partial<SynthMedUtilityTrainTestSplit>;
+  preprocessing?: Record<string, unknown>;
+}
+
+export interface SynthMedUtilityEvaluation {
+  id: string;
+  sourceDatasetId: string;
+  generatedDatasetId: string;
+  status: string;
+  evaluationName: string;
+  evaluationType: string;
+  modelName: string;
+  targetColumn: string;
+  featureColumns: string[];
+  trainTestSplit: Record<string, unknown>;
+  preprocessing: Record<string, unknown>;
+  metrics: Record<string, unknown>;
+  comparison: Record<string, unknown>;
+  warnings: string[];
+  reportAvailable: boolean;
+  reportCsvAvailable: boolean;
+  reportPdfAvailable: boolean;
+  error: string;
+  createdAt: string;
+  startedAt: string;
+  completedAt: string;
+  report?: Record<string, unknown> | null;
 }
 
 export interface SynthMedGeneratedMetadata {
@@ -521,6 +591,9 @@ export interface SynthMedGeneratedDataset {
   fileSizeBytes: number;
   fileName: string;
   status: string;
+  repositoryRegistrationStatus?: string;
+  repositoryDatasetId?: string | null;
+  repositoryDatasetTitle?: string | null;
 }
 
 export interface SynthMedDownloads {
@@ -747,6 +820,48 @@ export interface SynthMedGenerationStartPayload {
   referenceOverrides?: SynthMedReferenceOverride[];
   diseaseRules?: SynthMedClinicalRule[];
   maxSamplingAttempts?: number;
+  sourcePreservingMode?: boolean;
+  ageToleranceYears?: number;
+  numericTolerances?: Record<string, number>;
+  numericTolerance?: number;
+  numericTolerancePercent?: number;
+}
+
+export interface SynthMedSourcePreservationReport {
+  enabled: boolean;
+  mode?: string;
+  method?: string;
+  status?: string;
+  sourceRecordCount?: number;
+  generatedRecordCount?: number;
+  selectedSourceRecordCount?: number;
+  genderMismatchCount?: number;
+  ageViolationCount?: number;
+  diseaseMismatchCount?: number;
+  diseaseLevelMismatchCount?: number;
+  numericViolations?: Record<string, number>;
+  numericViolationCount?: number;
+  missingRecordCount?: number;
+  extraRecordCount?: number;
+  rowOrderMismatchCount?: number;
+  rejectedRecordCount?: number;
+  regenerationAttempts?: number;
+  sourceValueRestorations?: Record<string, number>;
+  restoredValueCount?: number;
+  recordLevelValidation?: Record<string, unknown>;
+  ageToleranceYears?: number;
+  ageColumn?: string | null;
+  originalAgeDistribution?: Record<string, unknown>;
+  generatedAgeDistribution?: Record<string, unknown>;
+  ageDeviation?: Record<string, unknown>;
+  ageWithinTolerance?: Record<string, unknown>;
+  genderPreservation?: Record<string, unknown>;
+  diseasePreservation?: Record<string, unknown>;
+  diseaseLevelPreservation?: Record<string, unknown>;
+  medicalMeasurementDistributionDifferences?: Record<string, unknown>[];
+  validationFailures?: string[];
+  validationWarnings?: string[];
+  notes?: string[];
 }
 
 export interface SynthMedGenerationJob {
@@ -774,6 +889,10 @@ export interface SynthMedGenerationJob {
   generationProfile?: SynthMedGenerationProfile;
   clinicalValidation?: SynthMedClinicalValidationReport;
   schemaValidation?: SynthMedSchemaValidation;
+  sourcePreservingMode?: boolean;
+  ageToleranceYears?: number;
+  validationStatus?: string;
+  sourcePreservation?: SynthMedSourcePreservationReport | Record<string, unknown>;
 }
 
 export interface SynthMedGeneratedDatasetDetail extends SynthMedGeneratedDataset {
@@ -792,12 +911,18 @@ export interface SynthMedGeneratedDatasetDetail extends SynthMedGeneratedDataset
     seed: number | null;
     preserveMissingness: boolean;
     includedColumns: string[];
+    sourcePreservingMode?: boolean;
+    ageToleranceYears?: number;
   };
   conditions: SynthMedCondition[];
   conditionSatisfaction: SynthMedConditionSatisfaction | Record<string, unknown>;
   generationProfile?: SynthMedGenerationProfile;
   clinicalValidation?: SynthMedClinicalValidationReport;
   schemaValidation?: SynthMedSchemaValidation;
+  sourcePreservingMode?: boolean;
+  ageToleranceYears?: number;
+  validationStatus?: string;
+  sourcePreservation?: SynthMedSourcePreservationReport | Record<string, unknown>;
 }
 
 export interface SynthMedGeneratedPreview {
@@ -826,6 +951,28 @@ export interface SynthMedExportResponse {
   generatedDatasetId: string;
   format: FileFormat;
   fileName: string;
+}
+
+export interface SynthMedGeneratedDatasetRegisterPayload {
+  title: string;
+  description: string;
+  domain: Domain;
+  access: AccessLevel;
+  tags: string[];
+  ageRange: string;
+  geography: string[];
+  studyDesign: string;
+  license: string;
+  ethicsApproved: boolean;
+  dataDictionaryAvailable: boolean;
+  intendedTasks: string[];
+  labelColumn: string;
+  researchTask: string;
+}
+
+export interface SynthMedRegisterResponse {
+  dataset: Dataset;
+  message: string;
 }
 
 export interface SynthMedComparisonCreatePayload {
@@ -893,13 +1040,14 @@ export interface SynthMedComparisonListItem {
 }
 
 export interface SynthMedComparisonClinical {
-  generationProfile: SynthMedGenerationProfile;
-  sourceMedicalProfile: SynthMedMedicalProfile;
-  syntheticMedicalProfile: SynthMedMedicalProfile;
+  generationProfile: string;
+  sourceMedicalProfile: Record<string, unknown>;
+  syntheticMedicalProfile: Record<string, unknown>;
   sourceValidation: SynthMedClinicalValidationReport;
   syntheticValidation: SynthMedClinicalValidationReport;
   schemaValidation: SynthMedSchemaValidation;
   rejectionSampling: SynthMedRejectionSampling;
+  sourcePreservation?: SynthMedSourcePreservationReport | Record<string, unknown>;
   limitations: string[];
 }
 
@@ -911,9 +1059,309 @@ export interface SynthMedComparisonDetail extends SynthMedComparisonListItem {
   clinical?: SynthMedComparisonClinical | null;
 }
 
+export interface DatasetVersionRecord {
+  id: string;
+  versionNumber: number;
+  versionLabel: string;
+  kind: string;
+  recordCount: number;
+  columnCount: number;
+  createdAt: string;
+  creator: string;
+  checksumSha256: string;
+  isCurrent: boolean;
+  rawFilePath: string;
+  processedFilePath: string;
+  parentVersionId: string | null;
+  transformationHistory: Record<string, unknown>[];
+  validationSummary: Record<string, unknown>;
+  fileAvailable: boolean;
+  note?: string;
+  datasetSchema?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface DatasetVersionsResponse {
+  datasetId: string;
+  datasetName: string;
+  datasetType: string;
+  ownerId: string;
+  currentVersion: string;
+  totalVersions: number;
+  lastUpdatedAt: string;
+  versions: DatasetVersionRecord[];
+}
+
+export interface DatasetLineageEvent {
+  id: string;
+  eventType: string;
+  parentResourceType: string;
+  parentResourceId: string;
+  childResourceType: string;
+  childResourceId: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  sourceDatasetId?: string | null;
+  generatedDatasetId?: string | null;
+}
+
+export interface DatasetLineageResponse {
+  datasetId: string;
+  events: DatasetLineageEvent[];
+}
+
+export interface VersionDtypeChange {
+  column?: string;
+  dtypeA?: string;
+  dtypeB?: string;
+  [key: string]: unknown;
+}
+
+export interface VersionSchemaDiff {
+  added: string[];
+  removed: string[];
+  common: string[];
+  dtypeChanges: VersionDtypeChange[];
+}
+
+export interface VersionComparisonBase {
+  metadata: Record<string, unknown>;
+  schema: VersionSchemaDiff;
+  missing: {
+    a?: Record<string, unknown>;
+    b?: Record<string, unknown>;
+    deltas?: Record<string, Record<string, unknown>>;
+  };
+  distributions: Record<string, Record<string, unknown>>;
+  transformHistory: { a?: unknown; b?: unknown };
+  validation: { a?: Record<string, unknown>; b?: Record<string, unknown> };
+  privacy?: Record<string, unknown>;
+  utility?: Record<string, unknown>;
+}
+
+export interface DatasetVersionComparison extends VersionComparisonBase {
+  datasetId?: string;
+  versionA: DatasetVersionRecord;
+  versionB: DatasetVersionRecord;
+  generatedResources?: { a?: unknown; b?: unknown };
+}
+
+export interface SynthMedVersionResponse {
+  id: string;
+  ownerId: string;
+  datasetKind: string;
+  sourceDatasetId: string | null;
+  generatedDatasetId: string | null;
+  parentVersionId: string | null;
+  versionNumber: number;
+  versionLabel: string;
+  isActive: boolean;
+  datasetName: string;
+  fileFormat: string;
+  storedPath: string;
+  checksumSha256: string;
+  fileSizeBytes: number;
+  recordCount: number;
+  columnCount: number;
+  datasetSchema: Record<string, unknown>;
+  missingSummary: Record<string, unknown>;
+  distributionSummary: Record<string, unknown>;
+  transformHistory: Record<string, unknown>[];
+  validationSummary: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  restoredFromVersionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  logicalDatasetId?: string | null;
+}
+
+export interface SynthMedLineageEvent {
+  id: string;
+  eventType: string;
+  parentResourceType: string;
+  parentResourceId: string;
+  childResourceType: string;
+  childResourceId: string;
+  sourceDatasetId: string | null;
+  generatedDatasetId: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface SynthMedDatasetLineageResponse {
+  datasetId: string;
+  versions: SynthMedVersionResponse[];
+  lineage: SynthMedLineageEvent[];
+}
+
+export interface SynthMedVersionComparison extends VersionComparisonBase {
+  datasetId?: string;
+  versionA: SynthMedVersionResponse;
+  versionB: SynthMedVersionResponse;
+  generatedResources?: { a?: unknown; b?: unknown };
+}
+
+export interface SynthMedConfigSnapshot {
+  id: string;
+  ownerId: string;
+  sourceDatasetId: string | null;
+  jobId: string | null;
+  modelName: string;
+  config: Record<string, unknown>;
+  configHash: string;
+  isImmutable: boolean;
+  createdAt: string;
+}
+
+export interface SynthMedExperimentResponse {
+  id: string;
+  ownerId: string;
+  name: string;
+  description: string;
+  status: string;
+  sourceDatasetId: string | null;
+  sourceVersionId: string | null;
+  generatedDatasetId: string | null;
+  generatedVersionId: string | null;
+  generationJobId: string | null;
+  configurationSnapshotId: string | null;
+  comparisonId: string | null;
+  utilityEvaluationId: string | null;
+  notes: string;
+  metadata: Record<string, unknown>;
+  configurationSnapshot: SynthMedConfigSnapshot | null;
+  lineage: SynthMedLineageEvent[];
+  privacyReport: {
+    available: boolean;
+    id: string | null;
+    method: string;
+    score: unknown;
+    reportAvailable: boolean;
+    createdAt: string;
+  };
+  utilityEvaluation: {
+    available: boolean;
+    id: string | null;
+    status: string;
+    evaluationType: string;
+    modelName: string;
+    targetColumn: string;
+    taskType: string | null;
+    metrics: Record<string, unknown>;
+    comparison: Record<string, unknown>;
+    reportAvailable: boolean;
+    reportCsvAvailable: boolean;
+    reportPdfAvailable: boolean;
+  };
+  comparisonSummary: {
+    available: boolean;
+    id: string | null;
+    name: string;
+    score: unknown;
+    reportAvailable: boolean;
+  };
+  reportAvailability: Record<string, boolean>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SynthMedExperimentCreatePayload {
+  name: string;
+  description?: string;
+  status?: string;
+  sourceDatasetId?: string | null;
+  sourceVersionId?: string | null;
+  generatedDatasetId?: string | null;
+  generatedVersionId?: string | null;
+  generationJobId?: string | null;
+  configurationSnapshotId?: string | null;
+  comparisonId?: string | null;
+  utilityEvaluationId?: string | null;
+  notes?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface SynthMedExperimentHistory {
+  experimentId: string;
+  attempts: Record<string, unknown>[];
+  lineage: SynthMedLineageEvent[];
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SynthMedExperimentReusePayload {
+  reuseAsNewExperiment?: boolean;
+}
+
+export interface SynthMedExperimentReport {
+  experiment: SynthMedExperimentResponse;
+  generatedAt: string;
+}
+
 export interface ToastMessage {
   id: string;
   type: 'success' | 'error' | 'info';
   title: string;
   message?: string;
+}
+
+export type ResearchReportType =
+  | 'dataset-profile'
+  | 'etl'
+  | 'synthmed-generation'
+  | 'synthmed-comparison'
+  | 'synthmed-privacy'
+  | 'synthmed-utility'
+  | 'synthmed-experiment';
+
+export type ResearchReportStatus = 'Queued' | 'Generating' | 'Completed' | 'Failed';
+
+export interface ResearchReportGeneratePayload {
+  datasetId?: string | null;
+  datasetVersionId?: string | null;
+  etlJobId?: string | null;
+  generationJobId?: string | null;
+  generatedDatasetId?: string | null;
+  comparisonId?: string | null;
+  privacyEvaluationId?: string | null;
+  utilityEvaluationId?: string | null;
+  experimentId?: string | null;
+}
+
+export interface ResearchReport {
+  id: string;
+  reportId: string;
+  reportType: ResearchReportType;
+  title: string;
+  ownerId: string;
+  datasetId: string | null;
+  datasetVersionId: string | null;
+  experimentId: string | null;
+  comparisonId: string | null;
+  privacyEvaluationId: string | null;
+  utilityEvaluationId: string | null;
+  generationJobId: string | null;
+  generatedDatasetId: string | null;
+  fileChecksum: string | null;
+  fileSize: number | null;
+  templateVersion: string;
+  status: ResearchReportStatus;
+  error: string;
+  createdAt: string;
+  completedAt: string;
+}
+
+export interface ResearchReportListResponse {
+  items: ResearchReport[];
+  total: number;
+  counts: Record<string, number>;
+}
+
+export interface ResearchReportStatusResponse {
+  reportId: string;
+  status: ResearchReportStatus;
+  error: string;
+  createdAt: string;
+  completedAt: string;
 }

@@ -37,6 +37,13 @@ def create_upload(
     filename: str,
     content: bytes,
     metadata: DatasetMetadataInput,
+    origin: str = "Original",
+    provenance_json: dict | None = None,
+    source_generated_dataset_id: str | None = None,
+    source_repository_dataset_id: str | None = None,
+    generation_job_id: str | None = None,
+    generation_model: str | None = None,
+    metadata_source: str = "upload",
     request: Request | None = None,
 ) -> tuple[Dataset, ETLJob]:
     file_format: FileFormat = format_for_extension(filename)
@@ -66,6 +73,12 @@ def create_upload(
             format=file_format,
             original_filename=Path(filename).name,
             original_path=raw_relative_path,
+            origin=origin,
+            source_generated_dataset_id=source_generated_dataset_id,
+            source_repository_dataset_id=source_repository_dataset_id,
+            generation_job_id=generation_job_id,
+            generation_model=generation_model,
+            provenance_json=provenance_json or {},
             checksum_sha256=checksum,
             file_size_bytes=len(content),
             record_count=profile.row_count,
@@ -101,7 +114,7 @@ def create_upload(
             consent_scope="Declared by contributor" if metadata.ethics_approved else "Not declared",
             intended_tasks=metadata.intended_tasks,
             label_column=metadata.label_column.strip() if metadata.label_column else None,
-            additional_json={"source": "upload", "checksum_algorithm": "sha256"},
+            additional_json={"source": metadata_source, "checksum_algorithm": "sha256"},
         )
         job = ETLJob(
             id=job_id,
@@ -149,7 +162,13 @@ def create_upload(
             resource_type="dataset",
             resource_id=dataset_id,
             actor_id=user.id,
-            details={"filename": Path(filename).name, "format": file_format.value, "checksum": checksum},
+            details={
+                "filename": Path(filename).name,
+                "format": file_format.value,
+                "checksum": checksum,
+                "origin": origin,
+                **({"generatedDatasetId": source_generated_dataset_id} if source_generated_dataset_id else {}),
+            },
             request=request,
         )
         db.commit()

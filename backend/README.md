@@ -77,7 +77,7 @@ Roll back the latest migration:
 alembic downgrade -1
 ```
 
-The current head is `b2f6d8a9c1e3_add_conditional_generation`, parented on `c74e9b1a6d02_add_synthmed_comparisons`. It adds generation mode and selected model to generation jobs and generated datasets, plus normalized conditions, condition validation and satisfaction metadata to jobs; `alembic downgrade -1` reverses it. Earlier revisions add ETL governance (`b7c4e1d9a3f2`), SynthMed source/generated tables (`d4a8c1f0b2e3`), generation jobs, configs and reports (`f6b2c9d4e7a1`), schema drift reconciliation (`a1f4d7e9c2b6`) and comparisons (`c74e9b1a6d02`). Alembic autogenerate compares server defaults.
+The current head is `d7f0a1b2c3e4_add_dataset_provenance`, parented on `c4e8f1a2b3d9_create_research_reports`. It adds dataset origin, source lineage and provenance columns; `alembic downgrade -1` reverses it. Earlier revisions add research reports (`c4e8f1a2b3d9`), conditional generation (`b2f6d8a9c1e3`), comparisons (`c74e9b1a6d02`), schema drift reconciliation (`a1f4d7e9c2b6`), generation jobs/configs/reports (`f6b2c9d4e7a1`), SynthMed source/generated tables (`d4a8c1f0b2e3`) and ETL governance (`b7c4e1d9a3f2`). Alembic autogenerate compares server defaults.
 
 ## ETL API
 
@@ -125,6 +125,8 @@ Example mapping decision payload:
 | `POST` | `/api/v1/synthmed/generated/{generation_id}/export` | Export generated data to another format |
 | `GET` | `/api/v1/synthmed/generated/{generation_id}/reports/{report_type}/download` | Download report JSON |
 
+Research PDF reports are owner-scoped and immutable. Creation endpoints are `POST /api/v1/reports/dataset-profile`, `/api/v1/reports/etl`, `/api/v1/reports/synthmed/generation`, `/api/v1/reports/synthmed/comparison`, `/api/v1/reports/synthmed/privacy`, `/api/v1/reports/synthmed/utility` and `/api/v1/reports/synthmed/experiment`. Use `GET /api/v1/reports`, `GET /api/v1/reports/{report_id}`, `GET /api/v1/reports/{report_id}/status` and `GET /api/v1/reports/{report_id}/download` for history, detail, status and checksum-verified download.
+
 Supported models are CTGAN (`CTGANSynthesizer`), TVAE (`TVAESynthesizer`) and GaussianCopula (`GaussianCopulaSynthesizer`), both unconditionally and conditionally. One fitted synthesizer instance generates all records in a job. Conditional generation uses `sample_from_conditions` with `sdv.sampling.Condition` exact-equality conditions: CTGAN and TVAE use SDV reject sampling, while GaussianCopula uses native conditioned Gaussian multivariate sampling. Range operators, missing/null values, primary keys and patient identifiers are rejected. Exact conditions on different columns with equal `numRows` are combined with AND; unequal `numRows` produce separate cohorts whose values sum to `recordCount`. Job states include `Evaluating` between `Validating` and `Completed`.
 
 CTGAN/TVAE training runs on CPU with configurable epochs, batch size and seed. Batch size must be a multiple of 10 between 20 and 10000. Set `SYNTHMED_GENERATION_INLINE=true` for inline test execution; production uses in-process background workers.
@@ -140,6 +142,7 @@ From the repository root:
 ```powershell
 npm test
 npm run lint:backend
+npm run test:e2e
 ```
 
 Or from `backend`:

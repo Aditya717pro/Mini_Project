@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import io
 from pathlib import Path
 
+import pandas as pd
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -103,6 +105,41 @@ def test_source_upload_preserves_original_and_checksum(
         )
     )
     assert download_audit is not None
+
+
+def test_source_upload_accepts_fictional_xlsx(client: TestClient, db_session: Session) -> None:
+    del db_session
+    register_user(client, "xlsx-owner@example.test")
+    headers = auth_headers(client, "xlsx-owner@example.test")
+    frame = pd.DataFrame({"age": [34, 41], "outcome": ["stable", "review"]})
+    buffer = io.BytesIO()
+    frame.to_excel(buffer, index=False, engine="openpyxl")
+    content = buffer.getvalue()
+
+    response = client.post(
+        upload_url,
+        headers=headers,
+        data={"dataset_name": "XLSX cohort", "description": "Fictional XLSX test cohort"},
+        files={
+            "file": (
+                "cohort.xlsx",
+                content,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+    assert response.status_code == 201, response.text
+    dataset = response.json()["dataset"]
+    assert dataset["fileFormat"] == "XLSX"
+    assert dataset["originalFilename"] == "cohort.xlsx"
+    assert dataset["rowCount"] == 2
+    assert dataset["columnCount"] == 2
+    assert dataset["checksumSha256"] == hashlib.sha256(content).hexdigest()
+
+    download = client.get(f"/api/v1/synthmed/sources/{dataset['id']}/download", headers=headers)
+    assert download.status_code == 200, download.text
+    assert download.content == content
+    assert list(pd.read_excel(io.BytesIO(download.content)).columns) == ["age", "outcome"]
 
 
 def test_upload_validation_and_unauthorised_access(client: TestClient, db_session: Session) -> None:

@@ -1,0 +1,1001 @@
+Age,Gender,Height_cm,Weight_kg,BMI,Systolic_BP_mmHg,Diastolic_BP_mmHg,Heart_Rate_bpm,Body_Temperature_C,SpO2_Percentage,Respiratory_Rate_bpm,Haemoglobin_g_dL,Total_Cholesterol_mg_dL,HDL_Cholesterol_mg_dL,LDL_Cholesterol_mg_dL,Triglycerides_mg_dL,Creatinine_mg_dL,Diagnosis,Risk_Level
+25,Female,162,79.9,24.0,112,78,71,36.5,96,17,13.8,184,49,94,50,0.99,Abdominal discomfort evaluation,Moderate
+43,Female,158,78.4,24.1,104,69,89,37.1,98,17,14.5,167,41,60,101,0.91,Neck stiffness,Low
+33,Male,174,64.1,22.2,110,74,85,36.7,95,13,13.3,165,51,79,51,0.91,Dry skin and itching,Moderate
+56,Female,146,72.0,22.6,108,70,92,36.6,97,14,14.3,199,40,123,83,0.81,Routine health check-up,Low
+47,Female,186,55.0,29.8,110,68,62,36.6,98,16,14.1,190,65,98,94,0.84,Knee pain evaluation,Moderate
+37,Female,165,46.2,26.3,98,70,76,36.9,99,13,12.8,187,52,99,82,0.89,Chronic cough evaluation,High
+24,Male,173,52.5,26.2,99,67,77,36.6,98,12,15.1,182,60,105,50,0.64,Routine health check-up,High
+39,Female,151,73.5,20.2,95,76,77,36.7,97,16,12.2,179,64,111,76,0.98,Chest discomfort evaluation,Low
+42,Male,169,63.2,29.4,119,73,72,37.1,100,14,12.7,199,67,88,103,0.64,Thyroid follow-up,Low
+42,Female,151,50.4,25.0,108,73,74,36.6,97,16,13.0,168,67,70,124,0.87,Eczema review,Low
+59,Male,155,71.2,27.9,101,68,84,36.5,97,17,14.0,184,68,120,68,1.27,Routine health check-up,Moderate
+24,Female,177,62.3,29.3,112,77,87,36.9,97,18,14.0,194,41,92,117,0.89,Mild musculoskeletal strain,Low
+19,Female,143,77.4,29.8,99,67,75,36.7,98,17,13.5,180,52,81,93,0.84,Mild constipation,Low
+23,Female,189,64.6,24.2,104,71,73,36.9,98,14,16.5,180,40,84,83,0.75,Tension-type headache,Low
+30,Male,160,56.6,25.0,113,69,88,36.8,98,15,13.6,174,64,120,84,0.76,Mild musculoskeletal strain,Moderate
+33,Female,165,42.3,23.8,103,64,84,36.3,97,17,14.6,156,45,87,92,1.13,Cardiac wellness consultation,High
+18,Male,161,46.8,25.8,104,74,60,36.7,97,17,15.4,169,58,117,106,0.96,Thyroid follow-up,High
+27,Male,182,79.9,22.0,108,78,65,37.0,97,17,14.0,162,48,117,66,0.6,Mild musculoskeletal strain,Low
+44,Female,164,87.8,25.8,101,73,83,36.7,98,16,14.6,140,45,128,72,0.64,Routine health check-up,Low
+50,Female,163,78.9,26.0,107,70,85,36.7,98,12,14.8,174,51,96,63,0.71,Thyroid follow-up,Low
+39,Male,171,57.8,24.7,102,68,67,36.8,97,14,14.2,199,48,128,50,0.97,Routine health check-up,Moderate
+26,Male,148,63.0,27.6,113,69,75,36.6,97,17,13.1,179,58,123,50,0.7,Mild musculoskeletal strain,Low
+38,Male,154,41.1,23.5,117,66,83,36.9,97,17,12.7,149,50,112,75,1.0,Mild sinusitis,Low
+18,Female,167,60.9,22.7,110,67,66,36.6,99,17,15.1,170,55,97,116,0.99,Mild acne,Low
+27,Female,153,58.8,28.7,100,71,81,36.9,98,17,14.8,184,57,90,57,1.0,Migraine review,Low
+28,Female,172,52.4,26.7,119,67,75,36.6,98,19,13.3,194,49,75,84,0.79,Chronic lower back pain review,Low
+44,Female,161,55.0,27.2,94,74,81,37.1,97,13,11.8,153,40,94,66,0.9,Palpitation evaluation,Moderate
+33,Female,152,68.7,23.0,119,60,77,36.8,97,14,13.2,139,40,128,85,1.08,Dry skin and itching,Moderate
+18,Male,156,68.0,29.8,99,77,69,36.5,95,17,13.1,145,52,109,78,0.68,Mild musculoskeletal strain,Low
+21,Male,160,57.5,20.9,109,71,65,36.9,97,14,13.6,141,65,108,72,0.62,Acid reflux symptoms,Low
+33,Female,142,58.3,28.5,95,66,67,36.4,97,18,12.1,159,47,120,99,0.6,Seasonal cold symptoms,Low
+30,Female,151,77.8,26.3,111,70,70,36.8,98,16,13.8,160,75,110,50,0.9,Neck stiffness,Low
+25,Male,145,51.7,27.4,118,70,76,36.8,97,17,12.6,191,57,85,86,0.96,Routine health check-up,Moderate
+30,Female,146,61.1,27.7,101,63,90,37.1,97,17,13.3,152,54,116,65,0.98,Ear wax removal,Low
+18,Male,171,57.7,28.9,108,69,73,36.5,97,13,12.0,152,58,108,96,0.6,Chest discomfort evaluation,Moderate
+45,Male,168,84.9,26.7,106,71,79,36.7,100,18,14.4,199,51,101,87,0.85,Palpitation evaluation,Low
+28,Female,147,62.2,29.8,109,69,75,37.1,97,14,12.2,149,58,84,60,1.18,Routine health check-up,Moderate
+21,Male,170,92.9,27.2,99,78,86,36.2,96,17,14.5,176,45,98,107,0.6,Mild contact dermatitis,Low
+24,Male,155,56.1,24.0,108,66,87,36.5,98,17,13.8,190,47,111,83,0.78,Mild indigestion,Low
+24,Male,162,46.0,23.9,92,77,89,36.8,98,17,12.6,183,58,111,64,0.62,General fatigue evaluation,Moderate
+18,Male,157,54.5,27.8,106,75,74,36.6,96,14,12.1,178,52,81,86,0.84,Dizziness evaluation,Low
+29,Female,150,83.7,29.8,108,71,72,36.4,97,14,12.8,164,53,112,50,0.6,Mild sinusitis,Low
+42,Female,185,68.1,26.2,104,74,80,36.9,97,17,14.9,183,40,85,77,1.0,Thyroid follow-up,Low
+22,Male,148,61.6,28.7,105,71,65,37.1,99,12,13.2,165,73,94,50,1.14,Seasonal cold symptoms,Low
+41,Female,174,40.4,29.8,101,70,78,37.0,100,17,15.0,167,49,92,95,1.13,Functional dyspepsia,Low
+44,Male,149,85.3,21.1,113,65,74,36.7,100,17,15.3,181,54,110,50,0.74,Routine health check-up,Low
+21,Female,142,74.3,20.9,109,69,64,36.6,98,18,12.9,169,74,109,50,0.88,Routine health check-up,Moderate
+44,Male,161,63.9,22.0,110,65,65,36.6,98,17,14.0,192,63,117,81,0.99,Mild asthma review,Low
+34,Female,159,58.8,26.0,111,64,76,36.6,99,15,13.3,149,49,115,65,1.07,Eczema review,Low
+39,Female,169,81.5,26.8,97,73,62,36.7,98,16,15.0,178,56,68,50,0.87,Routine health check-up,Low
+27,Female,142,55.5,29.8,105,71,62,36.9,97,15,13.1,157,50,80,78,0.69,Mild body ache,Low
+24,Female,153,46.0,29.1,97,65,66,36.5,96,13,13.1,181,52,95,81,0.93,Routine health check-up,Low
+23,Female,154,62.3,21.8,93,65,84,36.5,97,18,12.5,127,41,110,110,1.24,Routine health check-up,Moderate
+33,Male,173,59.6,23.6,104,78,84,36.8,98,17,13.0,152,65,94,90,0.77,Mild contact dermatitis,Low
+26,Male,157,66.9,29.2,108,77,81,36.6,98,16,11.6,181,52,92,50,0.88,Acid reflux symptoms,Low
+18,Male,161,52.4,27.8,99,63,61,37.1,98,18,11.6,144,59,106,50,1.22,Gastro-oesophageal reflux review,High
+34,Male,173,87.6,20.8,111,69,74,36.3,98,18,14.7,165,45,99,89,0.93,Ear wax removal,Low
+53,Female,162,89.1,23.8,110,71,97,36.6,96,17,13.8,176,45,105,66,0.64,Routine health check-up,Low
+18,Female,175,76.6,25.1,104,71,65,36.5,97,14,15.6,127,71,96,71,0.78,Chronic lower back pain review,Low
+36,Male,164,70.8,25.7,98,71,76,36.7,97,17,13.5,189,57,88,81,0.99,Mild indigestion,Low
+28,Male,152,61.9,22.8,98,73,73,36.7,96,17,13.1,181,45,81,81,1.2,Neck stiffness,Low
+19,Male,146,66.0,28.4,101,66,69,36.7,100,17,13.0,181,60,124,69,0.84,Lower back pain,Low
+40,Female,170,71.8,28.7,111,62,74,36.8,98,17,12.4,170,72,101,52,0.79,Routine health check-up,Low
+37,Female,158,49.3,25.4,108,68,64,36.7,98,17,13.1,161,78,85,64,1.01,Chest discomfort evaluation,Low
+31,Female,183,65.0,27.2,104,74,82,36.6,97,17,13.3,165,44,72,59,0.75,Neck stiffness,Moderate
+35,Male,152,64.6,27.5,100,78,82,36.6,98,18,13.2,172,40,95,57,0.68,Chronic lower back pain review,Moderate
+49,Male,160,71.4,25.6,91,78,72,37.0,98,13,12.8,166,44,83,52,0.81,Lower back pain,Low
+56,Male,167,63.7,27.2,91,65,86,36.7,99,17,14.5,196,73,94,50,1.06,Routine health check-up,Low
+21,Male,158,62.2,28.1,109,68,75,36.6,98,18,13.6,190,58,91,87,0.87,Mild musculoskeletal strain,Low
+28,Male,158,61.3,20.0,112,64,73,36.5,96,13,14.2,168,46,104,82,0.68,Dizziness evaluation,Low
+46,Female,146,52.2,24.0,100,73,84,36.9,98,13,14.5,151,50,128,53,0.71,Routine health check-up,Low
+53,Male,158,54.5,29.8,101,78,83,37.1,96,17,11.6,169,42,111,61,0.7,Thyroid follow-up,Low
+49,Female,175,68.1,21.3,109,66,71,36.9,98,19,13.6,193,61,60,64,0.68,Thyroid follow-up,Low
+43,Female,181,72.8,25.9,112,78,92,36.8,98,14,13.9,190,46,61,68,0.92,Routine health check-up,Low
+41,Female,145,55.6,24.3,96,69,70,36.6,98,18,14.9,171,55,127,67,0.86,Sore throat,High
+43,Male,149,46.7,22.3,100,70,78,36.7,97,19,15.3,186,73,68,50,0.81,Migraine-type headache,Low
+31,Male,175,59.2,28.3,92,70,64,36.8,97,18,14.0,152,47,110,72,0.95,Routine health check-up,Low
+46,Male,170,66.4,24.3,93,72,67,36.7,97,13,14.4,186,48,60,88,0.79,Routine health check-up,Moderate
+40,Female,143,82.1,21.7,97,73,62,36.8,98,16,14.1,144,78,127,99,0.87,Routine health check-up,Low
+38,Female,161,64.3,25.9,97,76,67,36.6,98,18,13.4,179,51,72,114,0.94,Routine health check-up,Moderate
+23,Male,163,85.4,23.8,113,74,60,36.7,98,18,13.7,188,60,107,110,0.63,Routine health check-up,Low
+29,Male,161,46.4,22.5,119,76,84,36.7,97,16,14.3,181,41,69,92,0.6,Neck stiffness,Moderate
+46,Male,160,68.3,23.8,96,70,72,36.5,97,18,13.5,188,49,100,100,1.09,Abdominal discomfort evaluation,Moderate
+33,Male,171,56.4,27.2,107,67,84,36.4,97,16,14.8,157,59,112,72,1.05,Mild musculoskeletal strain,Low
+35,Female,156,44.1,23.9,109,72,74,36.7,97,12,13.5,164,53,107,129,0.78,Routine health check-up,Low
+21,Male,152,42.0,22.0,99,73,66,37.1,98,17,12.5,187,57,113,50,1.09,Routine health check-up,Low
+45,Female,173,61.2,29.8,97,68,67,36.8,96,18,14.9,199,48,105,149,0.88,Tension-type headache,Low
+41,Female,167,57.5,21.7,98,69,76,36.5,96,18,13.3,191,54,117,82,0.68,Abdominal discomfort evaluation,Low
+55,Male,163,52.5,27.4,100,70,69,36.5,97,17,14.2,166,49,121,88,1.29,Routine health check-up,Low
+29,Female,169,80.7,25.3,119,65,70,36.5,97,18,13.7,199,43,104,50,0.75,Routine health check-up,Low
+53,Male,166,57.8,28.8,111,69,60,36.9,99,17,15.3,175,62,108,61,0.6,Functional dyspepsia,Low
+39,Female,170,51.5,24.9,103,72,67,36.5,98,17,15.3,191,46,124,50,0.75,Routine health check-up,Low
+41,Female,163,48.6,22.9,104,70,73,37.1,97,16,12.2,199,54,123,51,1.14,Gastro-oesophageal reflux review,Low
+28,Female,161,53.4,27.3,108,67,82,36.9,97,17,14.2,178,65,86,82,0.68,Cardiac wellness consultation,Low
+34,Female,161,54.4,20.3,115,69,78,36.6,100,16,13.0,139,68,119,69,0.6,Thyroid follow-up,Low
+22,Female,161,62.9,24.3,117,68,87,36.1,98,17,13.6,162,50,67,83,0.7,Chronic cough evaluation,Low
+22,Male,174,50.1,28.7,104,69,71,36.7,98,17,12.7,169,54,66,64,0.91,Migraine-type headache,Low
+29,Male,159,47.9,29.8,111,69,83,36.4,97,19,12.5,185,47,101,51,0.72,Routine health check-up,High
+50,Female,175,64.3,24.1,102,72,78,36.7,97,17,13.5,145,51,81,100,1.11,Routine health check-up,Low
+65,Male,149,50.5,28.0,108,69,68,36.5,98,13,14.8,199,59,122,50,0.64,Mild contact dermatitis,Low
+18,Male,160,54.4,27.4,107,71,68,37.1,100,14,11.6,180,54,90,111,0.74,Routine health check-up,Moderate
+24,Male,168,61.3,29.8,98,71,67,36.7,97,16,16.5,185,44,109,110,0.68,Mild sinusitis,Low
+35,Male,183,50.6,24.9,104,68,77,37.1,97,16,13.9,174,55,73,54,0.62,Mild body ache,Low
+51,Female,153,69.9,27.2,101,64,68,36.5,98,18,13.3,160,54,115,73,0.75,Chest discomfort evaluation,Low
+48,Female,183,81.5,26.1,109,72,73,37.1,97,17,13.1,199,54,124,74,1.15,Allergic rhinitis review,Low
+24,Female,148,51.2,26.7,93,74,72,37.0,98,18,14.4,178,58,93,69,0.88,Mild musculoskeletal strain,Moderate
+24,Male,164,58.6,24.1,101,70,69,36.7,98,17,12.7,196,54,109,74,1.04,Migraine review,Low
+65,Female,164,42.4,23.3,92,63,77,36.7,98,17,12.9,167,53,125,56,1.25,Mild constipation,Low
+62,Female,173,58.9,19.9,110,67,78,36.7,98,16,12.4,171,40,102,125,0.89,Chronic lower back pain review,Low
+24,Male,160,54.8,22.3,106,66,82,36.6,96,17,15.4,155,55,70,79,0.86,Gastro-oesophageal reflux review,Low
+33,Male,159,68.5,22.2,115,64,64,36.8,98,16,14.4,186,48,108,100,0.94,Routine health check-up,Low
+32,Male,169,65.0,24.5,97,67,87,37.1,96,13,15.3,175,53,97,50,0.82,Chronic cough evaluation,Moderate
+19,Male,177,75.1,27.6,98,61,80,36.4,97,16,13.0,173,64,96,86,0.6,Cardiac wellness consultation,Moderate
+20,Female,182,55.0,23.9,94,69,77,36.7,99,18,11.6,163,50,100,96,0.97,Functional dyspepsia,Low
+31,Female,143,65.6,24.2,104,69,77,36.9,96,13,12.6,174,58,106,53,0.6,Eczema review,High
+34,Male,142,70.6,28.1,107,78,60,36.5,98,17,12.4,195,56,69,77,1.16,Hair fall evaluation,Low
+36,Male,165,66.1,25.2,108,77,69,36.7,98,13,13.0,182,60,84,66,0.71,Weight management consultation,Low
+36,Female,142,69.9,22.2,110,78,70,36.6,99,17,14.0,167,48,95,71,0.92,Mild body ache,Moderate
+33,Male,175,62.0,25.8,101,70,82,36.6,97,18,12.7,196,61,121,91,0.87,Mild body ache,Low
+41,Male,154,72.4,22.6,98,67,64,36.6,97,16,13.7,190,61,73,83,0.94,Eczema review,Low
+34,Female,162,46.8,28.2,91,66,62,36.7,97,18,13.9,188,54,81,65,0.9,Routine health check-up,Low
+32,Male,151,82.5,26.3,104,70,63,36.6,98,18,15.1,192,47,108,77,0.72,Knee pain evaluation,Moderate
+20,Female,162,46.7,26.0,96,65,90,36.5,97,17,14.3,150,42,115,58,0.75,Mild musculoskeletal strain,Low
+25,Male,153,77.1,23.1,101,73,84,36.7,98,13,13.9,194,48,93,124,1.06,Sleep disturbance evaluation,Low
+39,Male,153,74.5,28.1,92,71,64,36.7,97,14,12.9,183,70,109,85,0.68,Palpitation evaluation,Low
+57,Female,173,45.3,25.0,99,72,76,36.6,97,17,13.8,183,58,73,94,0.6,Routine health check-up,High
+34,Male,173,43.4,24.5,107,78,76,36.6,98,17,14.8,193,52,111,125,0.92,Mild musculoskeletal strain,Low
+27,Male,150,54.2,22.8,104,65,65,36.7,98,17,14.0,183,78,128,67,1.19,Routine health check-up,Low
+49,Female,161,58.7,22.3,111,70,63,37.1,96,17,12.9,156,72,70,105,0.92,Allergic rhinitis symptoms,Low
+20,Male,162,75.1,27.9,102,74,79,36.6,96,18,14.5,152,61,123,78,0.95,Fungal skin infection,Low
+56,Male,189,68.2,29.6,101,67,92,37.1,97,17,11.6,182,55,112,92,0.71,Routine health check-up,High
+18,Female,174,65.3,26.4,110,68,72,37.1,99,14,12.6,192,75,91,50,1.07,Migraine review,Low
+31,Female,188,62.5,26.0,117,70,82,36.8,96,16,14.6,166,47,89,65,0.63,Routine health check-up,High
+37,Male,174,74.8,20.2,103,78,70,37.1,97,16,15.2,171,53,92,50,0.75,Fungal skin infection,Low
+27,Female,151,57.9,25.3,108,70,69,36.7,97,16,13.4,145,55,100,84,1.2,Mild asthma review,Low
+37,Male,152,58.9,29.8,93,78,85,36.8,100,16,14.7,191,57,97,116,0.67,Routine health check-up,Low
+18,Female,166,67.0,23.3,98,71,68,36.9,98,17,12.9,184,68,96,75,1.05,Knee pain evaluation,Low
+38,Female,159,74.0,26.9,104,72,64,36.8,97,16,15.7,194,50,124,103,0.6,Mild body ache,Low
+40,Female,157,60.3,21.0,102,74,77,36.7,97,17,15.1,199,57,80,69,0.69,Routine health check-up,Low
+26,Female,166,52.6,23.4,108,65,87,36.7,100,17,15.6,164,51,107,107,1.06,Chest discomfort evaluation,Low
+23,Male,162,54.8,27.8,104,72,79,36.9,100,14,14.4,199,48,111,51,1.12,Dizziness evaluation,Moderate
+39,Male,172,66.0,29.7,100,69,84,36.8,99,16,13.6,151,59,114,72,0.69,Eczema review,High
+24,Female,188,69.2,20.4,100,69,78,36.6,97,18,15.6,199,58,111,115,0.81,Sore throat,Low
+33,Female,179,79.8,27.0,91,69,88,36.5,98,17,12.4,184,42,119,72,1.14,Hair fall evaluation,Low
+45,Female,153,40.4,19.2,102,74,78,37.1,99,16,13.0,161,69,127,52,0.67,Routine health check-up,High
+33,Female,178,62.8,25.1,106,76,77,36.9,100,18,14.2,171,58,120,95,1.07,Thyroid follow-up,Moderate
+32,Male,165,61.5,23.9,104,62,84,37.0,98,19,13.4,181,45,84,67,0.86,Abdominal discomfort evaluation,Low
+33,Male,164,72.6,25.9,106,73,88,37.1,98,17,13.9,183,40,124,117,0.6,Seasonal cough,Low
+47,Female,181,62.8,28.2,101,64,70,36.7,98,17,12.3,164,44,108,80,0.99,Breathlessness on exertion evaluation,Low
+27,Male,155,67.3,29.8,106,75,74,36.6,97,18,12.2,150,78,70,92,0.6,Routine health check-up,Low
+49,Male,162,52.8,21.9,117,70,71,36.8,100,18,14.1,163,59,108,63,0.72,Routine health check-up,Low
+36,Male,171,58.6,21.7,98,68,71,37.1,98,17,13.0,140,54,87,60,0.78,Fatigue and weight change evaluation,Moderate
+26,Male,150,65.2,22.4,117,65,83,36.3,97,14,13.9,153,42,125,50,0.65,Routine health check-up,Low
+19,Female,155,59.3,29.0,107,78,72,36.8,98,15,13.6,160,55,114,50,1.34,Mild constipation,Low
+19,Female,161,62.0,26.2,98,76,70,36.7,97,17,14.7,197,50,93,112,0.88,Sore throat,Low
+21,Male,168,75.7,26.9,113,66,70,36.8,97,17,14.5,188,51,104,77,0.78,Routine health check-up,High
+50,Female,151,55.2,24.1,105,69,74,37.1,98,12,13.6,178,44,119,84,0.89,Functional dyspepsia,Low
+26,Male,152,51.3,27.8,93,62,64,36.7,99,13,14.4,164,55,95,109,1.13,Functional dyspepsia,High
+18,Female,173,65.4,26.8,115,68,69,36.6,97,14,13.9,149,51,86,98,0.72,Mild asthma review,Low
+49,Male,163,67.6,27.7,104,71,67,36.6,98,16,14.8,169,49,112,99,0.66,Abdominal discomfort evaluation,Moderate
+21,Male,155,49.0,23.2,98,78,84,36.2,96,14,13.7,199,40,103,106,0.8,Routine health check-up,Low
+19,Male,160,56.8,23.3,97,70,62,37.1,99,16,13.8,152,62,93,50,0.71,Routine health check-up,Low
+27,Female,160,55.6,26.5,114,66,69,36.9,98,16,11.8,199,66,101,60,0.95,Allergic rhinitis review,Low
+26,Male,157,67.9,29.3,95,75,73,36.8,98,17,15.7,191,63,128,66,0.98,Mild sinusitis,Low
+32,Female,172,67.8,23.9,108,77,79,36.5,100,17,15.4,185,47,99,63,1.01,Eczema review,High
+36,Male,153,71.0,26.5,108,69,62,36.7,97,17,14.8,181,61,60,50,0.67,Gastro-oesophageal reflux review,Low
+39,Female,161,76.8,26.6,108,67,94,36.5,97,14,14.1,145,70,100,79,0.86,Lower back pain,Low
+31,Female,171,72.6,22.8,103,66,68,36.9,98,18,13.9,199,47,103,81,0.89,Migraine review,Low
+35,Male,156,56.4,22.7,108,78,85,36.4,98,18,14.3,185,59,72,65,0.92,Acid reflux symptoms,Low
+44,Female,185,51.1,24.3,100,78,84,36.6,97,17,14.0,197,40,104,79,0.77,Mild acne,Low
+27,Male,162,70.1,26.5,105,65,73,36.6,97,18,12.7,165,51,113,66,0.71,Mild sinusitis,Low
+18,Female,148,60.9,27.9,106,70,61,36.5,100,17,13.6,169,65,69,50,0.63,Mild musculoskeletal strain,Low
+32,Male,172,40.4,26.6,100,70,87,37.1,97,17,15.2,160,47,95,140,0.89,Hair fall evaluation,Low
+21,Male,142,74.6,23.7,112,70,72,36.8,97,15,14.0,197,53,81,56,1.14,General fatigue evaluation,Moderate
+38,Male,145,62.0,28.0,115,69,85,36.6,98,16,13.1,149,73,109,50,0.64,Lower back pain,Low
+60,Male,170,64.5,26.9,115,68,70,36.5,98,17,15.1,199,72,110,76,0.71,Routine health check-up,Low
+31,Male,174,66.0,22.8,96,71,62,36.7,99,17,14.1,152,66,111,58,1.05,Mild contact dermatitis,Low
+25,Male,169,64.1,26.7,102,76,79,37.1,98,15,14.1,199,40,80,68,0.82,Neck stiffness,Low
+57,Male,145,63.5,21.7,91,68,67,36.9,98,17,13.3,163,44,101,77,1.23,Chronic lower back pain review,Moderate
+32,Male,172,54.2,20.1,106,78,94,36.6,97,17,13.1,174,53,117,62,0.66,Dizziness evaluation,Moderate
+28,Female,173,65.9,29.8,103,67,76,37.1,100,12,15.5,181,52,92,55,0.88,Fungal skin infection,Low
+29,Female,163,53.2,22.1,92,76,67,37.1,98,17,13.0,197,43,123,50,0.64,Sleep disturbance evaluation,Low
+34,Female,184,49.7,22.0,98,68,72,36.6,96,15,12.7,146,48,96,52,0.64,Weight management consultation,Low
+37,Female,175,61.2,24.2,100,74,62,36.7,97,20,14.0,145,48,123,98,1.26,Neck stiffness,High
+29,Female,166,63.7,28.4,101,73,74,37.1,97,13,12.8,148,57,88,94,0.6,Mild asthma review,High
+29,Male,174,81.5,28.4,92,67,79,36.7,100,15,13.1,194,50,91,111,1.11,Routine health check-up,Low
+36,Male,165,62.5,28.2,107,73,75,36.7,97,17,13.6,164,49,99,96,0.68,Mild musculoskeletal strain,Low
+32,Female,160,76.7,26.4,113,73,60,36.8,95,14,14.0,192,56,102,76,0.82,Cardiac wellness consultation,Moderate
+22,Male,162,47.2,24.9,109,68,81,36.7,97,20,14.3,168,50,102,100,0.86,Migraine-type headache,Low
+45,Male,173,64.0,26.4,114,69,77,36.6,97,16,12.9,193,45,83,54,0.6,Routine health check-up,Low
+30,Male,154,42.9,25.0,119,78,60,36.8,98,17,13.5,195,63,91,54,0.84,Palpitation evaluation,Moderate
+30,Male,146,53.8,27.4,97,68,73,36.7,99,18,14.3,182,51,120,93,0.8,Palpitation evaluation,Moderate
+36,Female,159,60.8,27.2,111,71,65,36.8,97,18,13.9,173,59,110,130,1.09,Palpitation evaluation,Low
+37,Male,160,52.7,22.6,100,72,75,37.1,97,14,12.0,184,53,101,106,0.76,Routine health check-up,Low
+31,Female,162,75.9,25.2,115,70,67,36.7,96,17,14.3,179,60,96,105,0.73,Mild musculoskeletal strain,Low
+21,Female,173,63.9,22.9,115,71,72,36.7,98,14,13.0,168,45,118,58,0.78,Breathlessness on exertion evaluation,Low
+22,Male,159,42.8,22.5,110,69,77,37.1,98,17,14.5,152,49,84,61,0.63,Routine health check-up,Low
+32,Male,171,43.2,23.7,114,73,93,36.7,99,17,12.4,152,79,85,73,0.95,Palpitation evaluation,Moderate
+32,Female,159,87.9,26.6,100,78,72,36.5,98,18,12.6,193,43,117,50,1.09,Sore throat,Moderate
+29,Male,179,73.8,29.4,98,67,90,36.4,98,17,12.5,169,47,82,50,0.69,Dizziness evaluation,Moderate
+37,Male,151,46.7,26.4,115,78,79,36.6,99,13,13.9,127,68,76,73,0.6,Routine health check-up,Low
+32,Female,173,49.5,21.6,105,68,77,37.1,97,12,13.7,191,43,99,94,0.69,Functional dyspepsia,Low
+32,Male,157,56.8,29.8,105,67,73,36.5,97,14,13.9,156,45,118,71,1.0,Routine health check-up,Moderate
+27,Female,167,66.8,24.1,109,71,67,36.6,97,17,15.3,199,63,101,50,0.97,Chronic cough evaluation,Low
+32,Male,158,73.5,24.7,115,77,96,37.1,98,17,12.6,183,48,103,65,0.8,Mild musculoskeletal strain,Low
+30,Male,158,78.8,19.5,107,66,68,36.7,100,17,11.7,159,56,116,57,0.69,Gastro-oesophageal reflux review,Moderate
+18,Female,143,60.0,24.1,105,63,72,36.7,98,17,13.9,179,51,90,63,0.89,Routine health check-up,Low
+30,Female,159,69.5,23.1,96,70,68,36.6,98,16,15.4,133,49,92,51,0.93,Dizziness evaluation,Low
+57,Female,170,72.1,25.2,112,69,70,37.1,97,17,13.7,165,48,98,81,0.82,Fatigue and weight change evaluation,Low
+18,Male,149,66.7,23.4,107,68,67,36.6,99,19,12.8,155,52,93,83,0.67,Routine health check-up,Low
+25,Male,154,41.3,22.2,110,70,80,36.8,98,16,12.9,194,48,105,81,1.03,Routine health check-up,Low
+22,Female,169,87.6,27.8,112,72,83,36.6,99,17,14.1,189,60,66,84,0.94,Neck stiffness,Moderate
+41,Male,155,85.2,27.4,100,67,66,36.6,98,18,14.7,183,50,110,57,0.77,Dry skin and itching,Low
+29,Female,151,57.8,26.1,119,73,75,37.1,97,18,14.1,165,50,120,57,0.9,Palpitation evaluation,Low
+18,Female,144,82.3,24.7,119,78,69,36.4,99,12,14.0,149,41,68,50,0.92,Routine health check-up,Moderate
+27,Female,164,67.2,25.0,112,73,85,36.7,97,17,13.6,168,73,88,63,0.93,Sleep disturbance evaluation,Low
+49,Male,162,65.4,25.2,106,73,74,36.7,97,20,15.1,182,61,95,73,0.72,Migraine-type headache,Moderate
+28,Female,168,82.7,22.8,93,65,79,36.8,98,16,13.4,177,57,99,110,0.66,Seasonal cough,Moderate
+40,Female,161,62.8,23.1,111,65,79,37.0,95,15,15.5,188,62,76,63,0.87,Migraine-type headache,Low
+24,Male,182,74.1,22.3,102,78,80,36.7,97,16,15.4,141,50,106,80,0.87,Gastro-oesophageal reflux review,Low
+39,Male,145,47.6,24.2,99,65,89,36.8,100,18,14.7,199,43,74,50,0.61,Seasonal cough,Low
+32,Male,154,74.1,28.1,99,70,60,36.7,99,17,13.1,179,70,112,77,0.6,Seasonal cough,Low
+29,Female,158,59.7,23.2,91,78,75,36.7,98,17,14.3,188,50,92,54,1.17,Thyroid follow-up,Low
+31,Male,153,79.2,23.9,102,67,74,36.7,98,13,14.7,143,75,87,62,0.82,Allergic rhinitis symptoms,Moderate
+42,Male,160,56.2,21.5,97,71,60,36.6,97,18,12.3,191,40,91,55,0.96,Hair fall evaluation,Moderate
+29,Female,169,45.1,25.5,106,68,63,37.1,97,14,13.5,183,73,60,100,0.76,Gastro-oesophageal reflux review,High
+50,Female,151,62.1,29.8,114,65,75,36.6,97,17,15.1,191,55,102,70,0.9,Acid reflux symptoms,Low
+43,Male,183,40.4,29.8,91,78,82,36.5,97,17,14.0,199,42,84,97,1.34,Routine health check-up,Low
+37,Female,160,70.9,29.8,107,69,68,36.6,98,17,14.1,187,50,122,57,0.83,Routine health check-up,Low
+31,Female,154,56.9,24.9,112,78,81,36.7,99,17,13.0,142,52,86,83,1.0,Acid reflux symptoms,Low
+44,Male,167,77.8,23.0,103,66,86,37.1,96,17,15.4,170,47,111,105,0.71,Mild sinusitis,Low
+38,Female,187,62.3,26.6,93,65,67,37.1,100,17,13.1,177,49,85,109,0.69,Palpitation evaluation,Low
+18,Female,177,76.3,29.8,108,76,71,37.1,98,16,13.4,150,65,82,75,1.04,Neck stiffness,Low
+25,Female,171,54.8,26.0,103,72,82,36.6,98,15,12.9,179,58,77,75,1.02,Chronic lower back pain review,High
+36,Male,177,63.2,29.8,95,71,74,36.8,97,17,12.9,157,60,94,75,0.87,Tension-type headache,Low
+32,Female,156,69.6,23.0,106,66,60,36.5,97,17,15.2,185,58,110,50,0.88,Ear wax removal,High
+34,Female,166,99.6,23.0,107,67,62,36.5,97,17,14.4,183,76,69,89,0.73,Migraine review,Moderate
+28,Male,154,57.8,27.5,104,77,76,36.6,97,17,13.5,146,45,68,91,0.8,Chronic lower back pain review,Low
+54,Female,167,84.5,22.0,104,70,85,37.1,98,15,12.9,171,53,84,82,0.66,Neck stiffness,Low
+32,Female,156,65.4,26.1,109,70,82,36.4,98,15,15.2,157,70,85,107,0.65,Routine health check-up,Low
+23,Female,169,66.5,25.9,113,75,68,36.7,97,17,12.2,189,43,104,53,0.93,Routine health check-up,Moderate
+22,Female,157,50.9,28.1,106,74,80,36.7,95,13,13.6,187,78,88,113,0.66,Palpitation evaluation,Low
+44,Female,148,63.4,26.2,116,63,92,36.8,98,17,14.5,193,57,83,50,1.04,Mild musculoskeletal strain,Low
+63,Female,161,62.3,22.0,108,72,70,36.7,96,18,12.8,178,59,75,53,0.72,Tension-type headache,Low
+25,Male,169,64.5,26.6,111,76,82,36.7,100,16,14.4,167,46,112,100,1.09,Migraine review,Low
+53,Female,177,59.0,22.1,102,70,82,37.1,98,17,12.0,179,59,113,120,0.87,Migraine review,Moderate
+23,Male,147,67.0,26.0,113,76,70,36.8,96,18,12.9,151,60,111,78,0.74,Gastro-oesophageal reflux review,High
+29,Male,182,58.6,23.4,112,69,82,36.7,97,17,12.8,161,52,89,118,0.6,Chest discomfort evaluation,Low
+49,Female,167,55.0,25.6,106,75,97,36.9,100,17,11.7,170,42,83,57,1.11,Eczema review,Moderate
+42,Female,143,58.5,19.5,111,70,66,36.6,97,18,11.6,190,61,106,95,0.72,Mild contact dermatitis,Moderate
+26,Female,170,73.9,24.3,105,76,65,36.7,98,18,15.7,175,47,88,137,1.22,Chest discomfort evaluation,Low
+20,Male,149,46.5,23.3,103,65,68,36.6,97,13,12.9,169,46,89,89,0.69,Mild sinusitis,Low
+56,Male,142,58.9,22.7,105,66,80,37.0,96,15,14.2,165,68,110,95,0.77,Routine health check-up,Moderate
+28,Male,169,62.9,21.1,111,68,70,37.1,96,17,11.6,183,57,101,96,0.74,Mild musculoskeletal strain,Moderate
+43,Female,164,88.1,27.5,100,70,79,36.3,98,17,15.9,175,45,109,50,0.78,Allergic rhinitis review,Low
+24,Female,186,67.3,24.7,115,74,70,36.8,98,16,15.0,158,67,68,102,0.71,Ear wax removal,Low
+25,Male,151,62.2,27.1,111,73,84,36.7,97,16,14.8,178,54,115,60,0.85,Routine health check-up,Low
+35,Female,150,67.1,25.2,105,74,70,36.4,98,15,14.5,175,46,116,112,0.69,Allergic rhinitis review,Low
+43,Male,179,54.0,25.8,105,67,97,36.9,98,16,15.1,188,43,113,50,1.02,Chronic lower back pain review,Low
+19,Female,149,66.8,29.8,116,64,89,36.7,98,17,15.7,159,65,99,71,0.6,Mild contact dermatitis,Low
+26,Female,169,61.0,25.4,96,71,86,36.7,97,14,14.5,189,41,109,55,0.87,Lower back pain,High
+33,Female,167,63.2,20.5,97,72,71,36.8,98,18,14.4,193,55,98,58,0.86,Neck stiffness,Low
+39,Male,147,72.5,20.5,97,76,75,37.1,98,17,14.1,187,51,111,102,0.64,Sleep disturbance evaluation,Low
+24,Female,161,56.4,28.7,91,62,78,36.7,97,12,14.5,146,58,119,69,0.87,Sore throat,Low
+43,Female,162,61.5,28.2,99,69,82,36.6,99,15,12.4,172,53,102,50,0.84,Tension-type headache,Low
+18,Male,154,44.2,26.2,92,66,65,36.5,98,16,14.0,190,58,118,76,1.24,Mild sinusitis,Low
+43,Male,166,66.6,27.2,101,68,85,36.7,99,15,12.1,193,42,95,80,0.93,Gastro-oesophageal reflux review,Low
+18,Female,157,59.0,26.6,109,78,76,37.1,97,12,13.7,172,56,90,99,1.29,Allergic rhinitis symptoms,Low
+27,Male,165,42.2,23.7,105,78,85,36.6,98,14,12.7,164,42,113,101,0.68,Knee pain evaluation,High
+23,Male,163,81.3,22.7,116,66,69,37.0,98,16,14.1,170,57,119,79,0.6,Seasonal cough,Low
+22,Female,154,56.3,24.4,98,68,67,36.9,97,17,14.3,182,44,92,61,0.67,Routine health check-up,Low
+19,Male,151,50.4,26.4,101,65,64,36.7,98,17,14.6,190,53,120,68,0.82,Routine health check-up,Moderate
+23,Female,152,64.7,29.8,99,68,85,36.8,98,15,12.7,166,52,97,50,0.76,Mild acne,Low
+37,Male,142,68.7,24.3,104,75,81,36.7,97,17,12.9,182,51,90,61,0.67,Mild indigestion,Low
+37,Female,171,62.1,23.3,109,78,79,37.1,98,16,13.6,181,42,107,58,0.85,Hair fall evaluation,High
+19,Male,164,55.0,27.8,101,71,68,36.7,98,16,12.9,150,74,80,115,0.72,Routine health check-up,Low
+53,Female,166,62.5,29.4,103,66,80,36.7,100,16,13.1,183,40,114,59,0.76,Seasonal cold symptoms,Low
+45,Female,156,64.8,26.7,105,63,73,37.1,97,17,13.4,197,50,126,50,0.96,Abdominal discomfort evaluation,Low
+35,Male,179,89.6,27.5,100,77,76,37.1,97,13,13.4,145,64,84,55,0.76,Fungal skin infection,Low
+39,Male,154,48.1,27.3,113,70,89,36.6,98,18,12.7,170,56,75,94,0.83,Fungal skin infection,Low
+30,Female,166,59.4,26.5,99,69,78,36.9,97,17,14.3,162,47,69,57,0.91,Routine health check-up,Low
+18,Female,148,66.0,27.9,107,74,61,36.6,97,18,13.9,175,69,76,91,1.27,Mild indigestion,Low
+18,Female,164,71.5,23.9,101,77,67,36.6,100,18,13.4,169,51,60,102,0.92,Knee pain evaluation,Low
+31,Female,165,75.4,28.5,98,77,81,36.7,99,16,11.6,127,73,120,59,0.69,Fatigue and weight change evaluation,Moderate
+30,Female,171,78.8,24.3,96,68,73,36.7,97,17,13.7,171,63,94,98,1.08,Fungal skin infection,Low
+19,Male,170,61.0,29.0,92,76,74,36.9,97,15,13.8,164,48,87,50,1.0,Seasonal cold symptoms,High
+28,Male,158,63.1,23.5,110,64,78,36.8,97,17,14.8,154,72,108,99,0.63,Mild sinusitis,Low
+38,Female,142,51.3,25.9,95,73,78,36.7,97,16,13.9,162,53,109,50,1.12,Routine health check-up,Low
+31,Male,142,58.4,21.7,103,68,75,37.1,98,16,13.0,196,58,108,73,0.92,Gastro-oesophageal reflux review,Low
+49,Female,178,70.4,25.5,109,68,71,36.7,95,14,13.6,179,43,125,80,0.97,Thyroid follow-up,Low
+47,Male,163,54.4,24.4,99,69,73,37.1,97,13,13.8,199,64,115,50,0.86,Tension-type headache,Moderate
+34,Male,144,52.8,26.1,112,65,66,37.1,97,14,14.2,191,65,121,111,1.06,Routine health check-up,Moderate
+50,Male,182,62.8,20.5,111,67,77,36.7,98,14,13.9,162,40,128,57,0.73,Routine health check-up,Low
+41,Female,171,48.5,22.6,100,68,76,36.7,96,12,13.8,187,50,113,61,0.79,Mild sinusitis,Moderate
+37,Female,183,49.0,25.8,103,75,90,37.1,97,16,12.1,163,40,95,105,0.7,Mild contact dermatitis,Low
+21,Female,172,58.7,28.3,101,78,61,36.6,98,17,12.3,171,48,108,89,1.05,Seasonal cough,Low
+42,Male,159,41.7,22.8,107,76,75,36.5,97,17,13.4,167,47,118,93,0.76,Routine health check-up,Low
+22,Female,152,79.7,24.6,94,72,74,36.7,98,17,11.7,181,44,80,79,1.19,Chronic lower back pain review,Low
+30,Female,172,78.5,23.3,96,69,92,37.0,99,17,15.3,193,62,64,93,0.72,Dry skin and itching,Low
+41,Male,142,48.3,29.8,114,73,71,36.6,97,17,14.9,177,48,96,93,1.0,Mild body ache,Low
+36,Male,163,68.0,25.1,103,68,77,36.7,97,16,12.8,165,48,106,76,1.02,Mild sinusitis,Moderate
+47,Male,148,69.8,26.1,116,78,86,36.8,98,15,13.1,161,63,97,50,0.79,Lower back pain,Moderate
+28,Female,159,52.6,22.1,95,68,85,36.5,98,16,13.3,174,61,81,89,0.64,Gastro-oesophageal reflux review,Moderate
+53,Male,170,51.8,29.7,101,78,77,36.7,97,17,12.9,158,50,110,79,0.91,Eczema review,Low
+42,Male,154,47.3,28.3,112,70,74,37.1,97,17,13.1,154,45,111,50,0.95,Fungal skin infection,Low
+21,Female,155,59.8,27.6,109,69,78,36.7,97,20,12.9,156,57,99,107,0.77,Thyroid follow-up,Low
+57,Female,156,57.1,18.6,100,66,61,36.6,98,13,11.6,189,65,122,92,0.64,Routine health check-up,Low
+32,Male,165,54.6,26.7,111,74,72,36.4,99,17,15.2,195,52,95,97,0.76,Routine health check-up,Low
+42,Male,153,63.7,24.5,99,69,77,36.8,100,17,13.3,164,63,105,50,0.87,Mild wheeze evaluation,Moderate
+48,Male,147,49.7,25.1,102,61,82,36.6,96,17,13.2,196,63,123,85,0.78,Fungal skin infection,Low
+43,Female,155,63.0,24.7,110,78,77,37.1,99,12,14.5,166,59,83,80,1.17,Allergic rhinitis symptoms,Low
+52,Female,185,62.3,26.5,118,68,82,36.6,96,17,13.4,171,48,104,96,0.8,Routine health check-up,Low
+40,Male,156,55.7,27.7,106,66,71,36.6,96,17,12.5,145,42,70,95,0.65,Gastro-oesophageal reflux review,Moderate
+50,Female,151,59.1,21.3,108,77,78,37.0,98,19,13.1,153,76,90,115,0.6,Allergic rhinitis review,Moderate
+57,Male,154,72.1,24.0,111,74,78,37.0,100,18,13.4,162,59,100,56,0.98,Fatigue and weight change evaluation,Moderate
+25,Female,179,69.8,28.7,113,77,80,36.7,96,15,12.9,170,52,95,84,0.91,Sore throat,Low
+21,Male,164,40.4,26.2,112,66,80,36.6,96,17,12.3,179,54,102,108,1.25,Mild contact dermatitis,Low
+38,Male,159,69.6,29.8,103,76,83,36.8,98,17,13.5,186,73,71,75,0.61,Palpitation evaluation,Low
+22,Male,158,78.2,21.3,109,70,69,36.7,97,16,13.2,155,46,92,68,0.76,Neck stiffness,Moderate
+28,Female,173,71.4,21.8,109,64,76,36.7,97,17,14.6,168,44,60,100,0.87,Routine health check-up,Low
+30,Male,181,71.8,29.8,92,70,67,36.9,98,16,13.9,193,45,86,82,0.95,General fatigue evaluation,Low
+34,Male,180,49.0,22.9,95,69,78,36.7,98,16,15.7,199,41,74,56,0.6,Routine health check-up,Low
+18,Female,173,50.0,29.8,102,66,81,37.0,96,18,13.0,176,51,100,50,0.63,Thyroid follow-up,Moderate
+38,Male,154,41.1,25.0,102,77,76,36.7,98,17,13.4,162,52,119,89,0.93,Mild wheeze evaluation,Low
+28,Female,156,59.7,21.2,98,65,81,36.7,100,13,12.5,181,49,113,107,0.94,Sleep disturbance evaluation,Low
+24,Female,174,61.9,29.8,106,67,97,36.5,100,17,13.9,170,58,116,96,1.16,Abdominal discomfort evaluation,Low
+48,Male,162,63.5,21.9,103,65,67,36.7,95,18,14.0,182,45,100,93,0.9,Routine health check-up,Low
+63,Female,160,74.7,24.1,106,70,78,36.7,97,20,13.6,149,51,72,83,0.88,Ear wax removal,Low
+26,Male,144,72.2,25.2,96,78,72,37.1,97,18,13.6,157,51,126,95,0.88,Breathlessness on exertion evaluation,Low
+18,Male,159,81.6,25.2,104,70,69,36.7,97,17,13.1,198,54,102,86,0.69,Routine health check-up,Moderate
+19,Male,185,56.3,29.8,105,65,77,36.7,96,17,14.6,199,58,113,87,0.9,Allergic rhinitis review,Moderate
+19,Male,169,67.3,24.4,119,65,85,36.8,97,17,11.7,185,47,96,89,0.8,Knee pain evaluation,Moderate
+50,Male,166,60.1,18.6,101,68,91,37.1,97,17,16.6,166,46,76,81,0.99,Routine health check-up,Moderate
+26,Male,170,58.6,25.6,103,66,95,36.6,97,17,14.4,199,49,75,80,0.81,Migraine review,Low
+25,Female,164,66.3,27.9,107,71,77,36.6,100,15,14.2,154,43,112,105,1.23,Mild asthma review,Low
+51,Male,153,70.1,24.7,110,69,81,36.7,98,18,15.1,184,43,82,50,0.77,Gastro-oesophageal reflux review,Low
+27,Male,166,88.2,26.7,109,69,81,37.1,98,17,13.1,176,45,60,53,0.92,General fatigue evaluation,Low
+38,Female,161,51.9,23.7,111,65,87,36.7,97,18,12.9,167,47,122,123,0.7,Mild contact dermatitis,Low
+33,Female,165,80.5,26.1,103,77,60,36.8,98,14,14.6,187,46,120,78,0.83,Allergic rhinitis symptoms,Low
+32,Female,157,65.2,23.2,109,72,74,36.6,97,17,15.7,175,48,104,132,0.84,Acid reflux symptoms,Low
+53,Female,157,51.2,22.5,99,64,77,36.8,100,17,13.9,176,59,100,65,0.85,Chronic cough evaluation,Low
+23,Male,143,77.7,25.6,94,73,75,36.8,97,18,14.6,188,40,110,107,0.68,Mild contact dermatitis,Low
+35,Male,170,73.8,24.7,101,64,62,36.9,100,13,13.1,162,48,96,76,1.02,Routine health check-up,Low
+25,Female,166,73.1,22.8,110,65,63,36.9,97,16,13.9,186,48,111,130,0.76,Tension-type headache,High
+19,Male,159,82.0,26.8,112,72,62,36.9,98,16,16.2,186,53,81,53,1.17,Routine health check-up,Moderate
+31,Female,148,65.6,25.2,108,67,77,36.7,98,17,13.7,186,70,122,127,1.05,Thyroid follow-up,Low
+26,Female,171,61.6,26.0,109,71,61,36.6,97,16,14.1,179,45,84,81,1.03,Hair fall evaluation,Low
+45,Female,154,54.9,28.3,102,74,97,37.0,98,19,13.6,182,53,113,77,1.06,Mild indigestion,Low
+23,Female,171,51.9,23.9,106,70,75,36.8,97,18,12.5,174,53,69,68,1.01,Eczema review,Low
+26,Male,160,54.5,22.2,109,75,74,36.8,98,16,13.3,186,62,110,64,0.64,Chronic lower back pain review,Low
+23,Female,162,53.4,21.6,108,62,88,36.4,98,16,14.2,180,43,90,141,1.02,Gastro-oesophageal reflux review,Low
+41,Male,149,40.4,28.7,107,69,68,37.1,100,19,12.0,162,60,104,92,0.61,Routine health check-up,Low
+38,Male,162,56.9,26.7,101,67,85,36.7,97,16,13.1,199,56,77,78,1.12,Mild body ache,Low
+31,Male,155,49.4,24.4,103,76,74,36.5,96,12,13.9,198,40,106,81,0.9,Routine health check-up,Low
+20,Female,160,67.5,24.8,96,68,62,36.9,99,19,13.3,197,46,111,55,0.77,Allergic rhinitis symptoms,Low
+21,Male,163,58.6,26.2,118,73,82,36.8,100,16,11.6,190,72,113,70,0.82,Palpitation evaluation,Moderate
+29,Female,153,52.1,22.1,115,77,64,37.1,97,17,13.4,167,58,112,76,0.81,Functional dyspepsia,Low
+36,Female,165,48.7,29.8,107,69,74,36.7,97,14,14.2,192,75,115,74,1.14,Routine health check-up,Low
+62,Male,162,79.5,27.6,96,65,95,37.1,97,17,13.2,157,46,99,75,0.96,Knee pain evaluation,Low
+44,Female,176,59.0,23.2,104,70,84,36.6,98,17,12.8,171,48,86,72,0.67,Chronic lower back pain review,Low
+57,Female,189,40.4,20.9,97,78,77,36.6,96,16,16.3,185,53,110,107,0.87,Thyroid follow-up,Low
+20,Female,159,53.5,29.8,116,68,80,36.7,97,17,13.1,150,50,89,65,0.82,Mild contact dermatitis,Low
+25,Female,146,47.0,25.8,98,77,69,36.7,98,18,12.9,186,69,106,76,0.92,Mild indigestion,Low
+50,Female,168,45.1,29.1,111,78,68,37.1,98,17,12.7,197,54,102,94,0.78,Migraine review,Low
+28,Female,152,64.7,24.2,102,69,97,36.5,99,17,11.6,168,44,107,76,0.82,Fungal skin infection,Moderate
+60,Male,164,64.0,25.2,119,75,63,36.6,96,19,11.6,164,45,63,122,0.81,Routine health check-up,Low
+42,Male,174,44.0,23.4,100,74,77,36.7,97,13,15.2,163,59,112,64,0.79,Mild contact dermatitis,Low
+38,Male,160,55.9,24.4,111,68,71,36.6,98,15,13.2,187,72,94,78,0.81,Chronic cough evaluation,Low
+35,Male,163,83.5,24.3,91,63,78,36.7,96,17,13.5,192,49,109,77,0.67,Routine health check-up,Low
+32,Male,165,56.7,23.7,108,78,88,37.1,97,17,11.6,178,59,107,50,0.87,Mild asthma review,Moderate
+31,Female,159,84.2,27.7,112,78,81,36.9,98,17,15.5,186,49,92,50,0.8,General fatigue evaluation,Low
+27,Male,156,43.7,28.1,106,71,74,36.7,96,17,12.7,199,66,125,87,0.94,Chest discomfort evaluation,Low
+18,Male,170,96.1,26.8,106,65,75,37.0,97,16,13.8,141,51,109,103,0.6,Routine health check-up,Low
+26,Male,166,61.4,26.1,111,70,77,36.7,98,16,13.6,160,48,78,70,0.78,Chronic cough evaluation,Low
+25,Female,163,65.2,29.0,91,77,68,36.6,97,12,15.5,173,64,78,70,0.89,Acid reflux symptoms,Moderate
+50,Male,165,43.8,27.5,96,67,93,36.7,97,17,14.6,165,52,94,67,0.93,Mild wheeze evaluation,Low
+22,Female,162,67.7,26.8,91,76,81,36.8,98,19,14.2,184,50,88,68,0.71,Mild acne,High
+37,Female,161,60.7,25.1,91,75,85,36.9,98,16,12.7,131,48,69,115,0.9,Chronic lower back pain review,Low
+29,Male,170,64.7,27.4,94,71,73,36.7,97,17,14.4,157,62,98,103,1.07,Seasonal cough,Low
+27,Male,147,63.0,29.8,112,77,63,37.0,100,17,16.3,184,71,79,116,0.66,Mild body ache,High
+32,Female,160,55.9,22.9,101,73,82,36.5,100,16,14.0,189,60,84,70,0.78,Chronic cough evaluation,Moderate
+18,Female,157,82.5,29.8,93,67,77,37.1,97,14,13.2,147,48,114,50,1.05,Mild contact dermatitis,Low
+50,Male,159,50.9,23.3,104,62,84,37.1,98,17,14.0,199,54,115,93,0.83,Mild sinusitis,Low
+25,Female,160,53.1,24.2,111,77,69,36.7,97,16,11.8,163,61,86,54,1.08,Chronic cough evaluation,Low
+33,Male,155,75.2,27.9,108,74,67,37.1,98,17,15.5,155,54,85,56,0.67,Routine health check-up,Low
+52,Female,176,60.0,25.1,96,77,74,36.7,96,17,14.2,147,72,98,50,1.15,Breathlessness on exertion evaluation,Low
+37,Female,150,57.0,25.2,118,78,81,36.6,97,17,12.9,149,60,122,53,0.66,Migraine-type headache,Low
+18,Female,164,74.8,24.1,99,75,73,36.6,100,18,13.7,158,55,88,119,0.83,Tension-type headache,High
+21,Female,158,60.6,23.0,108,64,69,36.7,97,17,14.5,144,55,104,50,0.75,Chest discomfort evaluation,Low
+41,Female,167,58.8,22.8,104,67,83,36.7,98,17,13.3,165,40,124,88,0.67,Gastro-oesophageal reflux review,Low
+28,Male,182,71.2,26.2,98,69,70,36.4,100,17,14.1,173,50,93,50,1.25,Lower back pain,Low
+24,Male,159,51.9,26.4,94,75,79,37.1,97,18,11.6,156,40,98,91,0.86,Routine health check-up,Moderate
+30,Female,172,49.4,26.4,108,71,74,36.8,98,14,15.7,187,56,108,50,1.03,Migraine review,Low
+23,Female,167,74.0,24.7,102,74,65,36.6,97,18,15.1,192,59,96,90,0.6,Migraine review,Low
+54,Female,167,66.0,24.6,117,62,72,36.6,97,17,14.3,198,53,121,114,1.12,Routine health check-up,Low
+51,Male,181,60.1,21.8,111,71,60,37.1,98,18,14.5,164,47,108,50,0.67,Mild indigestion,Low
+32,Male,156,64.7,21.1,111,75,76,36.6,99,12,16.4,173,44,90,50,0.82,Mild contact dermatitis,Low
+26,Female,155,65.5,21.9,110,69,81,36.5,98,17,13.2,180,59,108,57,0.6,Mild constipation,Low
+36,Female,156,83.4,25.8,104,73,71,36.8,99,17,13.7,162,63,72,58,1.22,Chest discomfort evaluation,Low
+44,Male,142,63.7,27.6,92,75,81,37.0,97,17,12.1,185,53,98,68,0.83,Eczema review,Low
+33,Female,148,41.7,24.1,109,71,82,36.7,98,16,12.9,153,53,108,81,0.93,Gastro-oesophageal reflux review,Low
+39,Male,142,85.3,24.8,113,77,70,36.9,97,15,15.2,163,78,127,70,1.06,Palpitation evaluation,Low
+32,Female,155,57.5,29.8,104,74,86,36.9,97,16,13.2,178,40,87,54,1.33,Mild contact dermatitis,Low
+18,Female,172,61.8,23.1,119,68,63,37.1,100,14,14.1,193,42,94,64,1.22,Routine health check-up,Moderate
+38,Male,172,58.0,29.8,95,68,71,36.8,98,17,14.5,171,46,117,71,0.88,Chest discomfort evaluation,Low
+26,Male,162,62.9,24.7,114,78,72,36.6,98,17,13.3,177,68,77,112,0.93,Cardiac wellness consultation,Low
+21,Female,170,71.8,23.5,95,78,65,36.6,98,17,13.8,147,60,75,63,0.6,Dry skin and itching,Low
+42,Male,167,85.9,21.9,105,63,63,36.7,97,17,11.9,186,52,108,71,1.22,Routine health check-up,Low
+29,Male,152,65.3,26.7,105,75,71,36.5,98,17,13.6,165,69,110,95,1.03,Dry skin and itching,Moderate
+47,Female,151,52.4,29.8,103,70,70,37.1,97,14,12.8,185,50,95,86,1.2,Fatigue and weight change evaluation,Low
+36,Male,154,65.8,22.9,103,71,67,36.7,98,18,13.3,174,45,62,102,0.85,Routine health check-up,High
+47,Male,164,62.6,26.7,115,76,76,36.6,97,15,12.8,176,46,105,68,0.91,Functional dyspepsia,High
+32,Male,154,44.3,28.8,102,66,68,36.5,97,18,14.8,161,54,100,62,0.99,Thyroid follow-up,Moderate
+18,Male,142,58.6,29.8,103,66,69,36.7,98,15,14.0,178,46,79,50,0.98,Routine health check-up,Moderate
+21,Male,156,47.1,29.8,107,69,60,37.1,98,19,13.7,164,56,82,84,0.71,Ear wax removal,Low
+28,Female,150,70.1,19.2,108,78,60,36.6,97,18,14.9,197,66,110,60,0.81,Hair fall evaluation,Low
+31,Male,162,68.8,27.8,103,72,97,36.8,96,16,14.8,186,57,69,121,0.72,Lower back pain,Moderate
+34,Male,142,58.1,23.9,119,69,68,36.6,98,18,14.5,164,70,98,53,0.63,Routine health check-up,Moderate
+18,Male,162,47.1,29.3,105,71,74,36.6,97,17,13.5,156,47,79,50,0.73,Mild indigestion,Moderate
+62,Female,154,53.5,26.0,112,77,81,37.1,97,17,13.2,167,50,117,50,1.09,Sleep disturbance evaluation,Low
+26,Female,189,46.2,28.2,114,66,73,36.6,96,16,16.1,172,53,101,98,1.03,Knee pain evaluation,Moderate
+42,Female,147,70.1,26.0,100,75,75,36.8,96,17,12.8,147,63,103,85,0.74,Mild body ache,Moderate
+61,Female,159,60.0,27.8,94,75,96,36.7,100,17,14.2,199,40,107,63,1.16,Routine health check-up,Low
+26,Male,157,56.6,23.5,94,71,64,37.1,99,15,14.3,199,60,97,72,0.76,Mild wheeze evaluation,Moderate
+40,Female,151,47.1,23.7,109,68,80,36.6,99,14,12.1,197,66,124,64,0.84,Mild acne,Low
+21,Female,154,89.7,27.0,107,75,72,37.1,97,17,13.4,135,76,103,77,0.83,Chronic lower back pain review,Low
+25,Female,156,87.1,26.1,98,78,68,36.7,98,18,13.1,148,61,67,104,0.73,Chronic lower back pain review,Low
+39,Female,160,58.8,26.4,104,78,72,36.9,98,16,12.1,165,55,106,117,0.81,Routine health check-up,Low
+33,Female,151,46.1,20.6,97,73,72,36.7,98,13,13.8,195,51,99,86,0.95,Neck stiffness,Low
+18,Female,157,61.9,23.8,115,69,79,36.8,96,12,14.3,144,50,112,82,1.11,Migraine review,Low
+31,Female,163,50.6,26.5,108,72,67,36.9,97,20,13.1,162,40,103,107,1.21,Mild contact dermatitis,Moderate
+31,Male,178,66.3,29.8,97,74,75,36.6,98,14,13.4,176,60,113,113,1.25,Chronic cough evaluation,Low
+32,Male,168,60.1,22.1,103,71,79,36.5,97,14,13.7,199,70,95,66,1.32,Gastro-oesophageal reflux review,Moderate
+34,Male,157,60.3,20.6,110,72,78,37.1,98,16,14.3,188,65,101,50,1.07,Eczema review,Low
+42,Male,167,48.0,26.5,109,78,79,36.8,98,18,15.2,185,41,118,50,0.73,Migraine review,Low
+38,Male,176,71.0,29.8,96,78,88,37.1,98,17,11.6,177,41,86,50,0.94,Seasonal cough,Low
+21,Male,173,73.6,26.9,110,66,68,36.5,97,18,14.1,187,56,82,86,0.78,Mild contact dermatitis,High
+49,Male,142,59.8,21.8,116,70,62,37.1,100,12,13.5,180,58,103,64,0.8,Mild asthma review,Low
+19,Male,174,80.5,24.3,114,72,64,36.7,97,17,14.3,184,69,88,61,0.7,Routine health check-up,Low
+39,Male,159,69.1,23.6,107,69,69,37.1,96,19,13.2,178,53,124,108,0.77,Thyroid follow-up,Low
+40,Female,170,73.8,26.3,97,76,71,36.8,97,17,12.8,166,58,68,87,0.92,Migraine review,High
+41,Female,169,54.3,26.8,109,78,91,36.5,96,15,12.9,179,46,93,50,0.69,Allergic rhinitis symptoms,Moderate
+37,Female,148,45.1,29.8,103,71,75,36.7,98,18,11.6,192,63,91,60,0.92,Mild contact dermatitis,Moderate
+41,Male,159,75.1,22.0,109,67,60,36.6,98,17,14.6,182,51,114,80,0.78,Migraine-type headache,Low
+23,Female,183,63.3,24.9,100,78,73,37.1,97,17,13.9,191,49,84,123,0.68,General fatigue evaluation,Low
+27,Female,164,50.8,25.2,109,64,72,36.6,97,13,12.5,175,63,77,108,0.88,Routine health check-up,High
+40,Male,142,75.7,24.8,119,68,80,36.8,99,19,15.1,191,58,83,50,0.92,Dry skin and itching,Low
+33,Male,160,62.0,24.3,96,67,79,36.7,98,18,13.5,189,51,101,50,1.26,Mild contact dermatitis,Low
+32,Female,156,79.7,29.6,108,67,79,37.0,97,17,14.1,136,55,118,102,0.72,Weight management consultation,Moderate
+18,Female,174,69.1,26.6,109,66,80,36.6,97,12,12.6,127,58,116,68,0.64,Routine health check-up,High
+37,Male,147,69.1,25.3,109,76,89,36.6,98,17,13.1,193,51,100,89,0.86,Ear wax removal,Low
+32,Female,165,73.6,23.1,116,78,74,36.6,98,18,13.1,181,55,61,61,0.6,Chronic lower back pain review,Low
+26,Female,161,53.4,26.1,110,72,61,36.8,98,15,15.1,189,60,102,60,0.78,Palpitation evaluation,Moderate
+40,Male,152,93.8,25.2,108,78,73,36.7,98,17,14.1,194,43,113,87,0.69,Thyroid follow-up,High
+45,Male,155,65.9,25.8,109,62,82,36.9,99,14,14.0,172,40,88,70,0.76,Routine health check-up,High
+32,Female,165,64.6,27.5,104,68,64,36.5,95,17,12.1,189,42,98,50,0.65,Weight management consultation,Moderate
+30,Male,153,55.4,25.0,114,72,60,36.6,98,14,13.5,173,61,69,103,1.05,Seasonal cough,Low
+18,Female,184,67.2,21.1,97,71,80,36.8,98,13,13.0,194,45,106,87,1.25,Acid reflux symptoms,Moderate
+45,Male,173,81.0,21.6,105,65,75,36.7,98,16,13.2,195,59,118,66,0.76,Mild indigestion,Low
+18,Male,158,47.8,21.3,107,70,78,37.0,98,17,12.5,185,54,104,101,1.01,Dizziness evaluation,Low
+37,Female,155,76.3,27.5,107,75,86,36.8,100,14,12.1,193,53,103,104,0.72,Mild contact dermatitis,Low
+47,Male,181,40.4,24.9,101,75,86,37.1,98,16,12.0,199,40,110,104,1.14,Mild wheeze evaluation,Low
+47,Male,155,67.5,22.3,106,68,86,36.9,97,17,13.0,174,49,117,50,1.0,Ear wax removal,Low
+33,Male,167,63.4,29.8,110,70,73,37.1,97,14,13.7,199,46,96,109,0.81,Mild contact dermatitis,Low
+22,Male,165,58.5,29.8,106,74,92,36.5,98,17,14.3,142,44,92,90,0.65,Chest discomfort evaluation,Low
+58,Female,147,59.4,21.5,101,71,72,36.9,100,17,11.7,184,40,94,93,0.83,Lower back pain,Moderate
+22,Female,145,54.3,28.0,104,70,82,36.6,97,12,12.6,188,53,96,101,0.62,Routine health check-up,Low
+48,Female,161,61.6,24.3,113,68,94,36.8,97,17,13.9,164,46,121,80,1.09,General fatigue evaluation,Low
+61,Female,155,59.4,24.6,103,76,80,36.7,98,16,15.0,196,70,124,81,1.17,Seasonal cough,Low
+32,Female,166,83.5,22.5,101,76,84,36.8,96,17,15.2,188,40,65,133,0.76,Routine health check-up,Low
+39,Female,157,55.0,27.8,101,69,76,36.9,97,12,14.2,186,46,107,52,0.8,Gastro-oesophageal reflux review,Low
+44,Male,165,61.0,26.4,101,76,62,36.6,99,15,13.7,167,51,100,101,0.84,Migraine review,Low
+28,Female,167,63.2,25.7,97,76,77,36.6,97,13,13.5,163,68,104,109,0.6,Mild acne,Low
+37,Female,156,53.7,26.0,101,70,73,36.7,97,18,11.9,140,62,111,74,1.04,Routine health check-up,Low
+29,Male,162,43.3,26.2,103,69,72,36.4,100,18,11.6,168,68,120,68,0.86,Routine health check-up,Moderate
+36,Male,179,64.9,25.5,102,74,71,36.4,99,18,13.9,167,51,112,82,0.66,Neck stiffness,Moderate
+47,Female,171,47.7,22.3,109,78,76,36.5,99,13,13.1,179,59,86,67,0.9,Mild asthma review,Moderate
+48,Male,173,66.9,25.3,106,78,74,36.8,98,16,14.8,180,69,89,69,0.92,Routine health check-up,Moderate
+50,Male,182,47.1,29.8,115,67,89,36.5,97,16,14.4,164,52,92,50,0.84,Routine health check-up,Low
+18,Female,164,60.8,25.6,114,63,60,36.3,98,14,14.2,186,45,75,95,0.94,Gastro-oesophageal reflux review,Low
+41,Male,176,66.7,24.2,112,64,84,36.9,99,15,16.3,199,71,119,57,0.82,Routine health check-up,Low
+24,Male,143,63.4,23.6,113,66,86,36.6,97,16,12.6,165,59,124,106,0.69,Mild musculoskeletal strain,High
+23,Male,158,68.7,28.7,110,70,74,36.8,99,18,14.9,184,70,89,111,0.6,Breathlessness on exertion evaluation,High
+33,Female,164,57.4,27.0,113,71,75,36.6,96,17,13.9,195,49,98,60,0.97,Gastro-oesophageal reflux review,Low
+53,Female,174,40.4,22.4,105,72,72,36.6,97,17,11.9,195,47,84,72,0.92,Thyroid follow-up,Low
+18,Male,142,48.5,26.9,112,74,76,37.1,96,16,12.4,180,47,89,117,0.77,Seasonal cold symptoms,Low
+36,Female,157,47.1,23.5,111,66,80,36.5,97,17,12.7,164,57,73,76,0.89,General fatigue evaluation,Low
+23,Female,157,65.5,25.9,108,66,66,36.9,97,17,11.6,163,51,89,56,0.71,Migraine review,Moderate
+25,Male,156,58.3,23.7,105,78,60,36.7,98,17,14.0,152,57,95,104,0.99,Dry skin and itching,High
+42,Female,180,69.8,28.1,96,72,85,36.8,97,19,13.6,156,54,88,79,0.97,Routine health check-up,Low
+24,Female,181,82.1,26.8,109,63,70,36.8,99,12,14.1,177,50,119,82,0.72,Routine health check-up,Low
+21,Female,187,73.3,26.5,101,75,85,36.6,99,19,13.9,191,48,88,93,0.95,Fungal skin infection,Low
+57,Male,173,46.8,28.4,100,64,71,36.5,97,15,14.2,163,56,100,72,0.73,Allergic rhinitis symptoms,Low
+18,Female,165,57.5,26.7,99,65,77,36.9,97,16,13.7,174,54,78,74,1.02,Knee pain evaluation,Low
+26,Male,189,60.6,22.1,102,78,81,37.1,97,17,14.4,199,63,108,54,0.77,Functional dyspepsia,Low
+19,Female,161,68.8,21.7,111,70,86,37.1,98,18,13.7,193,40,79,81,1.04,Migraine-type headache,Moderate
+41,Female,156,59.4,27.7,103,70,79,36.9,99,19,14.3,185,54,96,92,0.73,Hair fall evaluation,High
+18,Male,154,57.6,18.6,119,69,65,36.7,98,18,11.6,157,53,90,99,0.75,Neck stiffness,Low
+35,Female,151,82.2,22.0,113,69,68,36.5,98,17,13.2,172,53,126,50,0.76,Chest discomfort evaluation,Moderate
+25,Female,154,53.8,25.0,119,74,68,36.8,97,17,12.9,198,63,99,54,0.73,Chronic cough evaluation,High
+25,Male,171,52.1,22.1,99,78,84,36.9,97,20,14.6,175,51,115,50,0.74,Mild musculoskeletal strain,Moderate
+20,Male,142,64.2,25.2,107,68,63,36.5,98,18,14.8,186,49,112,65,1.02,General fatigue evaluation,Moderate
+44,Male,162,65.8,28.1,106,75,78,37.1,95,16,12.9,186,64,86,113,0.79,Mild asthma review,Moderate
+29,Male,170,61.8,24.6,91,68,66,36.7,97,13,12.7,168,61,104,75,0.96,Mild contact dermatitis,Moderate
+35,Female,154,59.3,27.6,105,73,72,36.7,98,19,14.8,197,67,112,50,0.9,Routine health check-up,Moderate
+27,Female,151,95.3,26.8,93,78,60,36.7,98,17,13.9,156,56,107,78,0.66,Allergic rhinitis symptoms,Low
+44,Male,152,63.3,29.8,105,74,79,36.7,98,17,12.0,179,68,115,93,0.87,Routine health check-up,Low
+41,Male,154,45.1,28.2,114,67,71,36.6,99,18,13.4,199,45,119,55,0.87,Neck stiffness,Low
+24,Male,162,50.7,29.3,111,71,95,36.9,98,13,14.7,184,54,108,59,0.99,Migraine review,Low
+22,Female,157,70.9,25.5,110,64,60,36.7,96,16,13.9,191,48,86,100,0.87,Lower back pain,Moderate
+51,Female,165,61.7,22.9,103,71,74,36.7,98,17,12.4,166,47,112,65,1.12,Routine health check-up,High
+50,Male,173,77.9,29.2,91,72,66,36.6,98,13,13.4,199,40,85,54,0.85,Migraine review,Low
+33,Male,156,64.7,25.6,116,71,84,36.9,98,17,14.6,168,58,100,65,0.9,Chronic cough evaluation,High
+32,Male,168,60.3,26.9,92,76,89,36.6,99,12,14.9,190,58,119,91,0.97,Allergic rhinitis symptoms,High
+48,Male,159,67.4,29.1,106,71,72,36.6,96,17,14.8,180,55,110,65,0.92,Mild sinusitis,Low
+39,Female,163,61.0,28.3,94,75,61,37.1,96,13,12.3,165,68,98,87,1.02,Mild wheeze evaluation,Moderate
+20,Male,175,88.4,24.9,101,63,93,36.8,100,17,14.0,183,64,105,101,0.6,Migraine-type headache,Low
+31,Male,147,55.8,25.3,97,69,78,36.5,99,17,12.8,172,50,80,68,1.02,Abdominal discomfort evaluation,Low
+54,Male,175,69.9,24.2,96,70,88,36.9,97,17,13.6,195,57,107,66,0.73,Thyroid follow-up,Low
+31,Male,164,61.6,20.7,104,71,83,37.1,98,17,14.3,165,42,107,75,0.99,Mild indigestion,Moderate
+27,Male,165,63.0,25.5,97,73,88,36.5,98,18,13.0,188,52,120,61,0.8,Seasonal cold symptoms,Low
+26,Male,160,78.7,29.1,107,69,81,36.9,95,15,15.6,174,51,105,79,0.87,Routine health check-up,Low
+35,Male,166,51.9,29.2,100,68,85,36.9,97,13,13.5,195,47,77,127,0.63,Routine health check-up,High
+29,Female,144,80.7,25.6,107,67,88,37.1,97,17,12.9,140,54,60,51,0.92,Mild contact dermatitis,Low
+25,Female,161,60.4,20.6,114,74,93,36.4,98,16,14.0,193,50,91,57,0.93,Dizziness evaluation,Low
+21,Male,162,58.1,25.6,108,72,91,37.1,97,14,13.8,184,40,94,119,0.8,Cardiac wellness consultation,Low
+35,Female,151,71.5,23.0,110,75,66,36.7,96,17,13.9,185,46,104,50,0.87,Breathlessness on exertion evaluation,Low
+21,Female,164,57.4,27.6,108,75,74,36.5,98,16,12.9,172,50,102,70,0.86,Routine health check-up,Low
+53,Male,176,80.0,28.2,102,68,79,36.5,98,14,12.8,139,57,104,54,0.6,Chest discomfort evaluation,Low
+61,Male,162,50.1,26.0,108,76,81,36.7,97,17,13.1,184,54,101,121,0.89,Lower back pain,Low
+22,Male,166,54.0,25.3,119,67,81,36.7,97,18,12.9,138,46,107,100,1.21,Fatigue and weight change evaluation,Low
+37,Female,158,68.4,25.2,105,71,61,37.1,99,14,11.7,169,64,108,98,0.67,Chronic lower back pain review,Low
+39,Male,178,81.4,25.2,93,67,78,36.7,100,15,11.8,162,63,128,77,0.73,Mild body ache,Low
+34,Female,164,53.8,29.8,96,69,74,36.9,97,15,14.4,169,59,82,72,0.99,Mild constipation,Low
+26,Female,181,61.9,23.0,106,78,85,36.7,98,17,13.6,177,40,82,75,0.78,Tension-type headache,Moderate
+30,Male,161,54.8,23.4,108,77,79,36.8,98,18,13.1,198,52,115,116,1.23,Routine health check-up,Low
+25,Male,154,82.3,25.3,107,78,65,36.6,97,17,14.2,185,45,62,50,0.91,Mild contact dermatitis,Low
+44,Male,170,78.3,28.0,107,74,78,36.7,97,14,11.6,161,49,75,63,0.91,Gastro-oesophageal reflux review,Low
+18,Female,169,65.1,22.9,119,63,64,36.8,98,14,13.6,195,40,101,129,0.67,Neck stiffness,Low
+23,Male,181,68.4,26.3,105,65,83,37.0,98,12,12.6,189,51,60,50,0.71,Hair fall evaluation,Moderate
+26,Male,145,62.5,25.8,118,76,68,36.6,97,17,14.2,181,54,112,65,0.82,Mild musculoskeletal strain,Moderate
+25,Male,185,52.8,27.6,99,71,78,36.7,99,17,13.2,175,42,77,130,1.02,Routine health check-up,Low
+21,Male,154,61.9,26.5,116,62,82,36.9,97,14,13.1,127,54,78,75,0.66,Routine health check-up,Low
+36,Male,161,44.8,23.1,98,68,88,36.7,96,16,13.6,188,45,76,79,0.71,Seasonal cough,High
+43,Male,147,63.9,28.1,95,71,76,36.7,98,18,11.9,199,44,118,81,1.06,Routine health check-up,Low
+29,Female,155,65.6,24.5,99,66,93,36.8,98,19,13.4,165,54,117,75,0.72,Weight management consultation,Moderate
+46,Female,163,57.7,27.4,93,67,67,36.7,97,16,13.6,192,76,100,117,0.78,Chronic lower back pain review,Low
+32,Female,154,60.6,27.3,103,64,65,37.1,98,17,14.2,167,51,104,90,0.6,Abdominal discomfort evaluation,Low
+33,Male,161,65.4,24.9,92,67,69,36.5,96,16,15.2,190,57,103,91,0.71,Cardiac wellness consultation,Low
+28,Female,159,50.2,25.6,108,74,72,36.6,97,12,13.9,161,53,75,87,0.66,Routine health check-up,Low
+24,Female,156,59.4,27.8,102,65,83,36.5,97,16,13.1,187,64,125,50,0.91,Dry skin and itching,High
+41,Male,159,73.6,24.2,114,68,84,36.8,97,13,14.2,187,56,122,94,0.71,Mild constipation,Low
+27,Male,177,61.2,21.8,105,66,73,36.5,97,17,14.6,181,40,85,90,1.06,Mild indigestion,Low
+30,Female,163,57.3,26.7,105,69,70,36.5,98,16,12.5,189,74,110,50,1.03,Mild asthma review,High
+22,Female,156,54.4,23.5,104,75,75,36.8,97,17,13.3,176,53,76,73,1.19,Tension-type headache,Moderate
+38,Female,163,80.1,22.0,101,63,62,36.7,99,17,13.6,150,62,104,69,0.68,Seasonal cold symptoms,Low
+55,Male,170,43.9,29.8,107,73,77,36.6,96,16,11.8,172,54,113,120,0.85,Hair fall evaluation,High
+20,Male,180,48.2,27.8,91,68,75,36.6,97,17,13.8,199,44,80,68,0.75,Weight management consultation,Low
+28,Female,158,80.9,26.6,98,70,85,36.5,98,16,12.2,147,61,89,89,1.02,Migraine review,Low
+34,Female,158,57.2,26.7,92,69,81,37.1,98,17,14.0,167,61,105,74,0.9,Routine health check-up,Low
+39,Male,174,62.8,27.3,111,70,87,36.9,98,17,13.1,175,47,103,86,0.76,Fungal skin infection,Low
+31,Female,156,60.1,25.4,116,76,61,37.1,99,14,14.4,185,58,91,93,0.96,Eczema review,Moderate
+34,Female,147,64.3,25.6,108,76,72,36.8,98,14,12.5,158,56,86,113,0.8,Fungal skin infection,Moderate
+25,Female,160,51.6,24.4,92,70,64,37.1,98,17,12.5,193,61,98,50,0.99,Allergic rhinitis review,Low
+38,Female,161,78.8,27.5,106,60,86,36.5,99,16,13.3,156,45,101,60,0.89,Routine health check-up,Low
+23,Male,177,66.0,29.6,94,78,86,36.7,98,12,14.8,143,72,90,101,0.94,Routine health check-up,Low
+31,Female,149,69.4,21.9,114,71,78,36.4,99,18,14.6,169,52,82,69,1.19,Chronic cough evaluation,High
+31,Female,175,53.0,24.4,112,73,70,36.9,98,17,13.8,184,72,109,64,0.66,Thyroid follow-up,Low
+26,Male,166,63.9,24.9,94,74,91,36.6,98,12,12.1,180,51,121,50,0.99,Mild body ache,Low
+36,Female,154,58.2,21.6,116,68,71,37.1,98,15,14.0,192,46,97,64,0.62,Neck stiffness,Low
+50,Female,167,54.8,23.5,107,75,84,36.8,98,17,11.6,167,45,68,85,1.08,Chest discomfort evaluation,Low
+41,Male,156,68.0,24.8,103,78,65,37.1,96,18,13.3,159,61,88,75,0.95,Mild sinusitis,Low
+31,Male,142,53.8,25.5,109,66,60,36.5,96,17,12.9,165,80,128,123,0.87,Mild body ache,Low
+42,Male,163,75.8,26.7,115,76,71,36.6,99,12,13.6,160,52,90,51,0.67,Sleep disturbance evaluation,Low
+47,Male,161,69.4,24.0,105,71,78,36.7,97,19,13.5,185,48,60,50,0.92,Lower back pain,Low
+26,Male,159,54.5,28.3,103,69,62,36.6,97,12,12.8,175,40,115,77,0.79,Functional dyspepsia,Low
+18,Female,168,40.4,24.2,110,74,88,36.7,98,19,11.8,163,77,74,88,0.6,Ear wax removal,Moderate
+44,Female,169,63.9,25.9,105,65,74,36.9,98,18,14.5,199,75,101,62,0.7,Cardiac wellness consultation,Low
+18,Male,142,48.8,25.2,111,68,77,36.6,97,17,13.2,150,51,121,111,0.77,Routine health check-up,Moderate
+26,Male,156,60.5,24.3,104,70,72,36.5,97,18,11.8,141,55,106,52,0.98,Mild musculoskeletal strain,High
+25,Female,155,65.0,22.7,103,74,88,36.6,97,14,13.7,154,69,112,50,0.86,Breathlessness on exertion evaluation,Low
+32,Female,147,77.0,25.4,106,68,73,36.7,97,18,12.9,172,53,123,82,0.8,Eczema review,Low
+29,Female,174,44.3,26.4,107,67,76,36.6,97,18,13.1,159,47,86,72,0.67,Mild constipation,Low
+33,Female,158,67.3,23.2,113,74,74,37.0,96,13,13.8,169,49,95,88,0.97,Routine health check-up,Moderate
+42,Male,148,63.3,29.8,106,67,85,36.7,97,17,13.7,151,54,77,71,0.72,Allergic rhinitis review,Moderate
+21,Male,142,60.1,24.3,95,71,70,36.8,98,16,15.7,162,46,113,50,0.79,Migraine review,Low
+22,Male,159,51.1,22.7,110,66,65,36.7,98,12,14.0,158,51,76,71,0.84,Fatigue and weight change evaluation,High
+35,Male,165,57.9,28.5,100,67,71,36.7,97,12,15.7,181,60,101,79,0.6,Mild asthma review,Low
+21,Female,161,61.6,24.4,107,73,79,37.0,97,18,13.7,191,47,74,95,0.81,Thyroid follow-up,Low
+26,Female,163,83.8,27.3,101,75,80,36.7,98,17,13.2,169,54,91,91,1.14,Gastro-oesophageal reflux review,Low
+55,Female,158,66.5,24.2,101,68,75,36.7,97,12,14.9,168,45,116,67,0.73,Mild constipation,Low
+39,Female,154,58.4,24.4,98,78,60,36.5,98,18,14.3,193,44,108,63,1.32,Mild asthma review,Low
+23,Male,154,72.4,24.9,95,65,71,36.7,97,17,11.7,186,51,100,62,0.89,Dry skin and itching,Low
+38,Female,142,68.9,27.4,109,70,83,36.6,97,18,14.5,199,72,89,66,0.6,Tension-type headache,Low
+30,Male,172,70.8,26.6,107,72,82,37.1,97,16,12.9,169,40,89,50,0.79,Routine health check-up,Low
+36,Female,180,54.5,21.7,101,67,74,36.7,98,15,14.3,179,44,101,80,0.92,Mild indigestion,Low
+35,Male,165,48.2,24.7,117,75,63,37.1,97,12,11.6,197,50,102,59,0.87,Routine health check-up,Low
+30,Male,180,55.0,27.0,112,71,82,36.6,96,17,14.6,169,56,111,53,0.86,Thyroid follow-up,High
+46,Female,157,64.4,28.3,99,78,64,37.1,98,17,13.5,186,62,77,82,0.88,Mild sinusitis,Low
+52,Male,162,53.4,20.9,97,78,69,36.9,100,19,11.9,155,54,109,73,0.79,Chronic cough evaluation,Low
+50,Female,177,62.7,27.3,104,70,79,37.1,98,18,11.6,197,50,100,63,0.92,Fungal skin infection,Low
+24,Female,148,56.4,27.5,110,65,67,36.4,100,17,13.6,142,41,106,64,0.73,Mild asthma review,Moderate
+29,Male,155,56.4,29.8,106,78,74,36.6,96,16,15.2,139,62,100,80,0.66,Mild acne,Low
+40,Male,164,51.9,26.1,114,75,70,36.4,98,17,13.2,190,59,110,68,0.85,Hair fall evaluation,Moderate
+27,Male,153,70.5,24.0,102,68,89,36.5,97,12,12.0,181,50,123,50,1.05,Routine health check-up,Moderate
+37,Male,159,76.1,25.0,107,68,67,37.1,97,18,16.3,167,71,77,53,0.72,Fungal skin infection,Low
+47,Female,170,60.5,27.6,105,71,63,36.8,96,17,14.0,166,40,88,65,1.17,Acid reflux symptoms,Low
+44,Female,146,44.8,22.3,101,75,69,36.7,98,17,15.2,148,62,119,50,1.0,Neck stiffness,Moderate
+29,Male,157,74.9,21.6,103,67,87,36.6,97,15,14.5,179,60,106,75,0.6,Cardiac wellness consultation,Low
+22,Male,178,66.9,27.0,116,69,72,36.7,98,16,14.5,198,47,94,79,0.84,Routine health check-up,Low
+44,Female,151,89.5,27.8,111,73,68,36.9,98,15,11.6,178,45,69,50,0.97,Lower back pain,Low
+38,Female,183,40.7,23.5,100,68,83,37.1,97,18,14.5,187,65,105,94,0.61,Allergic rhinitis review,Low
+56,Male,158,72.5,24.6,114,71,81,37.1,98,12,15.3,188,48,93,93,0.82,Chronic lower back pain review,Low
+30,Female,163,63.8,29.8,108,68,60,36.7,98,16,14.8,179,62,66,90,0.68,Ear wax removal,Low
+31,Female,165,58.7,24.0,107,68,85,36.8,98,16,14.7,195,56,72,55,1.14,Allergic rhinitis review,Low
+30,Female,165,57.5,22.0,100,65,74,36.7,97,17,14.5,137,68,115,76,0.71,Ear wax removal,Low
+42,Female,169,58.7,22.9,117,73,88,36.7,98,19,13.8,182,52,89,59,0.72,Cardiac wellness consultation,Moderate
+34,Female,163,75.5,20.7,112,78,80,37.1,98,13,14.1,146,60,103,65,0.83,Seasonal cold symptoms,Low
+20,Male,175,55.7,24.3,94,76,62,37.1,97,16,14.4,142,43,92,57,0.68,Migraine-type headache,Low
+21,Female,163,54.8,21.5,102,64,72,36.5,96,16,13.1,199,62,85,116,0.82,Eczema review,Low
+47,Female,169,67.1,23.9,100,68,62,36.6,97,17,15.3,185,42,88,65,0.76,Functional dyspepsia,High
+47,Female,179,66.5,27.1,105,75,85,36.7,98,17,14.1,171,47,107,51,1.12,Routine health check-up,Low
+37,Female,178,46.7,24.1,102,71,68,36.6,100,13,13.9,152,61,85,67,0.64,Fatigue and weight change evaluation,Moderate
+30,Male,166,60.4,24.5,115,71,60,37.1,98,13,13.4,160,67,97,76,0.61,Seasonal cough,Low
+38,Female,164,49.4,22.1,91,70,71,36.2,97,15,12.0,199,40,93,131,0.91,Eczema review,Moderate
+36,Female,145,64.4,24.8,114,78,74,36.7,97,17,12.5,166,49,102,50,0.72,Fungal skin infection,Low
+43,Male,162,69.1,29.8,97,69,75,36.4,99,16,11.6,198,57,109,60,0.93,Dry skin and itching,Low
+31,Male,168,67.0,23.9,105,70,72,37.1,96,17,13.0,176,62,96,87,0.77,Seasonal cold symptoms,Low
+18,Male,162,53.3,24.3,109,69,87,36.7,98,17,13.8,188,62,107,67,0.86,Mild musculoskeletal strain,Low
+32,Female,167,55.2,29.8,103,78,76,36.7,97,18,14.0,152,65,104,86,1.03,Routine health check-up,Low
+39,Female,144,67.9,23.1,108,70,67,36.4,97,17,12.5,162,46,102,50,0.98,Mild indigestion,Low
+54,Male,168,75.7,27.9,103,78,75,36.8,98,13,13.1,183,56,110,51,0.88,Eczema review,Low
+48,Male,184,57.5,20.1,112,78,73,37.0,97,16,14.7,191,43,118,56,0.76,Lower back pain,High
+28,Female,167,71.7,26.4,102,67,68,36.7,98,18,15.0,181,55,104,66,1.13,Routine health check-up,High
+26,Male,173,61.8,27.0,100,65,68,36.6,98,15,11.6,172,67,90,51,0.96,General fatigue evaluation,Low
+27,Female,154,63.4,23.7,109,69,84,36.6,97,17,13.2,193,54,114,50,0.77,Routine health check-up,Low
+25,Female,173,58.0,22.6,111,72,89,36.3,97,17,13.4,188,53,82,50,1.01,Routine health check-up,High
+54,Male,173,57.2,26.6,95,70,76,37.1,97,17,12.6,165,40,106,73,0.93,Lower back pain,Low
+29,Female,157,81.5,29.8,109,72,64,37.1,97,17,14.1,199,70,109,94,1.02,Mild sinusitis,Low
+33,Male,162,64.6,27.7,115,70,75,36.3,95,17,13.4,180,47,109,73,0.7,Neck stiffness,Low
+58,Female,165,64.1,22.3,117,76,74,36.8,98,18,14.6,155,54,109,72,0.81,Thyroid follow-up,Moderate
+27,Female,151,70.2,25.9,102,65,80,37.1,98,16,11.6,188,49,105,54,0.88,Acid reflux symptoms,Low
+36,Female,161,66.1,24.5,109,67,75,36.5,98,17,12.3,131,54,120,50,1.0,Routine health check-up,Low
+28,Male,158,47.4,24.2,118,75,74,37.1,97,16,13.2,191,52,88,50,0.94,Allergic rhinitis review,Low
+18,Male,154,85.7,28.4,102,66,80,37.1,97,17,12.4,156,65,126,50,0.6,Allergic rhinitis review,Low
+50,Male,179,53.4,27.4,106,78,73,36.7,97,17,12.9,154,52,107,50,0.62,Thyroid follow-up,Low
+31,Female,174,61.2,24.9,115,70,68,36.6,97,17,15.3,156,56,98,110,0.63,Mild body ache,Low
+43,Female,164,81.0,25.4,105,70,60,36.6,98,17,14.0,190,53,72,62,0.72,Mild body ache,Low
+31,Male,146,82.9,20.7,111,68,63,36.8,100,17,14.1,155,58,110,50,0.72,Routine health check-up,Moderate
+37,Female,166,63.9,23.0,106,72,70,37.0,98,20,13.0,182,53,123,114,1.1,Sore throat,Low
+31,Female,186,73.1,29.1,101,66,65,37.1,97,17,14.1,143,62,109,102,0.62,Dry skin and itching,Low
+43,Female,189,61.6,28.2,110,76,90,36.7,98,16,12.5,193,43,97,140,0.78,Allergic rhinitis review,High
+41,Male,176,65.4,26.1,108,76,74,36.7,100,14,13.1,194,45,112,62,0.9,Dizziness evaluation,Low
+47,Female,189,57.3,29.8,107,74,97,36.7,99,17,12.8,182,57,96,57,0.69,Routine health check-up,Moderate
+45,Male,158,58.7,23.7,113,67,61,37.1,97,14,14.6,175,49,102,76,0.69,Routine health check-up,High
+37,Female,180,85.1,25.9,116,73,60,36.7,97,16,14.1,137,50,97,60,0.8,Abdominal discomfort evaluation,Low
+26,Female,142,66.3,23.7,102,78,91,36.8,97,17,11.6,167,64,107,76,0.92,Mild asthma review,Low
+32,Female,172,45.6,29.8,119,65,84,36.5,98,16,13.3,183,45,120,64,0.87,Gastro-oesophageal reflux review,Low
+18,Female,154,55.7,26.9,106,72,74,36.9,98,18,13.3,171,62,98,90,0.69,Chest discomfort evaluation,Low
+29,Male,161,90.5,25.4,100,76,74,37.1,97,12,14.6,196,52,89,129,0.89,Weight management consultation,Low
+19,Female,158,53.9,24.7,103,69,66,36.7,98,14,12.3,132,66,110,98,0.72,Routine health check-up,Low
+18,Male,161,81.5,19.8,111,77,64,36.4,98,17,12.9,169,51,113,73,0.63,Tension-type headache,Low
+28,Female,163,72.9,27.8,109,75,72,36.5,98,12,13.7,199,43,78,91,0.88,General fatigue evaluation,Low
+43,Male,170,64.4,21.5,107,69,77,36.8,100,19,14.1,178,40,90,74,0.74,General fatigue evaluation,Moderate
+24,Male,154,59.7,23.3,104,69,84,37.0,98,13,15.4,155,46,100,81,0.91,Lower back pain,Low
+22,Male,166,57.5,25.4,119,78,70,36.8,97,15,15.5,146,69,101,65,0.68,Mild musculoskeletal strain,Low
+23,Female,151,54.7,20.5,114,70,75,36.7,97,17,11.6,174,44,93,78,0.68,Thyroid follow-up,High
+40,Female,161,40.6,29.8,91,68,82,36.8,98,13,13.7,190,53,102,93,1.03,Migraine-type headache,Low
+18,Male,147,66.0,28.8,104,74,74,37.1,97,18,12.6,182,51,80,72,0.9,Mild indigestion,Low
+28,Male,155,92.2,22.0,104,78,68,36.6,98,17,14.2,188,61,97,59,0.83,Allergic rhinitis review,Low
+41,Male,161,55.8,23.3,92,64,97,36.7,100,17,13.4,177,63,128,71,1.34,Thyroid follow-up,Low
+40,Female,142,72.9,26.5,93,69,79,36.7,98,17,13.2,169,60,89,66,1.19,Chronic lower back pain review,High
+43,Male,155,66.1,23.3,107,71,64,36.8,97,17,14.1,153,43,89,113,0.64,Sore throat,High
+18,Male,154,66.5,23.4,105,68,74,36.9,98,16,11.9,199,55,82,78,1.0,Allergic rhinitis review,Moderate
+33,Female,152,69.9,21.3,104,68,78,36.5,96,19,13.1,148,53,110,50,0.63,Mild sinusitis,Moderate
+23,Female,156,55.3,21.8,105,64,77,36.8,99,17,14.0,188,68,121,69,1.16,Routine health check-up,Low
+41,Female,151,40.4,26.8,97,71,63,37.0,98,17,13.4,158,64,91,93,0.77,Routine health check-up,Low
+41,Male,154,48.6,26.1,102,77,79,37.1,100,14,12.9,170,55,91,65,0.87,Mild indigestion,Low
+19,Female,170,79.6,28.9,98,70,67,36.8,100,17,12.6,188,68,74,129,0.84,Palpitation evaluation,Low
+19,Male,144,72.0,29.8,117,70,66,36.6,99,15,13.7,193,61,102,104,1.34,Migraine review,Low
+34,Male,176,57.5,23.3,97,70,63,36.6,96,15,14.3,194,46,104,109,0.9,Eczema review,Low
+31,Female,163,48.4,22.6,96,76,65,37.1,98,14,13.6,177,49,97,58,0.81,Chronic lower back pain review,Low
+51,Female,154,64.5,21.5,100,75,68,36.9,98,13,13.2,192,59,92,76,0.9,Allergic rhinitis symptoms,Low
+27,Male,146,54.2,23.6,96,65,67,36.7,99,18,14.2,184,40,108,77,0.61,Eczema review,Low
+47,Female,181,63.0,26.4,100,66,72,36.7,98,20,14.3,180,51,88,64,0.87,Cardiac wellness consultation,Low
+33,Female,167,56.1,28.5,100,68,65,36.8,99,15,14.4,174,48,97,103,0.91,Neck stiffness,Low
+32,Female,162,55.8,29.7,100,70,75,36.7,99,18,11.6,182,66,69,90,0.97,Ear wax removal,Moderate
+51,Male,187,66.0,27.8,104,75,79,36.7,97,16,14.5,132,53,102,61,0.7,Gastro-oesophageal reflux review,Low
+20,Male,151,72.3,24.8,96,72,70,36.8,99,12,14.7,175,44,96,69,0.87,Seasonal cold symptoms,Low
+24,Male,167,52.8,28.0,100,76,76,36.9,99,17,14.7,185,50,112,116,0.71,Seasonal cough,Low
+27,Female,145,43.1,25.5,102,72,69,36.7,98,14,12.7,197,62,84,129,1.29,Allergic rhinitis symptoms,Low
+48,Male,166,94.0,24.8,98,69,79,36.4,97,17,12.0,181,54,100,54,1.0,General fatigue evaluation,Low
+35,Female,181,49.1,26.6,97,67,70,37.1,97,20,14.3,189,42,63,50,0.69,Routine health check-up,Low
+40,Male,150,56.2,25.3,112,72,78,36.8,98,17,12.4,199,55,97,72,0.75,Routine health check-up,Low
+34,Female,157,58.7,27.9,108,70,78,37.1,97,15,13.1,156,67,121,78,0.82,Allergic rhinitis symptoms,High
+32,Male,158,52.8,22.0,106,73,90,37.1,97,17,15.2,173,50,112,72,0.68,Chronic cough evaluation,Moderate
+26,Male,157,55.8,23.3,98,71,73,36.6,98,17,13.0,148,40,101,51,0.65,Hair fall evaluation,Moderate
+40,Male,167,77.7,28.3,98,70,63,36.8,98,17,11.7,178,61,114,58,0.85,Gastro-oesophageal reflux review,Low
+25,Female,163,68.6,25.5,97,70,84,37.0,98,14,14.0,170,45,63,59,0.91,Migraine review,Low
+24,Female,169,64.4,28.0,104,70,88,37.1,98,16,14.8,127,59,104,81,1.02,Cardiac wellness consultation,Low
+45,Male,166,44.4,20.5,95,66,67,36.6,97,15,12.9,179,56,107,50,1.16,Allergic rhinitis review,Low
+25,Female,147,69.1,25.1,103,69,73,36.7,98,18,12.4,159,65,83,59,0.91,Breathlessness on exertion evaluation,Moderate
+18,Male,160,63.4,22.0,101,78,70,36.6,98,14,12.0,189,45,114,85,0.83,Mild contact dermatitis,Low
+50,Male,165,54.1,22.5,108,69,69,36.6,98,18,15.2,150,43,89,72,0.75,Mild constipation,Low
+59,Male,142,56.9,25.9,107,71,74,36.5,98,17,14.5,168,44,117,77,0.93,Gastro-oesophageal reflux review,Moderate
+40,Female,156,69.1,29.5,91,69,77,36.7,98,17,15.0,157,70,117,50,1.13,Migraine-type headache,Low
+35,Female,166,75.2,23.3,93,72,74,36.8,97,17,14.5,178,58,128,116,1.0,Knee pain evaluation,Moderate
+40,Male,147,52.3,24.7,107,76,70,36.8,95,12,15.1,173,54,101,61,1.0,Thyroid follow-up,Low
+44,Female,157,62.9,24.0,112,60,75,37.1,98,17,12.0,159,70,115,67,0.87,Sleep disturbance evaluation,Low
+37,Female,169,72.1,28.7,111,71,83,36.6,96,17,15.3,199,47,75,50,0.84,Mild wheeze evaluation,Moderate
+35,Male,186,59.8,21.7,97,70,84,36.8,97,19,13.6,176,41,105,77,0.68,Ear wax removal,Low
+31,Female,161,44.0,24.5,107,78,95,36.6,100,17,11.7,165,53,69,94,0.91,Migraine review,Low
+32,Female,163,50.4,28.1,98,76,68,37.0,98,18,14.0,140,63,119,82,0.6,Hair fall evaluation,Low
+31,Female,165,69.9,19.6,99,60,75,36.7,98,16,14.0,182,49,115,72,0.96,Routine health check-up,Low
+40,Female,166,65.6,22.6,119,69,80,36.7,98,17,14.0,148,57,64,50,1.14,Ear wax removal,High
+43,Male,145,49.6,23.8,93,64,82,37.0,98,18,15.3,171,49,113,69,0.74,Routine health check-up,Low
+45,Male,186,52.8,25.1,107,62,86,36.7,98,17,12.4,188,73,77,50,0.61,Mild body ache,Low
+18,Male,160,65.1,26.0,101,68,75,37.1,98,14,13.9,136,40,120,70,1.13,Mild body ache,Low
+20,Female,164,59.9,21.4,106,69,76,37.1,98,17,14.4,172,48,100,134,0.84,Routine health check-up,Low
+18,Female,157,52.8,23.1,101,74,91,36.6,97,15,12.6,191,59,87,52,1.29,Knee pain evaluation,Low
+33,Female,160,46.5,23.8,112,78,79,36.7,98,13,11.8,183,42,76,93,0.96,Routine health check-up,Low
+28,Female,167,56.2,25.2,97,74,74,36.6,97,17,15.1,183,40,93,51,0.77,Mild sinusitis,Moderate
+27,Female,158,60.4,21.5,108,75,73,36.7,98,17,12.7,161,48,67,52,0.74,Mild asthma review,Low
+33,Female,177,71.2,29.8,105,68,68,36.6,97,18,15.1,199,42,95,81,0.79,Thyroid follow-up,Moderate
+65,Male,169,56.7,25.2,110,66,79,36.7,98,20,13.1,172,51,114,52,0.85,Chronic cough evaluation,Moderate
+39,Male,157,48.9,23.9,110,76,77,36.7,97,17,15.9,182,62,78,50,0.82,Migraine review,Low
+23,Male,142,73.0,27.4,114,66,60,36.5,98,16,13.0,170,61,103,50,0.7,Mild contact dermatitis,Low
+36,Male,169,58.6,25.4,93,73,67,37.0,99,20,13.9,167,76,77,60,0.82,Mild contact dermatitis,Low
+18,Male,155,51.2,22.5,108,71,72,37.0,96,18,15.8,198,61,89,86,0.87,Routine health check-up,Low
+45,Male,155,58.5,24.6,105,67,81,36.7,98,17,13.5,191,48,96,65,0.81,Migraine-type headache,Low
+34,Male,168,67.5,23.2,103,68,70,36.7,99,18,14.0,168,60,102,66,0.89,Migraine review,Low
+30,Female,173,42.7,21.7,96,75,71,36.7,97,17,13.2,185,50,113,56,0.79,Routine health check-up,Low
+32,Male,146,64.1,29.1,93,73,66,36.7,97,18,14.3,186,41,102,88,0.98,Sore throat,Low
+44,Male,170,62.9,29.8,97,76,73,36.6,97,17,12.8,192,52,76,116,0.86,Cardiac wellness consultation,Low
+35,Female,147,84.3,26.0,102,73,73,37.0,98,17,12.4,182,59,98,91,0.64,Migraine review,Low
+28,Female,157,66.5,24.2,98,72,75,36.5,96,18,14.0,186,43,71,50,0.91,Chronic lower back pain review,Moderate
+50,Female,165,85.1,20.2,98,71,79,36.7,97,17,13.3,199,40,119,81,0.85,Dizziness evaluation,Moderate
+39,Female,143,54.4,27.4,97,78,63,36.8,97,17,13.2,164,60,97,72,0.96,Mild indigestion,Low
+56,Male,163,47.6,26.9,101,68,63,37.1,97,17,16.6,160,47,107,67,1.21,Routine health check-up,Low
+18,Male,159,62.0,25.5,100,76,62,36.7,97,18,13.4,174,44,94,61,0.6,Chronic lower back pain review,Moderate
+34,Male,167,54.4,26.0,98,71,80,36.7,96,17,14.4,170,50,115,73,0.91,Routine health check-up,High
+46,Female,172,66.9,28.6,101,76,77,36.5,98,16,12.7,153,47,81,70,0.93,Routine health check-up,Low
+18,Female,160,86.4,23.5,105,78,71,36.6,97,18,13.2,183,41,61,138,0.68,Knee pain evaluation,Low
+28,Male,167,54.1,27.3,107,76,71,36.7,97,16,12.0,148,55,81,92,1.13,Migraine review,Low
+50,Female,169,54.9,26.0,107,69,76,36.7,98,15,14.0,198,66,87,83,1.29,Migraine review,Low
+27,Female,160,54.7,26.6,106,70,74,37.1,98,18,14.3,145,55,105,89,1.01,Mild constipation,Moderate
+43,Male,177,49.3,25.6,108,69,77,37.1,98,17,12.4,172,42,82,87,0.67,Fatigue and weight change evaluation,Moderate
+18,Female,164,49.3,25.3,109,64,69,36.7,98,15,14.9,169,70,78,62,0.81,Neck stiffness,High
+19,Female,165,69.7,26.5,95,77,80,36.8,98,13,13.8,158,60,67,95,0.96,Mild body ache,Low
+40,Male,146,76.8,24.7,105,67,67,36.6,98,18,13.1,180,57,103,75,0.76,Routine health check-up,Moderate
+52,Female,160,53.2,25.3,97,70,67,37.0,98,17,12.1,162,40,93,76,1.16,Mild indigestion,Moderate
+18,Female,177,78.1,26.3,110,65,66,36.7,97,13,14.5,197,44,89,97,0.69,Eczema review,Low
+46,Female,167,75.9,19.5,104,62,88,36.7,100,16,15.5,185,48,75,70,0.85,Mild sinusitis,Low
+35,Female,168,50.9,23.1,95,67,81,36.5,98,18,15.2,191,42,89,93,0.89,Routine health check-up,Low
+32,Female,168,56.7,25.6,110,73,82,37.1,97,17,13.6,154,76,111,72,0.88,Palpitation evaluation,Low
+33,Female,165,76.0,24.0,107,70,96,37.0,95,16,14.8,176,44,111,59,0.79,Allergic rhinitis review,Low
+65,Female,157,61.1,23.2,112,71,86,36.8,98,16,13.1,199,53,99,113,0.81,Allergic rhinitis symptoms,Low
+31,Female,177,75.8,25.0,107,78,66,36.6,98,18,12.6,196,44,121,50,0.85,Routine health check-up,Moderate
+34,Male,179,69.6,26.3,118,69,88,36.5,97,17,12.2,159,62,109,88,0.77,Migraine-type headache,Low
+48,Male,155,60.1,28.9,100,61,78,36.7,97,18,12.5,181,49,113,90,0.99,Hair fall evaluation,Low
+36,Male,172,58.2,26.3,108,65,75,36.7,96,17,12.7,153,45,102,50,0.76,Chronic lower back pain review,Low
+49,Male,163,42.4,26.1,99,66,77,37.1,99,17,11.6,180,60,126,94,0.75,Sleep disturbance evaluation,Low
+25,Male,156,76.0,26.1,98,74,76,36.8,98,17,15.1,168,65,89,88,0.65,Routine health check-up,Low
+22,Male,168,54.8,20.7,119,68,64,37.0,97,17,16.3,189,57,102,76,0.6,Seasonal cold symptoms,Moderate
+25,Male,144,59.9,27.9,111,70,85,36.4,97,17,13.6,195,66,107,50,0.75,Routine health check-up,Low
+33,Female,166,40.4,27.5,100,72,74,36.7,98,15,11.6,132,54,114,72,1.01,Sore throat,Low
+37,Female,165,53.0,23.1,102,65,69,37.1,98,17,12.0,181,59,60,75,1.04,Migraine review,Moderate
+51,Male,172,70.4,26.6,104,73,88,36.6,98,16,11.7,184,60,105,63,0.75,Mild indigestion,Low
+27,Female,158,55.3,28.6,114,74,72,37.0,97,17,15.0,154,69,73,50,0.92,Gastro-oesophageal reflux review,Low
+32,Male,175,51.8,19.2,115,62,81,36.8,97,20,13.3,199,40,115,95,0.7,Routine health check-up,Low
+31,Male,150,50.1,29.7,108,71,89,36.7,97,12,12.7,163,58,97,66,0.98,Chronic lower back pain review,Moderate
+27,Male,153,63.4,20.7,107,76,68,37.1,99,18,12.5,181,49,100,63,0.75,Routine health check-up,Low
+23,Female,187,55.0,22.2,102,66,86,36.6,97,14,14.7,196,55,89,57,0.95,Dry skin and itching,Low
+25,Male,152,69.5,26.5,114,77,78,36.6,96,14,14.7,162,59,99,81,1.08,Routine health check-up,Low
+25,Female,169,66.6,26.2,91,76,69,36.5,100,17,14.1,175,62,65,50,0.82,Routine health check-up,Low
+28,Male,160,76.0,22.8,101,69,83,36.8,97,18,15.1,195,40,63,90,0.82,Dry skin and itching,High
+34,Male,185,49.0,26.9,110,78,62,37.1,97,19,13.4,162,61,123,93,0.8,Migraine-type headache,High
+33,Male,184,60.8,29.8,95,72,76,36.8,97,18,13.5,168,48,84,80,0.89,Routine health check-up,High
+29,Female,143,55.6,24.3,111,65,70,36.7,98,13,13.0,165,46,74,54,0.98,Thyroid follow-up,Low
+28,Male,159,53.2,29.8,116,76,66,36.9,97,18,12.4,196,50,95,70,1.02,Mild wheeze evaluation,Moderate
+35,Male,170,53.1,24.7,111,70,86,36.9,97,17,12.1,181,61,85,107,0.8,Ear wax removal,Low
+44,Male,159,62.7,27.2,91,74,86,36.7,98,17,16.2,175,40,77,80,1.32,Allergic rhinitis review,High
+29,Female,159,46.1,25.2,112,72,90,37.1,97,17,13.9,180,50,93,88,1.14,Seasonal cold symptoms,Low
+49,Male,158,69.7,21.8,100,78,72,36.9,98,18,14.1,196,46,124,50,1.11,Eczema review,Low
+33,Female,159,58.5,26.9,104,75,80,36.6,98,17,14.1,180,59,95,112,0.61,Functional dyspepsia,Low
+26,Female,171,43.6,24.5,112,69,69,37.1,97,17,12.3,145,40,97,80,1.0,Routine health check-up,High
+33,Male,149,78.0,25.9,103,70,70,36.7,97,17,14.0,177,43,95,51,1.04,Chronic lower back pain review,Low
+36,Male,164,53.3,28.8,106,71,73,37.1,97,17,14.7,156,58,116,50,0.67,Breathlessness on exertion evaluation,Low
+39,Male,151,65.0,25.0,97,76,83,36.7,97,18,12.6,172,52,115,79,0.61,Routine health check-up,Low
+30,Female,160,78.9,22.2,104,72,77,36.5,98,16,12.3,161,60,101,59,0.69,Sore throat,Low
+29,Female,163,66.8,27.0,96,73,71,37.0,98,16,14.8,187,49,100,77,0.6,Routine health check-up,Moderate
+33,Male,176,77.8,26.8,102,74,78,37.1,100,14,12.7,182,59,88,82,0.65,Cardiac wellness consultation,Moderate
+40,Male,156,52.0,25.6,92,69,60,36.8,97,17,12.6,167,45,104,68,0.77,Routine health check-up,Low
+27,Female,149,63.0,21.6,96,74,80,37.0,98,18,11.8,199,57,83,93,0.92,Thyroid follow-up,Low
+51,Female,163,55.2,29.1,105,66,69,37.1,100,18,13.5,174,41,102,113,0.73,Allergic rhinitis symptoms,Low
+25,Female,170,67.3,26.4,105,63,63,36.6,98,18,12.8,151,60,109,64,0.6,Eczema review,Moderate
+18,Female,165,61.6,23.5,94,68,66,36.9,98,17,13.3,189,58,84,74,0.94,Mild indigestion,Low
+62,Female,162,65.1,25.8,95,71,65,36.7,98,18,13.7,137,61,128,54,1.07,Migraine review,Moderate
+45,Male,173,45.7,25.6,105,67,68,37.1,97,20,12.7,190,48,67,71,0.64,Lower back pain,Low
+49,Female,158,76.5,23.9,99,68,74,36.8,97,15,14.7,199,50,66,50,0.91,Fungal skin infection,Low
+34,Female,157,68.8,26.8,108,71,82,37.1,98,16,11.8,159,49,92,67,0.89,Eczema review,Moderate
+18,Female,178,65.8,25.5,107,73,87,36.6,97,17,14.4,139,68,88,117,1.03,Allergic rhinitis review,Low
+46,Male,156,40.4,24.3,111,74,86,36.7,98,15,13.7,136,54,88,77,0.77,Allergic rhinitis review,Low
+26,Male,155,70.1,29.6,94,74,75,36.6,97,17,12.5,150,50,101,81,0.81,Breathlessness on exertion evaluation,Low
+47,Female,153,51.7,23.1,107,70,72,36.7,98,17,14.0,159,50,121,88,0.76,Routine health check-up,Low
+35,Male,154,68.0,24.4,103,68,71,36.7,99,14,14.3,165,49,90,59,0.6,Routine health check-up,Low
+34,Male,162,52.9,25.1,117,76,67,36.7,98,17,13.3,156,56,81,65,0.95,General fatigue evaluation,Low
+22,Male,163,65.1,29.4,104,71,96,36.9,98,16,14.3,199,54,101,73,0.92,Routine health check-up,Low
+31,Female,164,56.7,29.8,96,68,67,36.7,98,15,12.9,187,40,106,61,0.88,Routine health check-up,Low
+26,Male,157,72.6,25.9,110,68,71,36.9,98,17,13.5,164,55,66,50,0.96,Fatigue and weight change evaluation,Low
+39,Male,158,52.6,26.5,100,71,66,36.7,97,17,14.9,199,40,63,93,0.99,Routine health check-up,Low
+60,Female,171,54.8,29.8,99,66,77,36.6,98,13,11.9,156,75,109,99,0.94,Chest discomfort evaluation,High
+26,Male,175,65.5,28.3,102,74,67,36.9,97,17,13.4,172,52,69,50,0.93,Dry skin and itching,Low
+39,Male,156,68.2,25.9,98,63,81,36.7,97,17,13.9,183,52,94,50,0.69,Weight management consultation,High
+19,Female,176,62.7,28.6,118,72,74,36.6,98,16,14.5,136,53,106,53,0.76,Gastro-oesophageal reflux review,Low
+45,Female,173,53.8,26.3,107,73,79,37.1,97,17,13.4,138,49,121,58,1.17,Functional dyspepsia,Moderate
+40,Female,145,71.5,26.3,106,67,71,36.8,98,18,14.0,185,62,111,76,1.15,Mild indigestion,Moderate
+44,Male,154,73.4,22.8,115,69,73,36.9,97,13,12.9,147,50,91,50,0.84,Mild constipation,High
+36,Female,174,61.9,22.4,114,78,71,36.6,99,18,12.6,186,47,103,94,0.7,Mild asthma review,High
+35,Female,169,63.7,26.8,108,65,83,37.0,97,20,12.9,182,58,104,77,1.09,Seasonal cold symptoms,Low
+62,Female,145,68.1,26.5,99,77,63,36.6,97,17,12.8,199,49,97,102,0.66,Routine health check-up,Moderate
+19,Male,171,71.9,22.5,109,71,71,36.8,98,17,13.6,199,49,88,51,0.88,Routine health check-up,Low
+49,Female,147,78.8,20.9,115,69,68,37.1,98,17,11.7,177,76,110,107,0.76,Allergic rhinitis symptoms,High
+21,Male,187,82.1,23.6,106,67,86,36.6,98,16,13.9,186,59,77,50,0.89,Mild indigestion,High
+18,Male,159,48.4,25.3,99,69,81,36.7,99,17,13.4,173,57,108,72,1.09,Thyroid follow-up,Moderate
+40,Female,160,84.8,26.4,99,75,67,36.6,97,18,13.8,169,56,94,74,1.03,General fatigue evaluation,Low
+29,Female,144,58.5,29.8,103,78,71,37.1,98,13,12.5,152,51,128,68,0.95,Lower back pain,Moderate
+40,Female,154,41.0,23.3,103,65,75,36.7,96,17,15.5,199,69,94,75,0.98,Mild indigestion,Moderate
+29,Male,168,71.6,28.6,102,68,67,36.8,98,16,12.3,187,47,108,73,0.97,Cardiac wellness consultation,Low
+43,Female,154,59.0,24.6,95,70,93,36.8,98,14,13.8,181,57,112,70,0.71,Migraine review,Low
+21,Female,163,64.7,26.7,97,73,74,36.5,96,17,12.5,139,50,100,50,1.14,Lower back pain,Low
+20,Male,160,70.7,28.0,109,68,84,36.7,97,16,11.6,152,61,110,72,1.22,Routine health check-up,Low
+18,Female,149,74.4,25.5,103,70,70,36.4,97,13,14.7,160,61,110,50,0.96,Fatigue and weight change evaluation,High
+31,Female,145,76.5,27.1,104,70,81,36.8,98,14,12.7,191,54,95,50,0.97,Mild asthma review,Moderate
+22,Male,163,44.8,21.8,108,72,74,36.6,98,13,12.5,153,54,119,75,0.93,Seasonal cough,Low
+40,Male,157,52.2,21.6,109,74,64,36.7,97,17,13.4,199,57,108,56,0.94,Chest discomfort evaluation,Moderate
+20,Female,165,62.6,28.3,99,67,71,36.5,96,14,14.0,171,60,62,98,0.86,Gastro-oesophageal reflux review,Low
+30,Male,152,57.3,24.5,104,74,93,36.7,98,17,12.6,168,49,121,50,0.64,Chronic cough evaluation,Moderate
+25,Male,175,65.7,21.6,109,75,66,36.9,100,18,15.4,150,68,78,83,1.01,Mild body ache,Moderate
+32,Female,151,62.3,27.7,119,67,75,36.7,97,17,15.0,199,45,69,105,0.91,Eczema review,Low
+36,Female,177,71.7,24.1,116,68,95,37.1,97,17,12.7,154,57,83,69,0.86,Sore throat,Low
+41,Female,149,47.4,23.1,102,72,85,36.5,100,13,11.8,133,56,119,79,0.84,Dry skin and itching,Low
+28,Male,171,79.0,20.1,104,71,67,37.1,95,16,12.8,190,50,89,50,0.83,Fungal skin infection,Low
+18,Female,161,45.0,29.8,114,65,76,36.8,98,17,15.1,154,58,82,102,1.03,Seasonal cough,Low
+23,Female,178,65.2,25.0,99,63,80,36.6,98,16,13.8,173,69,101,81,0.73,Thyroid follow-up,Low
+25,Female,176,42.4,27.9,99,78,77,36.5,97,16,11.9,184,52,81,126,0.69,Eczema review,Low
+20,Male,158,57.9,20.5,110,71,69,36.6,98,18,15.3,178,67,93,69,0.96,Eczema review,High
+27,Female,156,50.3,24.7,100,71,74,36.7,96,12,14.5,163,59,112,75,0.72,Mild body ache,Low
+24,Male,171,83.0,24.1,108,75,67,37.1,97,17,12.9,194,56,96,50,0.71,Chest discomfort evaluation,Low
+33,Female,167,60.0,28.8,106,64,77,36.6,97,16,15.5,199,57,100,76,0.75,Chronic lower back pain review,Moderate
+22,Male,175,62.8,29.5,98,78,79,36.5,97,18,16.2,182,67,103,130,1.21,Routine health check-up,Low
+58,Male,171,49.9,25.2,103,76,74,36.2,100,18,11.8,184,51,92,103,1.2,Functional dyspepsia,Low
+34,Female,179,68.7,26.7,101,71,76,37.0,98,16,14.5,191,62,128,115,0.9,Chronic cough evaluation,Low
+18,Male,168,64.6,29.8,95,68,97,36.7,97,17,13.3,199,51,78,65,0.93,Routine health check-up,Low
+34,Female,172,51.0,25.2,110,78,79,36.8,97,16,12.7,149,61,98,66,0.7,Gastro-oesophageal reflux review,Low
+32,Male,173,57.3,25.9,102,76,76,37.1,97,14,12.6,186,66,73,125,0.63,Eczema review,High
+27,Male,163,67.7,26.6,104,68,64,36.7,97,17,14.4,148,68,121,50,0.78,Knee pain evaluation,Low
+27,Female,182,62.6,26.0,102,67,72,36.6,96,18,12.3,164,42,68,68,1.02,Mild musculoskeletal strain,Low
+36,Female,173,77.5,28.7,105,67,71,36.6,98,14,13.9,182,46,96,95,0.83,Routine health check-up,Low
+23,Female,170,66.9,25.2,105,66,76,36.7,97,17,11.6,199,53,92,94,0.74,Sore throat,Low
+59,Female,162,79.2,26.8,98,78,79,36.7,100,16,14.4,183,60,128,104,0.6,Sleep disturbance evaluation,Low
+49,Male,152,72.5,29.8,103,63,86,36.7,97,17,13.8,199,44,116,66,0.74,Routine health check-up,Moderate
+24,Male,163,82.9,29.3,116,65,66,37.1,97,15,14.9,189,51,100,77,0.69,Routine health check-up,Low
+29,Male,163,55.2,28.8,115,77,71,36.5,97,16,14.8,179,45,73,105,1.05,Thyroid follow-up,Moderate
+18,Male,142,73.1,24.2,106,62,74,37.1,98,17,14.2,170,65,105,112,0.76,Routine health check-up,Low
+19,Female,150,60.6,24.7,94,71,71,37.0,98,17,14.6,129,42,110,50,1.18,Mild contact dermatitis,Low
+24,Female,167,65.6,27.1,99,64,72,36.3,96,15,14.0,150,70,103,69,0.69,Chronic lower back pain review,Low
+30,Male,176,54.9,24.2,98,78,76,37.1,98,16,14.7,154,51,116,79,0.91,Mild indigestion,Low
+18,Female,147,66.5,29.8,104,74,72,36.8,100,18,14.2,127,50,101,85,0.97,Functional dyspepsia,Moderate
+46,Male,157,60.5,28.5,105,76,72,37.1,98,18,14.6,162,58,91,50,1.11,Allergic rhinitis symptoms,Low
+25,Female,162,65.3,26.5,98,68,82,36.7,97,17,12.2,186,61,85,66,0.76,Routine health check-up,Moderate
+36,Male,158,63.2,25.4,101,78,87,36.7,98,18,13.0,188,46,120,89,0.92,Routine health check-up,Low
+55,Male,160,50.2,27.5,94,71,87,36.7,98,17,13.8,155,51,106,65,1.04,Breathlessness on exertion evaluation,Low
+18,Male,142,56.9,24.4,108,64,60,36.8,97,18,11.6,148,58,98,55,0.8,Neck stiffness,Low
+29,Female,154,55.5,23.2,103,69,89,36.6,95,17,15.9,148,47,79,119,0.99,Mild indigestion,Low
+36,Male,168,61.4,28.3,94,68,85,37.1,98,15,13.1,170,58,88,67,0.7,Sleep disturbance evaluation,Low
+30,Female,163,75.3,21.3,109,70,79,36.6,97,15,16.6,199,47,113,58,0.6,Fungal skin infection,Low
+41,Female,176,64.0,28.6,96,66,90,36.9,97,17,14.6,199,47,105,79,0.79,Routine health check-up,Low
+48,Female,153,45.4,25.0,102,66,73,36.7,97,14,15.4,173,55,120,61,1.04,Tension-type headache,Low
+58,Female,151,46.4,26.9,113,69,70,37.0,98,18,13.8,165,54,93,75,0.81,Migraine review,Low
+18,Male,165,55.5,25.1,92,65,65,36.6,97,17,15.4,129,46,77,103,1.16,Neck stiffness,Moderate
+38,Male,149,46.3,28.5,104,73,72,37.1,97,17,13.5,188,59,98,78,1.28,Routine health check-up,Low
+31,Male,178,71.0,24.1,114,78,69,37.1,99,15,13.3,171,48,80,97,0.6,Mild sinusitis,Low
+25,Male,157,52.9,24.5,106,68,85,36.7,100,18,13.0,189,64,78,90,1.02,Migraine review,Low
+36,Female,162,67.2,24.8,109,78,85,37.1,96,14,13.2,127,47,72,66,0.6,Routine health check-up,Moderate
+18,Male,155,62.8,21.6,107,69,61,36.9,100,16,13.9,158,63,89,122,0.71,Routine health check-up,Low
+38,Female,155,52.9,27.4,93,67,66,36.7,98,17,11.6,155,59,93,86,0.67,Migraine review,Moderate
+26,Male,151,71.7,24.0,110,67,72,36.6,98,14,13.7,181,59,73,50,0.92,Ear wax removal,Moderate
+30,Male,162,69.9,25.8,114,67,69,36.7,96,18,13.6,199,62,106,63,0.7,Breathlessness on exertion evaluation,Low
+21,Male,155,54.5,21.5,105,67,67,36.6,96,13,14.5,163,79,89,88,0.98,Sleep disturbance evaluation,Moderate
+30,Female,177,54.4,25.7,101,70,80,36.7,99,17,12.7,176,52,102,84,1.0,Routine health check-up,Low
+33,Male,172,59.4,27.2,96,71,93,36.7,97,18,12.9,199,44,123,76,0.85,Routine health check-up,Low
+23,Female,169,53.0,29.8,94,78,67,36.7,98,18,15.8,179,51,89,69,1.19,Routine health check-up,High
+40,Male,179,69.5,25.6,104,70,80,36.7,100,16,15.1,167,57,77,113,0.6,Seasonal cough,Low
+36,Male,181,57.5,26.7,98,69,70,36.8,98,16,12.6,199,41,92,66,0.72,Seasonal cold symptoms,Moderate
+33,Female,152,59.5,26.2,98,70,84,36.6,100,19,13.0,199,61,91,53,0.7,Mild acne,Low
+30,Female,156,54.4,26.3,114,67,69,36.7,98,15,14.0,199,55,117,50,0.78,Chest discomfort evaluation,Low
+61,Female,143,78.9,25.4,101,71,71,36.7,98,16,11.8,155,52,126,59,0.6,Eczema review,Moderate
+26,Female,152,54.7,23.3,105,71,97,37.1,97,18,13.8,131,61,116,88,0.64,General fatigue evaluation,Low
+31,Male,173,53.9,27.3,118,76,60,37.1,97,18,13.5,178,49,83,54,0.6,Allergic rhinitis symptoms,Low
+24,Male,176,68.5,26.7,98,65,74,36.5,97,15,13.3,196,45,124,61,0.73,Routine health check-up,Low
+33,Male,186,77.5,27.2,110,71,69,36.7,98,18,14.2,165,44,103,54,0.93,Routine health check-up,Low
+29,Female,166,52.3,21.6,100,74,60,36.6,98,17,15.3,187,47,108,86,0.79,Thyroid follow-up,Low
+48,Female,162,63.1,28.4,96,67,79,37.1,98,13,11.9,195,68,82,50,0.87,Hair fall evaluation,Low
+30,Male,159,62.5,26.6,110,75,70,36.8,97,17,14.2,161,56,108,67,0.61,Mild body ache,Low
+18,Male,143,57.9,28.8,116,69,74,36.8,97,18,14.0,156,73,71,115,0.88,Sleep disturbance evaluation,Low
+27,Female,185,67.4,28.8,102,78,60,37.1,98,17,15.2,164,47,107,118,0.99,General fatigue evaluation,Moderate
+46,Female,161,54.0,24.4,93,69,60,36.7,97,16,13.4,175,51,123,94,0.91,Routine health check-up,Low
+28,Female,147,53.3,25.6,107,66,66,36.8,97,20,15.0,170,44,110,113,1.01,Mild contact dermatitis,Moderate
+26,Female,158,61.1,24.0,93,73,70,36.6,97,17,12.9,187,51,101,60,1.18,Palpitation evaluation,Low
+45,Male,172,62.0,22.9,98,78,60,37.1,98,19,14.9,155,62,118,66,0.98,Routine health check-up,Low
+23,Male,171,63.5,22.1,113,78,60,36.6,96,16,12.8,175,40,76,50,0.71,Mild constipation,Low
+26,Female,170,68.8,27.7,119,64,69,36.7,97,16,14.8,199,45,109,75,0.6,Mild indigestion,High
+40,Male,164,66.1,25.1,102,64,73,36.8,96,17,14.8,188,40,100,100,0.62,Mild musculoskeletal strain,Low
+18,Female,148,59.3,22.0,95,68,73,36.5,97,17,14.8,176,55,80,50,0.73,Mild acne,Low
+26,Male,160,46.7,29.8,104,67,68,37.0,98,17,13.8,132,55,79,84,0.93,Routine health check-up,Moderate
+41,Female,150,50.2,26.0,106,71,70,36.6,100,13,14.3,141,70,90,64,0.61,Seasonal cough,Low
+18,Male,177,61.9,26.1,108,78,75,36.8,96,16,14.2,160,69,125,50,0.78,Mild asthma review,Low
+41,Male,166,59.7,29.8,94,73,93,36.7,97,19,13.4,198,44,108,58,0.83,Routine health check-up,Low
+45,Male,175,57.3,24.4,99,74,81,36.5,95,19,15.2,178,71,82,84,0.73,Abdominal discomfort evaluation,Low
+36,Female,182,81.2,26.7,96,70,94,37.0,100,15,11.6,167,44,70,69,1.1,Sore throat,Moderate
+18,Male,168,53.4,25.0,107,78,74,36.6,96,16,15.9,180,69,102,67,0.93,Mild body ache,Moderate
+36,Female,180,43.8,23.5,109,72,73,36.9,96,14,13.2,153,70,87,59,0.71,Tension-type headache,Low
+35,Male,167,77.7,23.3,109,70,71,36.8,99,16,14.1,191,50,108,86,0.9,Chronic lower back pain review,Low
+41,Male,147,57.3,26.8,105,68,78,36.8,97,17,11.9,149,53,128,50,0.8,Chronic lower back pain review,Moderate
+19,Male,151,64.4,27.1,116,74,74,37.1,97,15,14.1,159,70,84,119,0.82,Fatigue and weight change evaluation,Low
+27,Female,165,62.5,23.8,106,78,73,36.7,97,16,13.4,176,45,94,95,1.32,Eczema review,Low
+35,Female,163,51.6,23.0,111,66,69,37.1,99,20,12.2,155,73,77,87,1.06,Eczema review,Low
+24,Female,183,76.1,27.5,97,73,76,36.7,96,17,12.2,197,58,72,138,0.63,Migraine review,Low
+22,Male,158,67.2,27.9,102,67,97,37.1,100,17,14.2,174,49,106,68,0.6,Acid reflux symptoms,Low
+26,Female,148,61.7,28.0,101,65,81,36.7,98,19,14.0,184,61,128,79,0.73,Routine health check-up,Low
+25,Female,149,48.9,28.4,97,75,82,36.6,100,13,13.2,194,58,127,101,0.78,Sore throat,Low
+26,Male,153,45.2,24.0,112,67,74,36.3,98,17,14.0,199,51,128,68,0.63,Chronic lower back pain review,Low
+43,Female,166,58.9,23.6,116,70,78,36.7,96,17,11.6,188,61,87,50,0.83,Routine health check-up,High
+19,Female,160,44.5,23.8,98,65,76,37.1,98,17,12.5,156,48,95,96,0.99,Routine health check-up,High
+47,Female,142,60.4,25.4,108,66,78,36.8,97,19,13.0,130,49,114,50,0.92,Routine health check-up,Low
+18,Female,160,68.6,29.8,102,70,90,37.1,98,17,13.2,178,62,96,50,0.83,Migraine review,Low
+31,Female,160,63.0,26.3,97,69,81,36.6,98,18,13.9,144,44,111,122,0.77,Allergic rhinitis review,Low
+25,Female,144,60.3,22.1,111,76,60,36.6,98,17,13.9,195,51,121,73,0.82,Chest discomfort evaluation,Low
+58,Female,163,63.8,23.1,109,78,85,36.7,98,17,14.6,194,59,128,114,1.06,Sleep disturbance evaluation,Low
+28,Female,178,68.7,25.2,106,78,72,36.6,100,18,11.6,167,65,87,83,0.75,Mild indigestion,High
+38,Female,166,50.5,26.7,91,77,77,36.7,97,16,14.5,182,45,119,94,1.05,Thyroid follow-up,Moderate
+54,Female,146,62.3,25.3,111,77,78,36.5,98,15,14.1,190,54,92,57,0.79,Sore throat,Moderate
+53,Female,162,70.5,29.8,106,70,70,36.8,100,12,13.6,176,61,83,50,0.91,Hair fall evaluation,Low
+26,Male,157,66.0,25.0,93,70,83,36.9,98,17,13.8,183,50,106,105,1.07,Chronic lower back pain review,Low
+37,Male,152,66.1,26.2,96,69,60,36.8,98,17,13.1,152,70,114,50,1.15,Fatigue and weight change evaluation,Low
+52,Male,164,63.2,23.5,93,74,82,36.7,97,18,15.0,198,56,90,82,0.94,Routine health check-up,Low
+39,Female,157,66.6,29.8,102,66,75,36.6,97,17,14.4,199,48,72,92,0.92,Chronic lower back pain review,Low
+34,Male,175,65.6,22.1,112,71,71,36.8,97,17,12.8,176,52,65,100,1.09,Ear wax removal,Low
+30,Male,148,64.9,25.8,103,69,68,36.7,97,18,14.3,160,56,94,101,0.69,Tension-type headache,High
+34,Male,169,63.5,29.8,107,66,65,36.9,99,17,15.5,132,68,125,78,0.98,Allergic rhinitis review,Low
+44,Male,174,62.5,26.1,108,73,77,37.1,97,17,14.0,141,50,118,111,0.64,Routine health check-up,Low
+20,Female,151,53.9,25.6,113,68,70,37.1,99,18,14.2,135,47,61,67,0.97,Mild contact dermatitis,Low
+18,Female,154,53.6,27.8,92,69,79,37.1,98,17,13.1,188,50,128,113,0.63,Migraine review,Low
+21,Female,149,48.1,29.6,108,69,88,36.9,100,19,14.4,194,40,103,57,0.81,Neck stiffness,Low
+23,Male,162,41.4,22.0,111,74,72,36.7,98,16,13.0,151,49,107,78,0.85,Mild wheeze evaluation,Low
+50,Female,167,61.6,27.0,94,67,77,36.5,98,12,12.8,166,40,89,79,0.95,Sore throat,Moderate
+39,Male,162,65.0,23.6,108,73,91,36.5,100,16,15.2,185,45,116,104,0.71,Abdominal discomfort evaluation,High
+27,Female,176,58.1,26.3,104,67,76,36.6,97,14,11.7,163,54,88,50,0.88,Functional dyspepsia,Low
+40,Male,171,46.7,27.4,94,68,90,36.7,98,18,14.3,184,47,95,62,0.72,Allergic rhinitis symptoms,Low
+25,Female,176,66.0,28.5,102,72,70,36.7,97,15,12.9,161,52,97,99,0.84,Migraine review,Low
+28,Female,172,49.3,24.3,110,70,87,36.9,98,17,12.5,160,54,99,50,0.94,Routine health check-up,Low
+51,Male,161,67.3,24.9,91,69,69,36.5,98,12,13.4,150,45,87,72,0.85,Routine health check-up,Moderate
+37,Female,148,43.4,23.5,101,68,68,36.7,97,14,12.0,179,55,100,50,1.09,Chest discomfort evaluation,Low
+19,Female,154,86.9,25.6,104,68,84,36.9,98,17,13.0,199,47,81,57,0.71,Seasonal cold symptoms,Low
+28,Female,168,76.9,23.4,101,74,86,36.8,100,16,13.6,176,40,64,106,0.75,Mild contact dermatitis,Low
+29,Female,150,63.7,29.8,101,67,77,36.2,98,13,12.6,176,60,112,111,0.65,Routine health check-up,Low
+33,Male,150,69.1,20.9,105,75,82,36.9,97,17,14.6,147,49,121,73,0.66,Palpitation evaluation,Low
+35,Male,184,70.3,29.8,100,71,74,36.7,98,15,13.6,199,53,101,52,0.92,Mild body ache,Moderate
+34,Female,158,69.8,26.1,108,78,74,37.0,96,17,14.1,197,49,99,62,0.81,Routine health check-up,Low
+30,Male,161,49.5,22.4,91,76,63,36.7,97,17,13.4,146,58,127,50,0.72,Lower back pain,Low
+35,Male,159,63.8,23.7,107,66,70,36.7,98,16,15.2,183,51,114,63,0.6,Routine health check-up,Low
+23,Male,151,72.9,20.6,119,67,71,36.7,98,14,13.1,168,56,99,66,0.71,Dry skin and itching,Low
+65,Male,161,57.9,27.5,103,78,84,36.8,100,14,13.7,174,45,121,88,0.79,Gastro-oesophageal reflux review,Moderate
+20,Female,160,68.1,24.8,95,74,70,36.7,98,17,13.8,153,44,82,64,1.11,Mild acne,High
+45,Female,181,57.1,20.1,109,71,89,36.7,98,14,13.9,176,56,101,50,0.6,Mild indigestion,Low
+31,Female,166,69.7,29.8,109,77,84,36.8,96,17,13.6,189,49,121,50,0.83,Routine health check-up,Moderate
+38,Female,173,44.4,26.9,110,63,67,36.7,100,14,13.7,194,72,105,131,0.72,Routine health check-up,High
+22,Male,143,54.9,24.0,114,66,60,36.5,98,16,12.8,150,60,96,67,0.74,General fatigue evaluation,Low
+43,Male,166,49.0,24.0,103,70,69,36.6,96,15,13.3,140,42,95,90,0.8,Mild contact dermatitis,Low
+34,Male,148,47.0,23.4,107,76,71,36.7,100,18,14.9,160,50,112,53,1.01,Routine health check-up,Low
+19,Female,171,49.1,26.6,102,73,84,36.7,96,16,11.6,199,45,64,96,0.66,Functional dyspepsia,Low
+39,Female,152,64.5,29.1,91,78,85,36.6,100,19,15.1,177,42,91,50,0.82,Migraine review,Moderate
+18,Male,165,48.3,22.8,107,74,77,36.5,99,19,11.6,140,53,106,50,0.81,Lower back pain,Low
+38,Female,168,54.0,28.1,101,73,70,36.6,97,17,13.4,174,40,103,80,1.11,Seasonal cough,Low
+22,Male,150,57.4,29.8,102,67,74,36.6,98,14,12.8,180,67,94,72,1.14,Sleep disturbance evaluation,Low
+31,Male,159,49.7,22.1,98,76,77,37.1,98,16,11.9,164,50,88,91,0.68,Routine health check-up,High
+28,Male,157,63.5,24.8,110,71,86,36.7,97,17,14.9,197,46,106,98,0.6,Eczema review,Moderate
+18,Male,156,71.1,29.8,105,72,60,36.6,98,17,14.5,169,52,77,70,1.04,Thyroid follow-up,Moderate
+51,Female,157,61.9,29.8,114,75,79,36.7,97,18,11.6,198,43,102,71,0.74,Allergic rhinitis review,High
+25,Male,143,41.9,24.0,107,69,70,36.7,100,20,11.6,167,42,86,113,0.78,Routine health check-up,Low
+55,Female,165,41.4,26.4,100,71,70,37.1,98,17,15.9,146,48,121,78,0.77,Lower back pain,Low
+35,Female,168,56.0,27.1,119,60,76,36.5,98,17,13.3,157,49,69,69,0.84,Migraine-type headache,Low
+18,Female,159,67.2,22.9,106,65,60,36.7,97,18,13.0,164,77,71,110,0.73,Chronic lower back pain review,Low
+30,Male,179,44.5,20.2,110,68,86,36.6,98,13,11.6,195,43,99,96,1.23,Gastro-oesophageal reflux review,Low
+47,Female,156,70.2,29.8,108,71,79,37.1,100,12,14.2,199,79,99,50,0.6,Routine health check-up,Low
+46,Male,151,67.1,24.0,100,70,75,36.9,98,17,11.6,160,50,114,95,0.97,Mild contact dermatitis,Low
+56,Male,146,59.0,23.0,91,67,73,36.7,97,17,14.6,156,48,121,87,0.77,Eczema review,High
+39,Female,155,76.6,27.4,101,76,66,36.6,97,12,11.6,185,57,113,121,0.74,Mild contact dermatitis,Low
+18,Female,153,52.1,28.2,93,77,76,36.7,97,14,13.5,183,58,74,71,0.93,Functional dyspepsia,Low

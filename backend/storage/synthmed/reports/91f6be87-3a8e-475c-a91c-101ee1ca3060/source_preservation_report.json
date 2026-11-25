@@ -1,0 +1,21 @@
+{
+  "ageBounds": {
+    "max": 65,
+    "min": 18
+  },
+  "ageColumn": "Age",
+  "ageToleranceYears": 5,
+  "enabled": false,
+  "limitations": [
+    "Source-Preserving Mode was disabled for this generation job."
+  ],
+  "method": "Source anchor preservation and population distribution comparison",
+  "mode": "Disabled",
+  "notes": [
+    "Record-level constraint satisfaction and population-level distribution similarity are reported separately.",
+    "Clinical plausibility is assessed by clinical/schema validation, not by distribution similarity alone.",
+    "Source anchors and source row identifiers are internal only and are never exported."
+  ],
+  "validationFailures": [],
+  "validationWarnings": []
+}

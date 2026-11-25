@@ -181,20 +181,161 @@ def _lookup_alias(name: str, groups: dict[str, tuple[str, ...]]) -> str:
     return ""
 
 
-def standardise_name(column: str) -> tuple[str, str, str]:
-    """Return (standardised name, role, measurement key)."""
+def _numeric_summary(series: pd.Series) -> dict[str, float | int | None]:
+    numeric = pd.to_numeric(series, errors="coerce")
+    finite = numeric[np.isfinite(numeric.to_numpy(dtype=float, na_value=np.nan))]
+    if finite.empty:
+        return {"count": 0, "min": None, "max": None, "median": None}
+    values = finite.to_numpy(dtype=float)
+    return {
+        "count": int(values.size),
+        "min": float(np.min(values)),
+        "max": float(np.max(values)),
+        "median": float(np.median(values)),
+    }
+
+
+def _value_supports_measurement(measurement: str, series: pd.Series, unit: str) -> tuple[bool, str]:
+    stats = _numeric_summary(series)
+    if not stats["count"]:
+        return True, "No numeric values available; name/unit evidence only."
+    min_v = float(stats["min"])
+    max_v = float(stats["max"])
+    med = float(stats["median"])
+    # Conservative plausibility envelopes; do not reject valid abnormal values.
+    envelopes: dict[str, tuple[float, float]] = {
+        "Systolic_BP": (40, 300),
+        "Diastolic_BP": (20, 200),
+        "Heart_Rate": (20, 300),
+        "Respiratory_Rate": (4, 80),
+        "SpO2": (50, 100),
+        "Blood_Glucose": (20, 1000) if unit in {"mg/dL", ""} else (1, 60),
+        "BMI": (8, 90),
+        "Height": (30, 250) if unit in {"cm", ""} else (0.3, 2.5),
+        "Weight": (1, 400),
+        "Body_Temperature": (30, 45) if unit in {"°C", ""} else (85, 115),
+        "Total_Cholesterol": (50, 800) if unit in {"mg/dL", ""} else (1, 20),
+        "HDL_Cholesterol": (5, 200) if unit in {"mg/dL", ""} else (0.1, 6),
+        "LDL_Cholesterol": (5, 500) if unit in {"mg/dL", ""} else (0.1, 15),
+        "Triglycerides": (10, 2000) if unit in {"mg/dL", ""} else (0.1, 25),
+        "Haemoglobin": (3, 25) if unit in {"g/dL", ""} else (30, 250),
+        "Creatinine": (0.1, 20) if unit in {"mg/dL", ""} else (10, 2000),
+    }
+    if measurement not in envelopes:
+        return True, "No value envelope configured."
+    low, high = envelopes[measurement]
+    if max_v < low or min_v > high:
+        return False, (
+            f"Observed values [{min_v:.3g}, {max_v:.3g}] outside plausible envelope "
+            f"for {measurement} ({low}-{high} {unit or 'expected unit'})."
+        )
+    # Guard common confusions
+    if measurement == "BMI" and med > 60 and unit in {"kg/m^2", "kg/m²", ""}:
+        return False, "Median too high for BMI; column may be weight or another measure."
+    if measurement in {"Height", "Weight"} and unit == "" and measurement == "Height" and med < 3:
+        # likely meters, acceptable
+        pass
+    return True, f"Observed values [{min_v:.3g}, {max_v:.3g}] consistent with {measurement}."
+
+
+def _mapping_confidence(
+    *, name_match: bool, unit: str, unit_confidence: str, value_ok: bool, reason: str
+) -> tuple[str, str]:
+    if not name_match:
+        return "Low", "No recognised name alias."
+    if not value_ok:
+        return "Rejected", reason
+    if unit and unit_confidence == "From column name":
+        return "High", "Name and explicit unit matched."
+    if unit and unit_confidence in {"Inferred from observed values", "Typical unit for measurement"} and value_ok:
+        return "Medium", f"Name matched; {unit_confidence.lower()}; values plausible."
+    if value_ok:
+        return (
+            "Medium" if unit else "Low",
+            "Name matched; values plausible but unit ambiguous."
+            if not unit
+            else "Name and values plausible.",
+        )
+    return "Low", reason
+
+
+def standardise_name(column: str, series: pd.Series | None = None) -> tuple[str, str, str, dict[str, Any]]:
+    """Return (standardised name, role, measurement key, mapping metadata).
+
+    Mapping uses name, data type, unit hints and actual values. Unknown or ambiguous
+    columns are never auto-approved as clinical measurements.
+    """
+    meta: dict[str, Any] = {
+        "confidence": "Low",
+        "reason": "Unrecognised column.",
+        "unit": "",
+        "unitConfidence": "Unknown",
+    }
     demographic = _lookup_alias(column, DEMOGRAPHIC_ALIASES)
     if demographic:
-        return demographic, "Demographic", ""
+        if series is not None and demographic == "Age":
+            stats = _numeric_summary(series)
+            if stats["count"] and (float(stats["min"]) < 0 or float(stats["max"]) > 130):
+                return column, "Unclassified", "", {
+                    "confidence": "Rejected",
+                    "reason": "Age alias but values outside human age envelope.",
+                    "unit": "",
+                    "unitConfidence": "Not a measurement",
+                }
+        meta = {
+            "confidence": "High",
+            "reason": "Recognised demographic alias.",
+            "unit": "",
+            "unitConfidence": "Not a measurement",
+        }
+        return demographic, "Demographic", "", meta
     disease = _lookup_alias(column, DISEASE_ALIASES)
     if disease:
-        return disease, disease, ""
+        meta = {
+            "confidence": "High",
+            "reason": "Recognised disease/severity alias.",
+            "unit": "",
+            "unitConfidence": "Not a measurement",
+        }
+        return disease, disease, "", meta
+
     key = _normalise_name(column)
     for definition in MEASUREMENTS:
         aliases = {_normalise_name(alias) for alias in definition.all_names}
-        if key in aliases or key.startswith(f"{_normalise_name(definition.canonical)}_"):
-            return definition.canonical, "ClinicalMeasurement", definition.canonical
-    return column, "Unclassified", ""
+        name_match = any(key == alias or key.startswith(f"{alias}_") for alias in aliases) or key.startswith(
+            f"{_normalise_name(definition.canonical)}_"
+        )
+        if not name_match:
+            continue
+        unit, unit_confidence, _ = detect_unit(
+            column,
+            series if series is not None else pd.Series(dtype="float64"),
+            definition.canonical,
+        )
+        value_ok, reason = _value_supports_measurement(
+            definition.canonical,
+            series if series is not None else pd.Series(dtype="float64"),
+            unit,
+        )
+        confidence, map_reason = _mapping_confidence(
+            name_match=name_match,
+            unit=unit,
+            unit_confidence=unit_confidence,
+            value_ok=value_ok,
+            reason=reason,
+        )
+        meta = {
+            "confidence": confidence,
+            "reason": map_reason,
+            "unit": unit,
+            "unitConfidence": unit_confidence,
+            "valueCheck": reason,
+        }
+        if confidence == "Rejected":
+            return column, "Unclassified", "", meta
+        # Ambiguous unit measurements are mapped but require confirmation before clinical validation.
+        return definition.canonical, "ClinicalMeasurement", definition.canonical, meta
+    return column, "Unclassified", "", meta
 
 
 def detect_identifier_name(column: str) -> bool:
@@ -239,6 +380,33 @@ def detect_unit(column: str, series: pd.Series, measurement: str) -> tuple[str, 
     if definition and len(definition.units) == 1:
         return definition.units[0], "Typical unit for measurement", True
     if definition and len(definition.units) > 1:
+        numeric = pd.to_numeric(series, errors="coerce").dropna()
+        if not numeric.empty:
+            med = float(numeric.median())
+            if measurement in {"Height"} and 30 <= med <= 250:
+                return "cm", "Inferred from observed values", True
+            if measurement in {"Height"} and 0.3 <= med <= 2.5:
+                return "m", "Inferred from observed values", True
+            if measurement in {
+                "Blood_Glucose",
+                "Total_Cholesterol",
+                "HDL_Cholesterol",
+                "LDL_Cholesterol",
+                "Triglycerides",
+            } and med > 30:
+                return "mg/dL", "Inferred from observed values", True
+            if measurement in {
+                "Blood_Glucose",
+                "Total_Cholesterol",
+                "HDL_Cholesterol",
+                "LDL_Cholesterol",
+                "Triglycerides",
+            } and med <= 30:
+                return "mmol/L", "Inferred from observed values", True
+            if measurement == "Haemoglobin" and med <= 25:
+                return "g/dL", "Inferred from observed values", True
+            if measurement == "Haemoglobin" and med > 25:
+                return "g/L", "Inferred from observed values", True
         return "", "Ambiguous unit", True
     return "", "Unknown", True
 
@@ -283,21 +451,30 @@ def profile_medical_schema(frame: pd.DataFrame) -> dict[str, Any]:
 
     for column in frame.columns:
         info = analysis_by_name.get(column, {})
-        standardised, role, measurement = standardise_name(column)
+        standardised, role, measurement, mapping_meta = standardise_name(column, frame[column])
         name_identifier = detect_identifier_name(column)
         content_identifier, content_reason = (
             detect_identifier_content(frame[column]) if not name_identifier else (False, "")
         )
         identifier = bool(name_identifier or content_identifier or info.get("potentialIdentifier"))
-        unit, unit_confidence, unit_confirmation = (
-            detect_unit(column, frame[column], measurement) if measurement else ("", "Not a measurement", False)
+        unit = str(mapping_meta.get("unit") or "") if measurement else ""
+        unit_confidence = str(
+            mapping_meta.get("unitConfidence")
+            or ("Not a measurement" if not measurement else "Unknown")
         )
+        if measurement and not unit:
+            detected_unit, detected_conf, _ = detect_unit(column, frame[column], measurement)
+            unit, unit_confidence = detected_unit, detected_conf
+        unit_confirmation = bool(measurement and unit_confidence != "From column name")
         context = MEASUREMENT_BY_NAME[measurement].context if measurement else ""
 
         column_warnings: list[str] = []
+        mapping_rejected = mapping_meta.get("confidence") == "Rejected"
         if identifier:
             column_warnings.append("Identifier detected; excluded from training and generated output.")
             excluded_identifiers.append(column)
+        if mapping_rejected:
+            column_warnings.append(f"Mapping rejected: {mapping_meta.get('reason')}")
         if measurement and unit_confirmation:
             column_warnings.append(f"Unit is {unit_confidence.lower()}; confirm before clinical validation.")
         if measurement == "Blood_Glucose":
@@ -309,7 +486,14 @@ def profile_medical_schema(frame: pd.DataFrame) -> dict[str, Any]:
                 "Column is not a recognised demographic, disease or clinical measurement; not approved by default."
             )
 
-        approved = role in {"Demographic", "Disease", "Disease_Level", "ClinicalMeasurement"} and not identifier
+        approved = (
+            role in {"Demographic", "Disease", "Disease_Level", "ClinicalMeasurement"}
+            and not identifier
+            and not mapping_rejected
+        )
+        if role == "ClinicalMeasurement" and mapping_meta.get("confidence") == "Low":
+            approved = False
+            column_warnings.append("Clinical mapping confidence too low; not auto-approved.")
         if approved:
             approved_output.append(column)
 
@@ -324,6 +508,9 @@ def profile_medical_schema(frame: pd.DataFrame) -> dict[str, Any]:
             "unitConfidence": unit_confidence,
             "requiresUnitConfirmation": bool(unit_confirmation),
             "requiredClinicalContext": context,
+            "mappingConfidence": mapping_meta.get("confidence"),
+            "mappingReason": mapping_meta.get("reason"),
+            "valueCheck": mapping_meta.get("valueCheck", ""),
             "missingCount": int(info.get("missingCount", 0)),
             "missingPercentage": float(info.get("missingPercentage", 0.0)),
             "uniqueCount": int(info.get("uniqueCount", 0)),
@@ -356,7 +543,8 @@ def profile_medical_schema(frame: pd.DataFrame) -> dict[str, Any]:
             ],
             "warnings": warnings,
             "notes": [
-                "Column roles are suggestions based on names and content; unknown columns are never auto-approved.",
+                "Column mapping uses name, data type, unit hints and observed values; "
+                "unknown/ambiguous columns are not auto-approved.",
                 "Units detected by name or typical value require user confirmation before being treated as verified.",
                 "Identifier detection covers direct identifiers and common renamed equivalents.",
             ],
@@ -368,6 +556,12 @@ def prohibited_output_columns(columns: list[str]) -> list[str]:
     return [column for column in columns if detect_identifier_name(column)]
 
 
+NON_MEDICAL_NAME_PATTERN = re.compile(
+    r"(^|_)(name|email|phone|mobile|telephone|address|street|city|district|state|zip|pincode|postcode|"
+    r"hospital|doctor|visit|admission|encounter|insurance|billing|account|ssn|aadhaar|passport|license|licence|mrn)(_|$)"
+)
+
+
 def validate_strict_output_schema(
     frame: pd.DataFrame,
     *,
@@ -376,10 +570,14 @@ def validate_strict_output_schema(
 ) -> dict[str, Any]:
     """Validate the exact final schema and scan values for reproduced identifiers."""
     identifier_columns = identifier_columns or []
-    approval = set(approved_columns)
-    names = list(frame.columns)
+    approval = [str(c) for c in approved_columns]
+    approval_set = set(approval)
+    names = [str(c) for c in frame.columns]
     prohibited = prohibited_output_columns(names)
-    unapproved = [column for column in names if column not in approval]
+    unapproved = [column for column in names if column not in approval_set]
+    non_medical = [column for column in names if NON_MEDICAL_NAME_PATTERN.search(_normalise_name(column))]
+    order_mismatch = names != approval
+    missing_approved = [column for column in approval if column not in names]
     content_hits: list[dict[str, Any]] = []
     for column in names:
         if column in identifier_columns:
@@ -399,19 +597,29 @@ def validate_strict_output_schema(
         errors.append("Prohibited identifier-style columns: " + ", ".join(prohibited))
     if unapproved:
         errors.append("Unapproved output columns: " + ", ".join(unapproved))
+    if non_medical:
+        errors.append("Non-medical/identifier-like column names: " + ", ".join(sorted(set(non_medical))))
     if content_hits:
         errors.append("Identifier-like values found in output: " + ", ".join(item["column"] for item in content_hits))
+    if missing_approved:
+        errors.append("Approved output columns missing from final output: " + ", ".join(missing_approved))
+    if order_mismatch and not unapproved and not missing_approved:
+        errors.append("Output column order differs from approved schema.")
     return json_safe(
         {
             "passed": not errors,
             "errors": errors,
             "columnCount": len(names),
-            "approvedColumns": sorted(approval),
+            "approvedColumns": approval,
+            "actualColumns": names,
             "prohibitedColumns": prohibited,
             "unapprovedColumns": unapproved,
+            "nonMedicalColumns": sorted(set(non_medical)),
+            "missingApprovedColumns": missing_approved,
             "contentHits": content_hits,
             "notes": [
                 "Approved columns are the demographic, disease and clinical measurements selected for this job.",
+                "Generated output must contain only approved medical columns and no identifiers/PII.",
                 "Content scanning covers email, phone and long identifier-like tokens in the final output only.",
             ],
         }

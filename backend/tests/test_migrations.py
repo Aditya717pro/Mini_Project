@@ -22,7 +22,12 @@ def test_alembic_revision_graph_has_single_expected_head(alembic_config: tuple[C
     config, _ = alembic_config
     directory = script.ScriptDirectory.from_config(config)
 
-    assert directory.get_heads() == ["b2f6d8a9c1e3"]
+    assert directory.get_heads() == ["d7f0a1b2c3e4"]
+    assert directory.get_revision("d7f0a1b2c3e4").down_revision == "c4e8f1a2b3d9"
+    assert directory.get_revision("c4e8f1a2b3d9").down_revision == "a7d9e1f3c5b7"
+    assert directory.get_revision("a7d9e1f3c5b7").down_revision == "f1a2b3c4d5e6"
+    assert directory.get_revision("f1a2b3c4d5e6").down_revision == "e3c1d2f4a5b6"
+    assert directory.get_revision("e3c1d2f4a5b6").down_revision == "b2f6d8a9c1e3"
     assert directory.get_revision("b2f6d8a9c1e3").down_revision == "c74e9b1a6d02"
     assert directory.get_revision("c74e9b1a6d02").down_revision == "a1f4d7e9c2b6"
     assert directory.get_revision("a1f4d7e9c2b6").down_revision == "f6b2c9d4e7a1"
@@ -30,6 +35,11 @@ def test_alembic_revision_graph_has_single_expected_head(alembic_config: tuple[C
 
     chain = [revision.revision for revision in directory.walk_revisions()]
     assert chain == [
+        "d7f0a1b2c3e4",
+        "c4e8f1a2b3d9",
+        "a7d9e1f3c5b7",
+        "f1a2b3c4d5e6",
+        "e3c1d2f4a5b6",
         "b2f6d8a9c1e3",
         "c74e9b1a6d02",
         "a1f4d7e9c2b6",
@@ -66,7 +76,25 @@ def test_schema_parity_for_p0_objects(alembic_config: tuple[Config, str]) -> Non
             "synthmed_generation_configs",
             "synthmed_evaluation_reports",
             "synthmed_comparisons",
+            "synthmed_utility_evaluations",
+            "synthmed_dataset_versions",
+            "synthmed_dataset_lineage",
+            "synthmed_generation_config_snapshots",
+            "synthmed_experiments",
+            "research_reports",
         }.issubset(tables)
+
+        dataset_columns = {item["name"] for item in inspector.get_columns("datasets")}
+        assert {
+            "origin",
+            "source_generated_dataset_id",
+            "source_repository_dataset_id",
+            "generation_job_id",
+            "generation_model",
+            "provenance_json",
+        }.issubset(dataset_columns)
+        dataset_indexes = {item["name"] for item in inspector.get_indexes("datasets")}
+        assert "uq_datasets_source_generated_dataset_id" in dataset_indexes
 
         job_indexes = {item["name"] for item in inspector.get_indexes("synthmed_generation_jobs")}
         assert "ix_synthmed_generation_jobs_status" in job_indexes
@@ -86,6 +114,9 @@ def test_schema_parity_for_p0_objects(alembic_config: tuple[Config, str]) -> Non
         source_columns = {item["name"]: item for item in inspector.get_columns("synthmed_source_datasets")}
         assert source_columns["upload_status"].get("default") is not None
         assert source_columns["row_count"].get("default") is not None
+
+        utility_columns = {item["name"] for item in inspector.get_columns("synthmed_utility_evaluations")}
+        assert {"report_sha256", "report_csv_sha256", "report_pdf_sha256"}.issubset(utility_columns)
 
         comparison_indexes = {item["name"] for item in inspector.get_indexes("synthmed_comparisons")}
         assert "ix_synthmed_comparison_owner_created" in comparison_indexes

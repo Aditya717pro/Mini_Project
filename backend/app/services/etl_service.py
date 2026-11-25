@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from uuid import uuid4
 
 from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import Session
@@ -12,6 +13,7 @@ from app.models.enums import DatasetStatus, JobStatus
 from app.models.etl import ETLJob
 from app.models.user import User
 from app.services.audit_service import log_audit
+from app.services.dataset_version_service import create_processed_version
 from app.services.job_service import claim_job, fail_job, log_job
 from app.services.quality_service import assess_quality, persist_quality_report
 from app.services.readiness_service import assess_readiness, persist_readiness_report
@@ -76,6 +78,7 @@ def run_etl(
             detail="ETL job is no longer approved; it may already be running or completed",
         )
 
+    processed_version_id = str(uuid4())
     try:
         pipeline = run_pipeline(
             raw_path=raw_path,
@@ -83,7 +86,7 @@ def run_etl(
             approved_mapping=approved_mapping,
             storage=storage,
             dataset_id=dataset.id,
-            version_id=version.id,
+            version_id=processed_version_id,
         )
         job.progress = 65
         job.current_stage = "quality"
@@ -96,8 +99,22 @@ def run_etl(
             rows_out=len(pipeline.transformed.dataframe),
         )
 
+        processed_version = create_processed_version(
+            db,
+            settings=settings,
+            dataset=dataset,
+            job=job,
+            actor=actor,
+            pipeline=pipeline,
+            version_id=processed_version_id,
+            request=request,
+        )
+        db.flush()
+
         quality = assess_quality(pipeline.extracted.dataframe, pipeline.extracted.profile)
-        quality_report = persist_quality_report(db, dataset=dataset, version=version, job=job, assessment=quality)
+        quality_report = persist_quality_report(
+            db, dataset=dataset, version=processed_version, job=job, assessment=quality
+        )
         db.flush()
         log_job(
             db,
@@ -108,7 +125,7 @@ def run_etl(
 
         representativeness = assess_representativeness(pipeline.extracted.dataframe, pipeline.extracted.profile)
         persist_representativeness_report(
-            db, dataset=dataset, version=version, assessment=representativeness
+            db, dataset=dataset, version=processed_version, assessment=representativeness
         )
         log_job(
             db,
@@ -129,7 +146,7 @@ def run_etl(
         persist_readiness_report(
             db,
             dataset=dataset,
-            version=version,
+            version=processed_version,
             quality_report_id=quality_report.id,
             assessment=readiness,
         )
@@ -140,10 +157,6 @@ def run_etl(
             f"Readiness verdict: {readiness.verdict} ({readiness.overall}/100) for '{readiness.task}'.",
         )
 
-        version.processed_file_path = storage.relative_path(pipeline.processed_path, kind="processed")
-        version.transformation_log_json = pipeline.transformation_log
-        version.record_count = len(pipeline.transformed.dataframe)
-        version.column_count = len(pipeline.transformed.dataframe.columns)
         dataset.record_count = len(pipeline.extracted.dataframe)
         dataset.column_count = len(pipeline.extracted.dataframe.columns)
         dataset.missing_rate = pipeline.extracted.profile.missing_pct
@@ -152,6 +165,8 @@ def run_etl(
         dataset.approved_at = None
         dataset.approved_by_id = None
 
+        job.dataset_version_id = processed_version.id
+        job.dataset_version = processed_version
         job.status = JobStatus.COMPLETED
         job.current_stage = "complete"
         job.progress = 100
@@ -162,7 +177,8 @@ def run_etl(
             db,
             job,
             "complete",
-            "ETL completed. Dataset is pending governance review; quality is not an approval decision.",
+            f"ETL completed as {processed_version.version_label}. Original and prior versions are retained; "
+            "dataset is pending governance review.",
         )
         log_audit(
             db,
@@ -172,6 +188,8 @@ def run_etl(
             actor_id=actor.id,
             details={
                 "dataset_id": dataset.id,
+                "version_id": processed_version.id,
+                "parent_version_id": version.id,
                 "rows_in": job.rows_in,
                 "rows_out": job.rows_out,
                 "quality": quality.overall,

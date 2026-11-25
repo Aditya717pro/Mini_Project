@@ -1,0 +1,31 @@
+{
+  "METADATA_SPEC_VERSION": "V2",
+  "relationships": [],
+  "tables": {
+    "synthmed": {
+      "columns": {
+        "Age": {
+          "sdtype": "numerical"
+        },
+        "BS": {
+          "sdtype": "numerical"
+        },
+        "BodyTemp": {
+          "sdtype": "numerical"
+        },
+        "DiastolicBP": {
+          "sdtype": "numerical"
+        },
+        "HeartRate": {
+          "sdtype": "numerical"
+        },
+        "RiskLevel": {
+          "sdtype": "categorical"
+        },
+        "SystolicBP": {
+          "sdtype": "numerical"
+        }
+      }
+    }
+  }
+}

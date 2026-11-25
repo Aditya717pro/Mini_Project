@@ -56,11 +56,32 @@ class SynthMedStorageService:
 
         return target, relative
 
+    def save_version_snapshot(
+        self, dataset_id: str, version_id: str, filename: str, content: bytes, *, kind: str
+    ) -> tuple[Path, str]:
+        if kind not in {"source", "generated"}:
+            raise ValueError("Unsupported version snapshot category")
+        category = "sources" if kind == "source" else "generated"
+        dataset_id = _safe_component(dataset_id)
+        version_id = _safe_component(version_id)
+        safe_name = _safe_filename(filename)
+        root = self.sources_root if category == "sources" else self.generated_root
+        directory = root / dataset_id / "versions" / version_id
+        directory.mkdir(parents=True, exist_ok=True)
+        target = directory / safe_name
+        with target.open("xb") as handle:
+            handle.write(content)
+        return target, f"{category}/{dataset_id}/versions/{version_id}/{safe_name}"
+
     def resolve_source(self, relative_path: str) -> Path:
         return resolve_within_root(self.sources_root, _within_category(relative_path, "sources"))
 
     def resolve_generated(self, relative_path: str) -> Path:
         return resolve_within_root(self.generated_root, _within_category(relative_path, "generated"))
+
+    def resolve_version(self, kind: str, relative_path: str) -> Path:
+        return self.resolve_source(relative_path) if kind == "source" else self.resolve_generated(relative_path)
+
 
 
     def remove_source(self, relative_path: str) -> None:
@@ -86,7 +107,8 @@ class SynthMedStorageService:
         directory = self.reports_root / job_id
         directory.mkdir(parents=True, exist_ok=True)
         target = directory / safe_name
-        target.write_bytes(content)
+        with target.open("xb") as handle:
+            handle.write(content)
         return target, f"reports/{job_id}/{safe_name}"
 
     def resolve_report(self, relative_path: str) -> Path:

@@ -1,0 +1,133 @@
+{
+  "batchSize": 100,
+  "clinicalReportPath": "reports/655b2465-bc88-481c-a3aa-ac223fcc71b5/clinical_validation.json",
+  "clinicalValidation": {
+    "classificationCounts": {},
+    "generationProfile": "Standard",
+    "limitations": [
+      "Reference intervals are screening aids for research datasets, not clinical decision support.",
+      "A value outside a reference interval may be abnormal but clinically plausible; it is not automatically invalid.",
+      "Passing configured numerical ranges does not establish clinical validity, safety or fitness for patient care.",
+      "Relationship rules are applied only when the required measurements and context are present.",
+      "Operational plausible limits are configurable data-quality bounds, not medical reference limits."
+    ],
+    "method": "Not applied to the Standard generation profile",
+    "totalRecords": 1000,
+    "warnings": []
+  },
+  "columns": [
+    "Age",
+    "Gender",
+    "Height_cm",
+    "Weight_kg",
+    "BMI",
+    "Systolic_BP_mmHg",
+    "Diastolic_BP_mmHg",
+    "Heart_Rate_bpm",
+    "Body_Temperature_C",
+    "SpO2_Percentage",
+    "Respiratory_Rate_bpm",
+    "Haemoglobin_g_dL",
+    "Total_Cholesterol_mg_dL",
+    "HDL_Cholesterol_mg_dL",
+    "LDL_Cholesterol_mg_dL",
+    "Triglycerides_mg_dL",
+    "Creatinine_mg_dL",
+    "Diagnosis",
+    "Risk_Level"
+  ],
+  "conditionSatisfaction": {
+    "allConditionsSatisfied": true,
+    "cohorts": [],
+    "combined": {
+      "nonSatisfyingRecords": 0,
+      "requestedConditions": 0,
+      "satisfactionPercentage": 100.0,
+      "satisfyingRecords": 1000,
+      "totalGeneratedRecords": 1000
+    },
+    "conditional": false,
+    "conditions": [],
+    "expectedRecordCount": 1000,
+    "generatedRecordCount": 1000,
+    "limitations": [
+      "No conditions were requested for this generation job."
+    ],
+    "method": "Not applicable to unconditional generation",
+    "passed": true,
+    "recordCountMatches": true
+  },
+  "conditions": [],
+  "conditionsReportPath": "",
+  "epochs": 20,
+  "generatedDatasetId": "877daff0-8d1f-47a7-9ff1-7e8c6b174db3",
+  "generatedPaths": {
+    "CSV": "generated/877daff0-8d1f-47a7-9ff1-7e8c6b174db3/synthetic_data.csv",
+    "JSON": "generated/877daff0-8d1f-47a7-9ff1-7e8c6b174db3/synthetic_data.json",
+    "XLSX": "generated/877daff0-8d1f-47a7-9ff1-7e8c6b174db3/synthetic_data.xlsx"
+  },
+  "generatedRecordCount": 1000,
+  "generationMode": "Unconditional",
+  "generationProfile": "Standard",
+  "jobId": "655b2465-bc88-481c-a3aa-ac223fcc71b5",
+  "metadataPath": "reports/655b2465-bc88-481c-a3aa-ac223fcc71b5/metadata.json",
+  "model": "SDV CTGANSynthesizer",
+  "modelPath": "reports/655b2465-bc88-481c-a3aa-ac223fcc71b5/ctgan_model.pkl",
+  "notes": [
+    "SDV CTGANSynthesizer training ran on CPU.",
+    "Original source files were not modified.",
+    "The same fitted synthesizer instance produced all requested records.",
+    "Synthetic data is for research and software testing, not clinical decision-making."
+  ],
+  "privacyReportPath": "reports/655b2465-bc88-481c-a3aa-ac223fcc71b5/privacy_report.json",
+  "qualityReportPath": "reports/655b2465-bc88-481c-a3aa-ac223fcc71b5/quality_report.json",
+  "rejectionSampling": {
+    "acceptedRecords": 1000,
+    "attempts": 1,
+    "method": "No clinical rejection sampling for the Standard profile",
+    "rejectedRecords": 0,
+    "rejectionCounts": {},
+    "sampledRecords": 1000
+  },
+  "requestedRecordCount": 1000,
+  "samplingApi": "sample_from_conditions",
+  "samplingPlan": [],
+  "samplingStrategy": "reject_sampling",
+  "schemaValidation": {
+    "approvedColumns": [
+      "Age",
+      "BMI",
+      "Body_Temperature_C",
+      "Creatinine_mg_dL",
+      "Diagnosis",
+      "Diastolic_BP_mmHg",
+      "Gender",
+      "HDL_Cholesterol_mg_dL",
+      "Haemoglobin_g_dL",
+      "Heart_Rate_bpm",
+      "Height_cm",
+      "LDL_Cholesterol_mg_dL",
+      "Respiratory_Rate_bpm",
+      "Risk_Level",
+      "SpO2_Percentage",
+      "Systolic_BP_mmHg",
+      "Total_Cholesterol_mg_dL",
+      "Triglycerides_mg_dL",
+      "Weight_kg"
+    ],
+    "columnCount": 19,
+    "contentHits": [],
+    "errors": [],
+    "notes": [
+      "Approved columns are the demographic, disease and clinical measurements selected for this job.",
+      "Content scanning covers email, phone and long identifier-like tokens in the final output only."
+    ],
+    "passed": true,
+    "prohibitedColumns": [],
+    "unapprovedColumns": []
+  },
+  "sdvVersion": "2.2.0",
+  "seed": null,
+  "selectedModel": "CTGAN",
+  "trainingDurationSeconds": 11.902
+}

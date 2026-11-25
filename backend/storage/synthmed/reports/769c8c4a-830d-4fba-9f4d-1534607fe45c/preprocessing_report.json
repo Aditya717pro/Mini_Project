@@ -1,0 +1,77 @@
+{
+  "excludedConstantColumns": [],
+  "excludedIdentifierColumns": [],
+  "includedColumns": [
+    "Age",
+    "SystolicBP",
+    "DiastolicBP",
+    "BS"
+  ],
+  "metadata": {
+    "METADATA_SPEC_VERSION": "V2",
+    "relationships": [],
+    "tables": {
+      "synthmed": {
+        "columns": {
+          "Age": {
+            "sdtype": "numerical"
+          },
+          "BS": {
+            "sdtype": "numerical"
+          },
+          "DiastolicBP": {
+            "sdtype": "numerical"
+          },
+          "SystolicBP": {
+            "sdtype": "numerical"
+          }
+        }
+      }
+    }
+  },
+  "notes": [
+    "The original uploaded source file was read-only and was not modified.",
+    "Missing medical values are not filled with zero.",
+    "No clinical relationships or medical validity are inferred by preprocessing."
+  ],
+  "operations": [
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Age",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "SystolicBP",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "DiastolicBP",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "BS",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "operation": "duplicate_rows_removed",
+      "reason": "Exact duplicate training rows were removed; original source file was unchanged.",
+      "rows": 616
+    },
+    {
+      "columns": [],
+      "operation": "missingness_preserved",
+      "reason": "Missing values are retained for SDV/RDT handling; no zero or medical-value imputation."
+    }
+  ],
+  "sourceColumns": 7,
+  "sourceRecords": 1014,
+  "trainingColumns": 4,
+  "trainingRecords": 398
+}

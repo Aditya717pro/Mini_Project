@@ -1,0 +1,32 @@
+{
+  "exactOverlapPercentage": 0.0,
+  "exactOverlapRecords": 0,
+  "limitations": [
+    "This is a heuristic screening, not a formal privacy guarantee.",
+    "No differential privacy mechanism is implemented.",
+    "A low re-identification signal does not prove that re-identification is impossible.",
+    "Nearest-neighbour distances use a scale-normalised encoding of modelled columns only."
+  ],
+  "method": "Exact overlap, duplicate detection, nearest-neighbour distance and SDMetrics NewRowSynthesis",
+  "nearestNeighbourDistance": {
+    "median": 0.5934253729127335,
+    "minimum": 0.07258305486690192,
+    "p90": 1.1481579636772772,
+    "suspiciousRecords": 0,
+    "threshold": 0.05
+  },
+  "newRowSynthesisError": null,
+  "newRowSynthesisScore": 1.0,
+  "realDuplicateRecords": 562,
+  "riskyColumns": {
+    "identifiers": [],
+    "quasiIdentifiers": [
+      "Age"
+    ]
+  },
+  "syntheticDuplicateRecords": 13,
+  "warnings": [
+    "13 duplicate synthetic record(s) were generated.",
+    "Synthetic medical data is not automatically anonymous."
+  ]
+}

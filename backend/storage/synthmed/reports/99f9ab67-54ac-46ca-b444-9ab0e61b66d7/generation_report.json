@@ -1,0 +1,64 @@
+{
+  "batchSize": 100,
+  "columns": [
+    "Age",
+    "SystolicBP",
+    "DiastolicBP",
+    "BS",
+    "BodyTemp",
+    "HeartRate",
+    "RiskLevel"
+  ],
+  "conditionSatisfaction": {
+    "allConditionsSatisfied": true,
+    "cohorts": [],
+    "combined": {
+      "nonSatisfyingRecords": 0,
+      "requestedConditions": 0,
+      "satisfactionPercentage": 100.0,
+      "satisfyingRecords": 1000,
+      "totalGeneratedRecords": 1000
+    },
+    "conditional": false,
+    "conditions": [],
+    "expectedRecordCount": 1000,
+    "generatedRecordCount": 1000,
+    "limitations": [
+      "No conditions were requested for this generation job."
+    ],
+    "method": "Not applicable to unconditional generation",
+    "passed": true,
+    "recordCountMatches": true
+  },
+  "conditions": [],
+  "conditionsReportPath": "",
+  "epochs": 20,
+  "generatedDatasetId": "22ab2574-295c-4340-a583-42a7c5c854e7",
+  "generatedPaths": {
+    "CSV": "generated/22ab2574-295c-4340-a583-42a7c5c854e7/synthetic_data.csv",
+    "JSON": "generated/22ab2574-295c-4340-a583-42a7c5c854e7/synthetic_data.json",
+    "XLSX": "generated/22ab2574-295c-4340-a583-42a7c5c854e7/synthetic_data.xlsx"
+  },
+  "generatedRecordCount": 1000,
+  "generationMode": "Unconditional",
+  "jobId": "99f9ab67-54ac-46ca-b444-9ab0e61b66d7",
+  "metadataPath": "reports/99f9ab67-54ac-46ca-b444-9ab0e61b66d7/metadata.json",
+  "model": "SDV CTGANSynthesizer",
+  "modelPath": "reports/99f9ab67-54ac-46ca-b444-9ab0e61b66d7/ctgan_model.pkl",
+  "notes": [
+    "SDV CTGANSynthesizer training ran on CPU.",
+    "Original source files were not modified.",
+    "The same fitted synthesizer instance produced all requested records.",
+    "Synthetic data is for research and software testing, not clinical decision-making."
+  ],
+  "privacyReportPath": "reports/99f9ab67-54ac-46ca-b444-9ab0e61b66d7/privacy_report.json",
+  "qualityReportPath": "reports/99f9ab67-54ac-46ca-b444-9ab0e61b66d7/quality_report.json",
+  "requestedRecordCount": 1000,
+  "samplingApi": "sample_from_conditions",
+  "samplingPlan": [],
+  "samplingStrategy": "reject_sampling",
+  "sdvVersion": "2.2.0",
+  "seed": null,
+  "selectedModel": "CTGAN",
+  "trainingDurationSeconds": 14.31
+}

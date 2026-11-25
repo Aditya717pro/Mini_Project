@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin
@@ -53,6 +53,18 @@ class Dataset(Base, TimestampMixin):
     format: Mapped[FileFormat] = mapped_column(FORMAT_ENUM, nullable=False)
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     original_path: Mapped[str] = mapped_column(Text, nullable=False)
+    origin: Mapped[str] = mapped_column(String(24), nullable=False, default="Original", server_default="Original")
+    source_generated_dataset_id: Mapped[str | None] = mapped_column(
+        ForeignKey("synthmed_generated_datasets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    source_repository_dataset_id: Mapped[str | None] = mapped_column(
+        ForeignKey("datasets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    generation_job_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    generation_model: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    provenance_json: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict, server_default=text("'{}'")
+    )
     checksum_sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     file_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     record_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -96,6 +108,7 @@ class Dataset(Base, TimestampMixin):
     __table_args__ = (
         Index("ix_datasets_domain_status", "domain", "status"),
         Index("ix_datasets_owner_created", "owner_id", "created_at"),
+        Index("uq_datasets_source_generated_dataset_id", "source_generated_dataset_id", unique=True),
     )
 
     def __repr__(self) -> str:

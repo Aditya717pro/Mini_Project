@@ -1,0 +1,130 @@
+{
+  "METADATA_SPEC_VERSION": "V2",
+  "relationships": [],
+  "tables": {
+    "synthmed": {
+      "columns": {
+        "Age": {
+          "sdtype": "numerical"
+        },
+        "Allergies": {
+          "sdtype": "categorical"
+        },
+        "Area": {
+          "sdtype": "categorical"
+        },
+        "BMI": {
+          "sdtype": "numerical"
+        },
+        "Blood_Group": {
+          "sdtype": "categorical"
+        },
+        "Body_Temperature_C": {
+          "sdtype": "numerical"
+        },
+        "City": {
+          "sdtype": "categorical"
+        },
+        "Consultation_Status": {
+          "sdtype": "categorical"
+        },
+        "Creatinine_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Current_Medications": {
+          "sdtype": "categorical"
+        },
+        "Date_of_Birth": {
+          "sdtype": "datetime"
+        },
+        "Department": {
+          "sdtype": "categorical"
+        },
+        "Diagnosis": {
+          "sdtype": "categorical"
+        },
+        "Diastolic_BP_mmHg": {
+          "sdtype": "numerical"
+        },
+        "District": {
+          "sdtype": "categorical"
+        },
+        "Doctor_Name": {
+          "sdtype": "categorical"
+        },
+        "Existing_Conditions": {
+          "sdtype": "categorical"
+        },
+        "Family_Medical_History": {
+          "sdtype": "categorical"
+        },
+        "Fasting_Blood_Glucose_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Gender": {
+          "sdtype": "categorical"
+        },
+        "HDL_Cholesterol_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Haemoglobin_g_dL": {
+          "sdtype": "numerical"
+        },
+        "Heart_Rate_bpm": {
+          "sdtype": "numerical"
+        },
+        "Height_cm": {
+          "sdtype": "numerical"
+        },
+        "Hospital_Name": {
+          "sdtype": "categorical"
+        },
+        "House_Number": {
+          "sdtype": "categorical"
+        },
+        "LDL_Cholesterol_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Phone_Number": {
+          "sdtype": "numerical"
+        },
+        "Pincode": {
+          "sdtype": "numerical"
+        },
+        "Respiratory_Rate_bpm": {
+          "sdtype": "numerical"
+        },
+        "Risk_Level": {
+          "sdtype": "categorical"
+        },
+        "SpO2_Percentage": {
+          "sdtype": "numerical"
+        },
+        "State": {
+          "sdtype": "categorical"
+        },
+        "Street_Name": {
+          "sdtype": "categorical"
+        },
+        "Systolic_BP_mmHg": {
+          "sdtype": "numerical"
+        },
+        "Total_Cholesterol_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Triglycerides_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Visit_Date": {
+          "sdtype": "datetime"
+        },
+        "Visit_Type": {
+          "sdtype": "categorical"
+        },
+        "Weight_kg": {
+          "sdtype": "numerical"
+        }
+      }
+    }
+  }
+}

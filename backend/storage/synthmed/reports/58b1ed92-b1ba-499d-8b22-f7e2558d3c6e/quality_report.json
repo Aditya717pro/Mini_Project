@@ -1,0 +1,359 @@
+{
+  "columnLevel": [
+    {
+      "Column": "Age",
+      "Metric": "KSComplement",
+      "Score": 0.8716991150442478,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "SystolicBP",
+      "Metric": "KSComplement",
+      "Score": 0.6362300884955753,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "DiastolicBP",
+      "Metric": "KSComplement",
+      "Score": 0.6297345132743363,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "BS",
+      "Metric": "KSComplement",
+      "Score": 0.5301946902654866,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "BodyTemp",
+      "Metric": "KSComplement",
+      "Score": 0.8241858407079645,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "HeartRate",
+      "Metric": "KSComplement",
+      "Score": 0.7768761061946902,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "RiskLevel",
+      "Metric": "TVComplement",
+      "Score": 0.8463008849557522,
+      "Table": "synthmed"
+    }
+  ],
+  "columnPairLevel": [
+    {
+      "Column 1": "Age",
+      "Column 2": "SystolicBP",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.37593145079729723,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "Age",
+      "Column 2": "DiastolicBP",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.3478457496872086,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "Age",
+      "Column 2": "BS",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.37661634121554055,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "Age",
+      "Column 2": "BodyTemp",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": -0.18884309276199918,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "Age",
+      "Column 2": "HeartRate",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.0774073454206795,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "Age",
+      "Column 2": "RiskLevel",
+      "Meets Threshold?": false,
+      "Metric": "ContingencySimilarity",
+      "Real Association": 0.25318826423313184,
+      "Real Correlation": null,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "SystolicBP",
+      "Column 2": "DiastolicBP",
+      "Meets Threshold?": true,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.7900020726951192,
+      "Score": 0.6119388528987268,
+      "Synthetic Correlation": 0.013879778492573002,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "SystolicBP",
+      "Column 2": "BS",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.34753395647234253,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "SystolicBP",
+      "Column 2": "BodyTemp",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": -0.20726678137495896,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "SystolicBP",
+      "Column 2": "HeartRate",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": -0.006088032708583735,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "SystolicBP",
+      "Column 2": "RiskLevel",
+      "Meets Threshold?": true,
+      "Metric": "ContingencySimilarity",
+      "Real Association": 0.4759180271884924,
+      "Real Correlation": null,
+      "Score": 0.6479115044247787,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "DiastolicBP",
+      "Column 2": "BS",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.3004228585429251,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "DiastolicBP",
+      "Column 2": "BodyTemp",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": -0.20199156061959048,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "DiastolicBP",
+      "Column 2": "HeartRate",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": -0.016469927227403636,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "DiastolicBP",
+      "Column 2": "RiskLevel",
+      "Meets Threshold?": true,
+      "Metric": "ContingencySimilarity",
+      "Real Association": 0.32052267760690484,
+      "Real Correlation": null,
+      "Score": 0.5184159292035397,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "BS",
+      "Column 2": "BodyTemp",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": -0.04251147938922108,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "BS",
+      "Column 2": "HeartRate",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.1356054187565754,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "BS",
+      "Column 2": "RiskLevel",
+      "Meets Threshold?": true,
+      "Metric": "ContingencySimilarity",
+      "Real Association": 0.4685936197954825,
+      "Real Correlation": null,
+      "Score": 0.6502123893805309,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "BodyTemp",
+      "Column 2": "HeartRate",
+      "Meets Threshold?": false,
+      "Metric": "CorrelationSimilarity",
+      "Real Association": null,
+      "Real Correlation": 0.08726242841396406,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "BodyTemp",
+      "Column 2": "RiskLevel",
+      "Meets Threshold?": false,
+      "Metric": "ContingencySimilarity",
+      "Real Association": 0.2246794950362752,
+      "Real Correlation": null,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    },
+    {
+      "Column 1": "HeartRate",
+      "Column 2": "RiskLevel",
+      "Meets Threshold?": false,
+      "Metric": "ContingencySimilarity",
+      "Real Association": 0.197385805961069,
+      "Real Correlation": null,
+      "Score": null,
+      "Synthetic Correlation": null,
+      "Table": "synthmed"
+    }
+  ],
+  "diagnosticProperties": {
+    "Constraint Validity": null,
+    "Data Structure": 1.0,
+    "Data Validity": 1.0
+  },
+  "diagnosticScore": 1.0,
+  "diagnostics": [
+    {
+      "Column": "Age",
+      "Metric": "BoundaryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "SystolicBP",
+      "Metric": "BoundaryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "DiastolicBP",
+      "Metric": "BoundaryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "BS",
+      "Metric": "BoundaryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "BodyTemp",
+      "Metric": "BoundaryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "HeartRate",
+      "Metric": "BoundaryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Column": "RiskLevel",
+      "Metric": "CategoryAdherence",
+      "Property": "Data Validity",
+      "Score": 1.0,
+      "Table": "synthmed"
+    },
+    {
+      "Metric": "TableStructure",
+      "Property": "Data Structure",
+      "Score": 1.0,
+      "Table": "synthmed"
+    }
+  ],
+  "explanations": {
+    "columnLevel": "Per-column distribution similarity against the uploaded source data.",
+    "columnPairLevel": "Pairwise correlation or association similarity against the uploaded source data.",
+    "diagnosticScore": "Share of SDMetrics validity checks passed; 1.0 means all configured checks passed.",
+    "diagnostics": "Data validity diagnostics such as boundary and schema checks.",
+    "overallQualityScore": "Average of SDMetrics column-shape and column-pair similarity scores; 1.0 is the closest match."
+  },
+  "limitations": [
+    "Statistical similarity does not mean the synthetic data is clinically valid.",
+    "Scores are computed only over the columns and transformations used for training."
+  ],
+  "method": "SDMetrics QualityReport and DiagnosticReport",
+  "overallQualityScore": 0.6689327801268794,
+  "propertyScores": {
+    "Column Pair Trends": 0.6071196689768941,
+    "Column Shapes": 0.7307458912768647
+  }
+}

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, FileJson, FileSpreadsheet, FileText, ShieldCheck, Stethoscope } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Database, Download, Eye, FileJson, FileSpreadsheet, FileText, History, ShieldCheck, Stethoscope } from 'lucide-react';
 import {
   Alert,
   Badge,
@@ -47,8 +47,21 @@ const scorePercent = (value: unknown): string =>
 
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : 'Unexpected API error');
 
+const inferColumnType = (rows: Record<string, unknown>[], column: string): string => {
+  const sample = rows.find((row) => row[column] !== null && row[column] !== undefined)?.[column];
+  if (typeof sample === 'number') return 'number';
+  if (typeof sample === 'boolean') return 'boolean';
+  if (sample instanceof Date) return 'date';
+  if (sample === undefined) return 'unknown';
+  const text = String(sample).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) return 'date';
+  if (text !== '' && !Number.isNaN(Number(text))) return 'number';
+  return 'text';
+};
+
 export const SynthMedGeneratedDetail = () => {
   const { generatedId = '' } = useParams();
+  const navigate = useNavigate();
   const {
     getSynthMedGeneratedDetail,
     getSynthMedGeneratedPreview,
@@ -149,6 +162,16 @@ export const SynthMedGeneratedDetail = () => {
   const quality = evaluation?.quality ?? null;
   const privacy = evaluation?.privacy ?? null;
   const evaluationSatisfaction = asConditionSatisfaction(evaluation?.conditions);
+  const inferredTypes = useMemo(
+    () =>
+      (preview?.columns ?? []).map((column) => ({
+        name: column,
+        type: inferColumnType(preview?.rows ?? [], column),
+      })),
+    [preview],
+  );
+  const isRegistered =
+    detail?.repositoryRegistrationStatus === 'Registered in Repository' || Boolean(detail?.repositoryDatasetId);
 
   return (
     <>
@@ -157,11 +180,18 @@ export const SynthMedGeneratedDetail = () => {
         title={detail?.datasetName ?? 'Generated dataset'}
         description="Inspect synthetic records, model and condition details, downloads and evaluation reports."
         actions={
-          <Link to="/synthmed/generated">
-            <Button variant="secondary" icon={<ArrowLeft size={16} />}>
-              All generated datasets
-            </Button>
-          </Link>
+          <>
+            {detail ? (
+              <Link to={`/synthmed/datasets/${encodeURIComponent(detail.id)}/versions`}>
+                <Button variant="secondary" icon={<History size={16} />}>Version history</Button>
+              </Link>
+            ) : null}
+            <Link to="/synthmed/generated">
+              <Button variant="secondary" icon={<ArrowLeft size={16} />}>
+                All generated datasets
+              </Button>
+            </Link>
+          </>
         }
       />
 
@@ -172,6 +202,64 @@ export const SynthMedGeneratedDetail = () => {
 
       {detail ? (
         <>
+          <Alert tone="success" title="Synthetic Dataset Generated Successfully" data-testid="generation-success">
+            <div className="info-list" style={{ marginTop: 8 }}>
+              <InfoRow label="Source dataset">{detail.sourceDatasetName}</InfoRow>
+              <InfoRow label="Model used">{detail.selectedModel || detail.modelName}</InfoRow>
+              <InfoRow label="Records generated">{formatNumber(detail.recordCount)}</InfoRow>
+              <InfoRow label="Medical columns">{formatNumber(detail.columnCount)}</InfoRow>
+              <InfoRow label="Timestamp">{formatDateTime(detail.generationDate)}</InfoRow>
+              <InfoRow label="Job ID"><code className="code small">{detail.generationJobId || '—'}</code></InfoRow>
+              <InfoRow label="Validation status">{detail.validationStatus || detail.status}</InfoRow>
+              <InfoRow label="Repository status">
+                {detail.repositoryRegistrationStatus || 'Not registered'}
+                {detail.repositoryDatasetId ? (
+                  <>
+                    {' · '}
+                    <Link className="inline-link" to={`/datasets/${detail.repositoryDatasetId}`}>
+                      View repository dataset
+                    </Link>
+                  </>
+                ) : null}
+              </InfoRow>
+              <InfoRow label="Source-preservation status">{detail.sourcePreservingMode ? `Enabled (±${detail.ageToleranceYears ?? 5} years)` : 'Not enabled'}</InfoRow>
+              <InfoRow label="Evaluation info">Quality, privacy, and condition reports are listed below when available.</InfoRow>
+            </div>
+            <p className="muted small" style={{ marginTop: 8 }}>Research use only. This output is not clinical advice and is not claimed to be clinically valid or anonymous.</p>
+            <div className="primary-actions" data-testid="generated-primary-actions">
+              <button
+                type="button"
+                className="primary-action"
+                data-testid="generated-preview-action"
+                onClick={() => document.getElementById('synthetic-preview')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                <Eye size={18} /><strong>PREVIEW</strong><span>Inspect synthetic rows and types</span>
+              </button>
+              <button
+                type="button"
+                className="primary-action"
+                data-testid="generated-download-action"
+                onClick={() => document.getElementById('synthetic-downloads')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                <Download size={18} /><strong>DOWNLOAD</strong><span>Export stored CSV, XLSX or JSON</span>
+              </button>
+              <button
+                type="button"
+                className="primary-action emphasis"
+                data-testid="generated-upload-action"
+                disabled={isRegistered}
+                aria-disabled={isRegistered}
+                style={isRegistered ? { opacity: 0.65 } : undefined}
+                onClick={() => navigate(`/upload?generatedId=${encodeURIComponent(detail.id)}`)}
+              >
+                <Database size={18} /><strong>UPLOAD</strong>
+                <span data-testid={isRegistered ? 'generated-registered-action' : undefined}>
+                  {isRegistered ? 'Already in My Repository' : 'Queue for shared ETL to My Repository'}
+                </span>
+              </button>
+            </div>
+          </Alert>
+
           <Card>
             <CardHeader
               title="Dataset summary"
@@ -196,12 +284,27 @@ export const SynthMedGeneratedDetail = () => {
           </Card>
 
           <div className="grid-2 grid-2-wide">
-            <Card>
+            <Card id="synthetic-preview" data-testid="generated-preview">
               <CardHeader
                 title="Synthetic record preview"
-                subtitle="Read-only view of the stored generated CSV."
+                subtitle="Read-only view of the stored generated records with inferred column types."
                 action={<Badge tone="purple">{preview ? formatNumber(preview.totalRecords) : '—'} records</Badge>}
               />
+              {preview ? (
+                <>
+                  <div className="preview-types" data-testid="generated-preview-types">
+                    {inferredTypes.map((item) => (
+                      <span className="type-chip" key={item.name}><strong>{item.name}</strong>: {item.type}</span>
+                    ))}
+                  </div>
+                  <div className="summary-strip" data-testid="generated-preview-stats">
+                    <div><span>Total records</span><strong>{formatNumber(preview.totalRecords)}</strong></div>
+                    <div><span>Columns</span><strong>{formatNumber(preview.columns.length)}</strong></div>
+                    <div><span>Page</span><strong>{preview.page} / {Math.max(1, Math.ceil(preview.totalRecords / preview.pageSize))}</strong></div>
+                    <div><span>Rows shown</span><strong>{formatNumber(preview.rows.length)}</strong></div>
+                  </div>
+                </>
+              ) : null}
               {!preview ? (
                 <LoadingState label="Loading preview…" />
               ) : (
@@ -233,7 +336,7 @@ export const SynthMedGeneratedDetail = () => {
             </Card>
 
             <div className="stack">
-              <Card>
+              <Card id="synthetic-downloads" data-testid="generated-downloads">
                 <CardHeader title="Downloads" subtitle="Formats stored with this generation job." />
                 <div className="button-stack">
                   {detail.availableFormats.map((format) => (
@@ -242,6 +345,7 @@ export const SynthMedGeneratedDetail = () => {
                       variant="secondary"
                       size="sm"
                       icon={formatIcon(format)}
+                      data-testid={`generated-download-${format.toLowerCase()}`}
                       onClick={() => void downloadSynthMedGeneratedFormat(generatedId, format)}
                     >
                       Download {format}
@@ -298,7 +402,7 @@ export const SynthMedGeneratedDetail = () => {
                   </div>
                 )}
                 <Link to={`/synthmed/evaluation?dataset=${encodeURIComponent(generatedId)}`}>
-                  <Button variant="secondary" size="sm">Open evaluation</Button>
+                  <Button variant="ghost" size="sm">Open evaluation</Button>
                 </Link>
               </Card>
             </div>
@@ -315,6 +419,10 @@ export const SynthMedGeneratedDetail = () => {
               <InfoRow label="Missingness">
                 {detail.trainingConfig.preserveMissingness ? 'Preserved' : 'Rows with missing values removed'}
               </InfoRow>
+              <InfoRow label="Source preserving">
+                {detail.trainingConfig.sourcePreservingMode ? `On (±${detail.trainingConfig.ageToleranceYears ?? 5} years)` : 'Off'}
+              </InfoRow>
+              <InfoRow label="Validation">{detail.validationStatus || (detail.status === 'Completed' ? 'Passed' : '—')}</InfoRow>
             </div>
             <div className="chip-grid">
               {detail.trainingConfig.includedColumns.map((column) => (

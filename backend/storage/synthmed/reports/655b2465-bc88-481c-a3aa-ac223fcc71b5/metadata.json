@@ -1,0 +1,67 @@
+{
+  "METADATA_SPEC_VERSION": "V2",
+  "relationships": [],
+  "tables": {
+    "synthmed": {
+      "columns": {
+        "Age": {
+          "sdtype": "numerical"
+        },
+        "BMI": {
+          "sdtype": "numerical"
+        },
+        "Body_Temperature_C": {
+          "sdtype": "numerical"
+        },
+        "Creatinine_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Diagnosis": {
+          "sdtype": "categorical"
+        },
+        "Diastolic_BP_mmHg": {
+          "sdtype": "numerical"
+        },
+        "Gender": {
+          "sdtype": "categorical"
+        },
+        "HDL_Cholesterol_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Haemoglobin_g_dL": {
+          "sdtype": "numerical"
+        },
+        "Heart_Rate_bpm": {
+          "sdtype": "numerical"
+        },
+        "Height_cm": {
+          "sdtype": "numerical"
+        },
+        "LDL_Cholesterol_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Respiratory_Rate_bpm": {
+          "sdtype": "numerical"
+        },
+        "Risk_Level": {
+          "sdtype": "categorical"
+        },
+        "SpO2_Percentage": {
+          "sdtype": "numerical"
+        },
+        "Systolic_BP_mmHg": {
+          "sdtype": "numerical"
+        },
+        "Total_Cholesterol_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Triglycerides_mg_dL": {
+          "sdtype": "numerical"
+        },
+        "Weight_kg": {
+          "sdtype": "numerical"
+        }
+      }
+    }
+  }
+}

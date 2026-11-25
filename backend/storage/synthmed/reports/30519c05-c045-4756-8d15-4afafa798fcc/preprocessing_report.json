@@ -1,0 +1,260 @@
+{
+  "excludedConstantColumns": [],
+  "excludedIdentifierColumns": [
+    "City",
+    "Date_of_Birth",
+    "District",
+    "Doctor_Name",
+    "Email",
+    "Full_Name",
+    "Hospital_ID",
+    "Hospital_Name",
+    "House_Number",
+    "Patient_ID",
+    "Phone_Number",
+    "Pincode",
+    "State",
+    "Street_Name",
+    "Visit_Date",
+    "Visit_ID",
+    "Visit_Type"
+  ],
+  "includedColumns": [
+    "Age",
+    "Gender",
+    "Height_cm",
+    "Weight_kg",
+    "BMI",
+    "Systolic_BP_mmHg",
+    "Diastolic_BP_mmHg",
+    "Heart_Rate_bpm",
+    "Body_Temperature_C",
+    "SpO2_Percentage",
+    "Respiratory_Rate_bpm",
+    "Haemoglobin_g_dL",
+    "Total_Cholesterol_mg_dL",
+    "HDL_Cholesterol_mg_dL",
+    "LDL_Cholesterol_mg_dL",
+    "Triglycerides_mg_dL",
+    "Creatinine_mg_dL",
+    "Diagnosis",
+    "Risk_Level"
+  ],
+  "metadata": {
+    "METADATA_SPEC_VERSION": "V2",
+    "relationships": [],
+    "tables": {
+      "synthmed": {
+        "columns": {
+          "Age": {
+            "sdtype": "numerical"
+          },
+          "BMI": {
+            "sdtype": "numerical"
+          },
+          "Body_Temperature_C": {
+            "sdtype": "numerical"
+          },
+          "Creatinine_mg_dL": {
+            "sdtype": "numerical"
+          },
+          "Diagnosis": {
+            "sdtype": "categorical"
+          },
+          "Diastolic_BP_mmHg": {
+            "sdtype": "numerical"
+          },
+          "Gender": {
+            "sdtype": "categorical"
+          },
+          "HDL_Cholesterol_mg_dL": {
+            "sdtype": "numerical"
+          },
+          "Haemoglobin_g_dL": {
+            "sdtype": "numerical"
+          },
+          "Heart_Rate_bpm": {
+            "sdtype": "numerical"
+          },
+          "Height_cm": {
+            "sdtype": "numerical"
+          },
+          "LDL_Cholesterol_mg_dL": {
+            "sdtype": "numerical"
+          },
+          "Respiratory_Rate_bpm": {
+            "sdtype": "numerical"
+          },
+          "Risk_Level": {
+            "sdtype": "categorical"
+          },
+          "SpO2_Percentage": {
+            "sdtype": "numerical"
+          },
+          "Systolic_BP_mmHg": {
+            "sdtype": "numerical"
+          },
+          "Total_Cholesterol_mg_dL": {
+            "sdtype": "numerical"
+          },
+          "Triglycerides_mg_dL": {
+            "sdtype": "numerical"
+          },
+          "Weight_kg": {
+            "sdtype": "numerical"
+          }
+        }
+      }
+    }
+  },
+  "notes": [
+    "The original uploaded source file was read-only and was not modified.",
+    "Missing medical values are not filled with zero.",
+    "No clinical relationships or medical validity are inferred by preprocessing."
+  ],
+  "operations": [
+    {
+      "columns": [
+        "City",
+        "Date_of_Birth",
+        "District",
+        "Doctor_Name",
+        "Email",
+        "Full_Name",
+        "Hospital_ID",
+        "Hospital_Name",
+        "House_Number",
+        "Patient_ID",
+        "Phone_Number",
+        "Pincode",
+        "State",
+        "Street_Name",
+        "Visit_Date",
+        "Visit_ID",
+        "Visit_Type"
+      ],
+      "operation": "excluded_identifiers",
+      "reason": "Identifier columns are not modelled or reproduced in synthetic records."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Age",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Height_cm",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Weight_kg",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "BMI",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Systolic_BP_mmHg",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Diastolic_BP_mmHg",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Heart_Rate_bpm",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Body_Temperature_C",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "SpO2_Percentage",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Respiratory_Rate_bpm",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Haemoglobin_g_dL",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Total_Cholesterol_mg_dL",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "HDL_Cholesterol_mg_dL",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "LDL_Cholesterol_mg_dL",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Triglycerides_mg_dL",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "coercedNonNumericValues": 0,
+      "column": "Creatinine_mg_dL",
+      "operation": "numerical_coercion",
+      "reason": "User-configured numerical column."
+    },
+    {
+      "column": "Gender",
+      "operation": "categorical_typing",
+      "reason": "User-configured categorical column."
+    },
+    {
+      "column": "Diagnosis",
+      "operation": "categorical_typing",
+      "reason": "User-configured categorical column."
+    },
+    {
+      "column": "Risk_Level",
+      "operation": "categorical_typing",
+      "reason": "User-configured categorical column."
+    },
+    {
+      "columns": [],
+      "operation": "missingness_preserved",
+      "reason": "Missing values are retained for SDV/RDT handling; no zero or medical-value imputation."
+    }
+  ],
+  "sourceColumns": 46,
+  "sourceRecords": 1000,
+  "trainingColumns": 19,
+  "trainingRecords": 1000
+}

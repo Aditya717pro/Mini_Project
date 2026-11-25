@@ -1,0 +1,57 @@
+{
+  "clinicalValidation": {
+    "classificationCounts": {},
+    "generationProfile": "Standard",
+    "limitations": [
+      "Reference intervals are screening aids for research datasets, not clinical decision support.",
+      "A value outside a reference interval may be abnormal but clinically plausible; it is not automatically invalid.",
+      "Passing configured numerical ranges does not establish clinical validity, safety or fitness for patient care.",
+      "Relationship rules are applied only when the required measurements and context are present.",
+      "Operational plausible limits are configurable data-quality bounds, not medical reference limits."
+    ],
+    "method": "Not applied to the Standard generation profile",
+    "totalRecords": 1000,
+    "warnings": []
+  },
+  "rejectionSampling": {
+    "acceptedRecords": 1000,
+    "attempts": 1,
+    "method": "No clinical rejection sampling for the Standard profile",
+    "rejectedRecords": 0,
+    "rejectionCounts": {},
+    "sampledRecords": 1000
+  },
+  "schemaValidation": {
+    "approvedColumns": [
+      "Age",
+      "BMI",
+      "Body_Temperature_C",
+      "Creatinine_mg_dL",
+      "Diagnosis",
+      "Diastolic_BP_mmHg",
+      "Gender",
+      "HDL_Cholesterol_mg_dL",
+      "Haemoglobin_g_dL",
+      "Heart_Rate_bpm",
+      "Height_cm",
+      "LDL_Cholesterol_mg_dL",
+      "Respiratory_Rate_bpm",
+      "Risk_Level",
+      "SpO2_Percentage",
+      "Systolic_BP_mmHg",
+      "Total_Cholesterol_mg_dL",
+      "Triglycerides_mg_dL",
+      "Weight_kg"
+    ],
+    "columnCount": 19,
+    "contentHits": [],
+    "errors": [],
+    "notes": [
+      "Approved columns are the demographic, disease and clinical measurements selected for this job.",
+      "Content scanning covers email, phone and long identifier-like tokens in the final output only."
+    ],
+    "passed": true,
+    "prohibitedColumns": [],
+    "unapprovedColumns": []
+  }
+}

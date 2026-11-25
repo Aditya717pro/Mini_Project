@@ -35,3 +35,12 @@ def relative_path(root: Path, path: Path) -> str:
     if not resolved.is_relative_to(base):
         raise ValueError("Path is outside the storage root")
     return resolved.relative_to(base).as_posix()
+
+
+def public_reference(value: str | None) -> str | None:
+    if not value:
+        return None
+    candidate = Path(value)
+    if candidate.is_absolute() or candidate.drive:
+        return candidate.name
+    return value

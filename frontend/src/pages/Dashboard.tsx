@@ -1,4 +1,5 @@
-﻿import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Area,
   AreaChart,
@@ -6,9 +7,6 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -17,58 +15,55 @@ import {
 import {
   ArrowRight,
   BadgeCheck,
+  CheckCircle2,
   Database,
-  FileText,
-  FlaskConical,
-  KeyRound,
-  ShieldAlert,
+  TrendingUp,
   UploadCloud,
+  Wand2,
   Workflow,
 } from 'lucide-react';
-import {
-  Alert,
-  AccessBadge,
-  Button,
-  Card,
-  CardHeader,
-  DemoNotice,
-  PageHeader,
-  ProgressBar,
-  StatCard,
-  StatusBadge,
-} from '../components/ui';
+import { Button, Card, CardHeader, ProgressBar, StatCard } from '../components/ui';
 import { useDemo } from '../store/DemoStore';
 import { domains } from '../data/mockData';
-import { formatDate, formatNumber, relativeTime } from '../lib/format';
+import { formatDate, formatNumber } from '../lib/format';
 
-const CHART_COLORS = [
-  'var(--primary)',
-  'var(--accent)',
-  'var(--purple)',
-  'var(--amber)',
-  'var(--purple)',
-  'var(--primary-dark)',
-];
+const PRIMARY_OPTIONS = [
+  {
+    testId: 'home-synthetic-card',
+    to: '/synthmed',
+    icon: Wand2,
+    title: 'SYNTHETIC',
+    description: 'Generate synthetic medical datasets from new datasets or existing repository datasets.',
+    foot: 'Open SynthMed workspace',
+  },
+  {
+    testId: 'home-upload-card',
+    to: '/upload',
+    icon: UploadCloud,
+    title: 'UPLOAD TO REPOSITORY',
+    description: 'Upload, extract, transform, validate and store datasets in My Repository.',
+    foot: 'Start governed ingestion',
+  },
+] as const;
 
 const tooltipStyle = {
   borderRadius: 10,
   border: '1px solid var(--border)',
+  background: 'var(--surface-2)',
+  color: 'var(--text)',
   fontSize: 12,
   boxShadow: 'var(--shadow)',
 };
 
-const activityIcon = {
-  processing: <Workflow size={15} />,
-  upload: <UploadCloud size={15} />,
-  request: <KeyRound size={15} />,
-  publish: <Database size={15} />,
-  quality: <BadgeCheck size={15} />,
-};
-
-type ActivityType = keyof typeof activityIcon;
+const CHART_BLUE_PALETTE = ['#0b2545', '#123a6b', '#33547d', '#5f82ad', '#9db8d8'];
 
 export const Dashboard = () => {
-  const { datasets, jobs, requests, user } = useDemo();
+  const { datasets, jobs } = useDemo();
+  const [searchParams] = useSearchParams();
+  const showUploadAcknowledgement = searchParams.get('uploaded') === '1';
+  const uploadedDatasetId = searchParams.get('datasetId') || '';
+  const uploadedJobId = searchParams.get('jobId') || '';
+  const uploadedDataset = datasets.find((dataset) => dataset.id === uploadedDatasetId);
 
   const available = datasets.filter((dataset) => dataset.status === 'Available');
   const totalRecords = datasets.reduce((sum, dataset) => sum + dataset.records, 0);
@@ -78,305 +73,277 @@ export const Dashboard = () => {
   const activeJobs = jobs.filter((job) =>
     ['Queued', 'Profiling', 'Review required', 'Approved', 'Processing', 'Running'].includes(job.status),
   );
-  const pendingRequests = requests.filter(
-    (request) => request.direction === 'Incoming' && request.status === 'Pending',
-  );
 
-  const monthlyData = Array.from({ length: 12 }, (_, index) => {
-    const point = new Date();
-    point.setDate(1);
-    point.setMonth(point.getMonth() - (11 - index));
-    const key = `${point.getFullYear()}-${String(point.getMonth() + 1).padStart(2, '0')}`;
-    return {
-      month: point.toLocaleDateString('en-GB', { month: 'short' }),
-      uploads: datasets.filter((dataset) => dataset.createdAt.slice(0, 7) === key).length,
-      published: datasets.filter(
-        (dataset) => dataset.status === 'Available' && dataset.updatedAt.slice(0, 7) === key,
-      ).length,
-    };
-  });
+  const monthlyData = useMemo(() => {
+    return Array.from({ length: 12 }, (_, index) => {
+      const point = new Date();
+      point.setDate(1);
+      point.setMonth(point.getMonth() - (11 - index));
+      const key = `${point.getFullYear()}-${String(point.getMonth() + 1).padStart(2, '0')}`;
+      return {
+        month: point.toLocaleDateString('en-GB', { month: 'short' }),
+        uploads: datasets.filter((dataset) => dataset.createdAt?.slice(0, 7) === key).length,
+        published: datasets.filter(
+          (dataset) => dataset.status === 'Available' && dataset.updatedAt?.slice(0, 7) === key,
+        ).length,
+      };
+    });
+  }, [datasets]);
 
-  const activityFeed: { id: string; type: ActivityType; title: string; detail: string; time: string }[] = [
-    ...jobs.map((job) => ({
-      id: `job-${job.id}`,
-      type: 'processing' as ActivityType,
-      title: job.datasetTitle,
-      detail: `ETL ${job.status.toLowerCase()} with ${job.rowsIn.toLocaleString()} source rows`,
-      time: job.finishedAt ?? job.startedAt,
-    })),
-    ...requests.map((request) => ({
-      id: `request-${request.id}`,
-      type: 'request' as ActivityType,
-      title: `${request.direction} access request ${request.status.toLowerCase()}`,
-      detail: request.datasetTitle,
-      time: request.decidedAt ?? request.requestedAt,
-    })),
-    ...datasets.map((dataset) => ({
-      id: `dataset-${dataset.id}`,
-      type: (dataset.status === 'Available' ? 'publish' : 'upload') as ActivityType,
-      title: dataset.title,
-      detail: `${dataset.status} · ${dataset.records.toLocaleString()} records`,
-      time: dataset.updatedAt,
-    })),
-  ]
-    .sort((a, b) => (b.time || '').localeCompare(a.time || ''))
-    .slice(0, 6);
+  const domainData = useMemo(() => {
+    return domains.map((domain) => ({
+      name: domain,
+      count: datasets.filter((dataset) => dataset.domain === domain).length,
+    }));
+  }, [datasets]);
 
-  const domainData = domains.map((domain) => ({
-    name: domain,
-    value: datasets.filter((dataset) => dataset.domain === domain).length,
-  }));
+  const qualityBuckets = useMemo(() => [
+    { name: 'Excellent', count: datasets.filter((d) => d.qualityScore != null && d.qualityScore >= 90).length },
+    { name: 'Good', count: datasets.filter((d) => d.qualityScore != null && d.qualityScore >= 80 && d.qualityScore < 90).length },
+    { name: 'Fair', count: datasets.filter((d) => d.qualityScore != null && d.qualityScore < 80).length },
+    { name: 'Not assessed', count: datasets.filter((d) => d.qualityScore == null).length },
+  ], [datasets]);
 
-  const qualityBuckets = [
-    { name: 'Excellent', value: datasets.filter((d) => d.qualityScore != null && d.qualityScore >= 90).length },
-    { name: 'Good', value: datasets.filter((d) => d.qualityScore != null && d.qualityScore >= 80 && d.qualityScore < 90).length },
-    { name: 'Fair', value: datasets.filter((d) => d.qualityScore != null && d.qualityScore < 80).length },
-    { name: 'Not assessed', value: datasets.filter((d) => d.qualityScore == null).length },
-  ];
-
-  const recent = [...datasets].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 5);
-  const activeJobList = jobs
-    .filter((job) => job.status !== 'Completed')
-    .slice(0, 3);
+  const recentDatasets = useMemo(() => {
+    return [...datasets]
+      .sort((a, b) => (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || ''))
+      .slice(0, 4);
+  }, [datasets]);
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Research overview"
-        title={`Welcome, ${user.name.replace(/^(Dr\.|Prof\.)\s/, '')}`}
-        description="Monitor repository health, review pipeline activity and keep women's and paediatric datasets ready for reuse."
-        actions={
-          <>
-            <Link to="/synthmed">
-              <Button variant="secondary" icon={<FlaskConical size={16} />}>SynthMed</Button>
-            </Link>
-            <Link to="/upload">
-              <Button icon={<UploadCloud size={16} />}>Upload dataset</Button>
-            </Link>
-          </>
-        }
-      />
+    <div className="dashboard-page" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <section className="hero-section" data-testid="home-hero" style={{ width: '100%' }}>
+        <div className="hero-eyebrow">MedDataHub · SynthMed</div>
+        <h1 className="hero-title">What would you like to do?</h1>
+        <p className="hero-subtitle">
+          Generate governed synthetic cohorts, or upload and process datasets for My Repository.
+        </p>
+        <div className="hero-actions" data-testid="home-primary-options" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          {PRIMARY_OPTIONS.map((option) => {
+            const Icon = option.icon;
+            return (
+              <Link key={option.testId} to={option.to} className="action-card" data-testid={option.testId}>
+                <span className="action-icon"><Icon size={20} /></span>
+                <h3>{option.title}</h3>
+                <p>{option.description}</p>
+                <span className="action-card-foot">{option.foot} <ArrowRight size={14} /></span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
-      <DemoNotice />
+      {showUploadAcknowledgement ? (
+        <Card className="success-panel" data-testid="home-upload-acknowledgement">
+          <div className="success-icon"><CheckCircle2 size={26} /></div>
+          <div>
+            <h2>Dataset uploaded successfully</h2>
+            <p>
+              {uploadedDataset?.title || 'Your dataset'} completed the real ETL pipeline and is now in My Repository,
+              awaiting governance review. Dataset <strong>{uploadedDatasetId}</strong> · ETL job{' '}
+              <strong>{uploadedJobId}</strong>.
+            </p>
+            <div className="success-actions">
+              <Link to={`/datasets/${uploadedDatasetId}`}>
+                <Button icon={<ArrowRight size={16} />}>View uploaded dataset</Button>
+              </Link>
+              <Link to="/etl">
+                <Button variant="secondary">Open ETL processing</Button>
+              </Link>
+            </div>
+          </div>
+        </Card>
+      ) : null}
 
-      <div className="stats-grid">
+      <div className="stats-grid" style={{ width: '100%' }}>
         <StatCard
-          label="Published datasets"
-          value={formatNumber(available.length)}
-          hint={`${formatNumber(datasets.length)} total in workspace`}
+          label="Available Datasets"
+          value={available.length}
+          hint="Ready for research use"
           icon={<Database size={20} />}
-          tone="success"
-        />
-        <StatCard
-          label="Records under management"
-          value={formatNumber(totalRecords)}
-          hint="Synthetic records across all versions"
-          icon={<FileText size={20} />}
           tone="info"
         />
         <StatCard
-          label="Governance queue"
-          value={pending.length}
-          hint="Datasets awaiting review"
-          icon={<ShieldAlert size={20} />}
-          tone={pending.length > 0 ? 'warning' : 'success'}
+          label="Records Managed"
+          value={formatNumber(totalRecords)}
+          hint="Across all cohorts"
+          icon={<TrendingUp size={20} />}
+          tone="neutral"
         />
         <StatCard
-          label="Active ETL jobs"
+          label="Pending Review"
+          value={pending.length}
+          hint="Governance intake queue"
+          icon={<BadgeCheck size={20} />}
+          tone="warning"
+        />
+        <StatCard
+          label="Active ETL Pipelines"
           value={activeJobs.length}
-          hint={`${jobs.filter((job) => job.status === 'Review required').length} awaiting mapping review`}
+          hint="Running & review-stage jobs"
           icon={<Workflow size={20} />}
-          tone="purple"
+          tone="success"
         />
       </div>
 
-      {pendingRequests.length > 0 ? (
-        <Alert tone="warning" title={`${pendingRequests.length} access request${pendingRequests.length === 1 ? '' : 's'} need a decision`}>
-          <span>
-            Review controlled-data applications for {pendingRequests.map((request) => request.datasetId).join(', ')}.{' '}
-            <Link to="/access-requests" className="inline-link">
-              Open access requests
-            </Link>
-          </span>
-        </Alert>
-      ) : null}
-
-      <div className="grid-2">
+      {/* Graphs & Plots row 1: Domain distribution + Monthly trend */}
+      <div className="grid-2" style={{ width: '100%' }}>
         <Card>
           <CardHeader
-            title="Uploads and publications"
-            subtitle="Rolling 12 months from repository timestamps"
+            title="Disease & clinical category coverage"
+            subtitle="Distribution of datasets by clinical domain"
+            action={<Link to="/repository" className="inline-link">All datasets <ArrowRight size={13} /></Link>}
           />
-          <div className="chart-box">
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={monthlyData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+          <div className="chart-box" style={{ height: 260, width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={domainData} margin={{ top: 12, right: 16, left: -16, bottom: 28 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 11, fill: 'var(--text-2)' }}
+                  angle={-15}
+                  textAnchor="end"
+                  interval={0}
+                  axisLine={{ stroke: 'var(--border)' }}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: 'var(--text-2)' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="count" name="Datasets" radius={[6, 6, 0, 0]}>
+                  {domainData.map((entry, index) => (
+                    <Cell key={entry.name} fill={CHART_BLUE_PALETTE[index % CHART_BLUE_PALETTE.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Repository ingestion & activity"
+            subtitle="Dataset intake and publication velocity over 12 months"
+          />
+          <div className="chart-box" style={{ height: 260, width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyData} margin={{ top: 12, right: 16, left: -16, bottom: 8 }}>
                 <defs>
-                  <linearGradient id="uploadsFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.02} />
+                  <linearGradient id="areaGlowUploads" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0b2545" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#0b2545" stopOpacity={0.0} />
                   </linearGradient>
-                  <linearGradient id="publishedFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.18} />
-                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
+                  <linearGradient id="areaGlowPublished" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#123a6b" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#123a6b" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-2)' }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Area type="monotone" dataKey="uploads" stroke="var(--primary)" strokeWidth={2} fill="url(#uploadsFill)" name="Uploaded" />
-                <Area type="monotone" dataKey="published" stroke="var(--accent)" strokeWidth={2} fill="url(#publishedFill)" name="Published" />
-                <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: 12 }} />
+                <Area type="monotone" dataKey="uploads" name="Uploads" stroke="#0b2545" strokeWidth={2.5} fill="url(#areaGlowUploads)" />
+                <Area type="monotone" dataKey="published" name="Published" stroke="#123a6b" strokeWidth={2} fill="url(#areaGlowPublished)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </Card>
-
-        <Card>
-          <CardHeader title="Datasets by domain" subtitle="Coverage across research areas" />
-          <div className="chart-box donut-box">
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  data={domainData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={58}
-                  outerRadius={92}
-                  paddingAngle={3}
-                  stroke="var(--surface)"
-                  strokeWidth={2}
-                >
-                  {domainData.map((entry, index) => (
-                    <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
-                <Legend layout="vertical" align="right" verticalAlign="middle" iconType="circle" iconSize={7} wrapperStyle={{ fontSize: 11, lineHeight: '20px' }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="donut-center">
-              <strong>{datasets.length}</strong>
-              <span>datasets</span>
-            </div>
-          </div>
-        </Card>
       </div>
 
-      <div className="grid-2 grid-2-wide">
+      {/* Graphs & Plots row 2: Pipeline activity + Quality snapshot & recent datasets */}
+      <div className="grid-2" style={{ width: '100%' }}>
         <Card>
           <CardHeader
-            title="Recent uploads"
-            subtitle="Latest synthetic datasets added to the workspace"
-            action={<Link to="/repository" className="inline-link">View all <ArrowRight size={13} /></Link>}
+            title="Pipeline activity"
+            subtitle="Active and review-stage jobs from the ETL pipeline"
+            action={<Link to="/etl" className="inline-link">ETL workspace <ArrowRight size={13} /></Link>}
           />
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Dataset</th>
-                  <th>Domain</th>
-                  <th className="num">Records</th>
-                  <th>Access</th>
-                  <th>Quality</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((dataset) => (
-                  <tr key={dataset.id}>
-                    <td>
-                      <Link to={`/datasets/${dataset.id}`} className="table-title">
-                        {dataset.title}
-                      </Link>
-                      <span className="table-sub">{dataset.id} · {formatDate(dataset.createdAt)}</span>
-                    </td>
-                    <td className="muted">{dataset.domain}</td>
-                    <td className="num">{formatNumber(dataset.records)}</td>
-                    <td><AccessBadge access={dataset.access} /></td>
-                    <td>
-                      {dataset.qualityScore == null ? (
-                        <span className="muted">—</span>
-                      ) : (
-                        <span className={`score-pill ${dataset.qualityScore >= 85 ? 'score-good' : dataset.qualityScore >= 70 ? 'score-mid' : 'score-low'}`}>
-                          {dataset.qualityScore}
-                        </span>
-                      )}
-                    </td>
-                    <td><StatusBadge status={dataset.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="job-mini-list">
+            {activeJobs.length === 0 ? (
+              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-3)' }}>
+                <CheckCircle2 size={28} style={{ color: 'var(--accent)', margin: '0 auto 8px', opacity: 0.8 }} />
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-2)' }}>No active pipeline jobs.</p>
+                <span style={{ fontSize: 12 }}>All extract, transform, and profiling jobs are complete.</span>
+              </div>
+            ) : (
+              activeJobs.map((job) => (
+                <div key={job.id} className="job-mini">
+                  <div className="job-mini-head">
+                    <div>
+                      <strong>{job.datasetTitle}</strong>
+                      <span className="muted small">{job.id} · {job.status}</span>
+                    </div>
+                    <span className="muted small">{job.progress}%</span>
+                  </div>
+                  <ProgressBar
+                    value={job.progress}
+                    tone={job.status === 'Failed' ? 'danger' : job.status === 'Review required' ? 'warning' : 'info'}
+                  />
+                </div>
+              ))
+            )}
           </div>
         </Card>
 
-        <div className="stack">
-          <Card>
-            <CardHeader title="Quality snapshot" subtitle="Latest assessment per dataset" action={<BadgeCheck size={18} className="muted-icon" />} />
-            <div className="chart-box compact">
-              <ResponsiveContainer width="100%" height={150}>
-                <BarChart data={qualityBuckets} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                  <XAxis type="number" hide />
-                  <YAxis type="category" dataKey="name" width={84} tick={{ fontSize: 11, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={16} name="Datasets">
-                    {qualityBuckets.map((entry, index) => (
-                      <Cell key={entry.name} fill={['var(--primary)', 'var(--accent)', 'var(--amber)', 'var(--border-strong)'][index]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mini-footer">
-              <Link to="/quality" className="inline-link">Open quality assessment <ArrowRight size={13} /></Link>
-            </div>
-          </Card>
+        <Card>
+          <CardHeader
+            title="Quality assessment snapshot"
+            subtitle="Latest quality validation per dataset"
+            action={<Link to="/quality" className="inline-link">Quality dashboard <ArrowRight size={13} /></Link>}
+          />
+          <div className="chart-box compact" style={{ height: 140, width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={qualityBuckets} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={16} name="Datasets">
+                  {qualityBuckets.map((entry, index) => (
+                    <Cell key={entry.name} fill={['#0b2545', '#123a6b', '#33547d', '#64748b'][index]}
+ />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
 
-          <Card>
-            <CardHeader title="Activity" subtitle="Recent repository events" />
-            <ul className="activity-list">
-              {activityFeed.map((item) => (
-                <li key={item.id}>
-                  <span className={`activity-icon activity-${item.type}`}>{activityIcon[item.type]}</span>
-                  <div>
-                    <strong>{item.title}</strong>
-                    <span>{item.detail}</span>
-                    <time>{relativeTime(item.time)}</time>
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 650, color: 'var(--text)' }}>Recent Repository Datasets</span>
+              <Link to="/repository" className="inline-link" style={{ fontSize: 11 }}>View all</Link>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recentDatasets.map((d) => (
+                <Link
+                  key={d.id}
+                  to={`/datasets/${d.id}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    background: 'var(--surface-2)',
+                    textDecoration: 'none',
+                    color: 'var(--text)',
+                    fontSize: 12,
+                  }}
+                >
+                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
+                    <strong>{d.title}</strong>
                   </div>
-                </li>
+                  <span className="muted small">{formatDate(d.createdAt || d.updatedAt)}</span>
+                </Link>
               ))}
-            </ul>
-          </Card>
-        </div>
+            </div>
+          </div>
+        </Card>
       </div>
-
-      <Card>
-        <CardHeader
-          title="Pipeline activity"
-          subtitle="Active and review-stage jobs from the backend"
-          action={<Link to="/etl" className="inline-link">ETL workspace <ArrowRight size={13} /></Link>}
-        />
-        <div className="job-mini-list">
-          {activeJobList.length === 0 ? (
-            <p className="muted">No active jobs. All pipelines have completed.</p>
-          ) : (
-            activeJobList.map((job) => (
-              <div key={job.id} className="job-mini">
-                <div className="job-mini-head">
-                  <div>
-                    <strong>{job.datasetTitle}</strong>
-                    <span>{job.id} · {job.status}</span>
-                  </div>
-                  <span className="muted">{job.progress}%</span>
-                </div>
-                <ProgressBar value={job.progress} tone={job.status === 'Failed' ? 'danger' : job.status === 'Review required' ? 'warning' : 'info'} />
-              </div>
-            ))
-          )}
-        </div>
-      </Card>
-    </>
+    </div>
   );
 };

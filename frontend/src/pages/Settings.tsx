@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Bell,
   CheckCircle2,
@@ -129,7 +130,18 @@ export const SettingsPage = () => {
       <div className="settings-layout">
         <div className="stack">
           <Card>
-            <CardHeader title="Profile" subtitle="Displayed on datasets and access requests" action={<UserCog size={18} className="muted-icon" />} />
+            <CardHeader
+              title="Profile"
+              subtitle="Displayed on datasets and access requests"
+              action={
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <Link to="/profile">
+                    <Button variant="secondary" size="sm">View Public Profile →</Button>
+                  </Link>
+                  <UserCog size={18} className="muted-icon" />
+                </div>
+              }
+            />
             <form onSubmit={saveProfile} className="form-grid">
               <Field label="Full name" htmlFor="profile-name">
                 <input

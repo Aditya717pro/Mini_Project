@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.audit import AuditLog
+from app.synthmed.models import SynthMedComparison
 
 REGISTER = "/api/v1/auth/register"
 LOGIN = "/api/v1/auth/login"
@@ -147,7 +148,10 @@ def test_comparison_workflow_uses_real_data(app: FastAPI, client: TestClient, db
 
     report = client.get(f"{API}/comparisons/{detail['id']}/report/download", headers=headers)
     assert report.status_code == 200, report.text
-    assert report.json()["summary"] == summary
+    report_summary = report.json()["summary"]
+    assert report_summary["comparedColumns"] == [c["name"] for c in detail["columns"]]
+    for key, value in summary.items():
+        assert report_summary[key] == value
 
     audit = db_session.scalar(
         select(AuditLog).where(AuditLog.action == "synthmed.comparison_created", AuditLog.resource_id == detail["id"])
@@ -185,3 +189,27 @@ def test_comparison_rejects_unrelated_datasets_and_enforces_ownership(
 
     missing = client.get(f"{API}/comparisons/00000000-0000-0000-0000-000000000000", headers=owner_headers)
     assert missing.status_code == 404, missing.text
+
+
+def test_comparison_fails_closed_when_lineage_cannot_be_recorded(
+    app: FastAPI, client: TestClient, db_session: Session, monkeypatch
+) -> None:
+    del app
+    from app.synthmed.services import versioning_service
+
+    headers = register_and_login(client, "comparison-lineage@example.test")
+    source_id = upload_source(client, headers, "Lineage cohort")
+    generated_id = generate(client, headers, source_id, "Lineage synthetic")
+
+    def fail_lineage(*args, **kwargs) -> None:
+        raise RuntimeError("lineage unavailable")
+
+    monkeypatch.setattr(versioning_service, "ensure_source_version", fail_lineage)
+    response = client.post(
+        f"{API}/comparisons",
+        headers=headers,
+        json={"sourceDatasetId": source_id, "generatedDatasetId": generated_id, "name": "Failed lineage"},
+    )
+    assert response.status_code == 500, response.text
+    assert "lineage" in response.json()["detail"]
+    assert db_session.scalar(select(SynthMedComparison)) is None

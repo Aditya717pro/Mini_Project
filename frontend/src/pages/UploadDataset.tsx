@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
-  CheckCircle2,
   FileCheck2,
   FileJson,
   FileSpreadsheet,
@@ -11,7 +10,6 @@ import {
   Loader2,
   Lock,
   LogOut,
-  RotateCcw,
   ShieldCheck,
   UploadCloud,
   X,
@@ -30,11 +28,20 @@ import {
   ProgressBar,
   SectionTitle,
 } from '../components/ui';
+import { api } from '../lib/api';
 import { useDemo, type UploadInput } from '../store/DemoStore';
 import { domains } from '../data/mockData';
 import { extractFile, MAX_FILE_BYTES, UploadValidationError } from '../lib/extract';
 import { formatBytes, formatNumber } from '../lib/format';
-import type { AccessLevel, Domain, ExtractPreview, FileFormat } from '../types';
+import type {
+  AccessLevel,
+  Domain,
+  EtlJob,
+  ExtractPreview,
+  FileFormat,
+  MappingDecisionInput,
+  SynthMedGeneratedDatasetDetail,
+} from '../types';
 
 const ACCESS_OPTIONS: { value: AccessLevel; title: string; description: string }[] = [
   {
@@ -64,6 +71,34 @@ const TASK_OPTIONS = [
   'Phenotype clustering',
   'Care utilisation analysis',
 ];
+
+type AutoEtlStage =
+  | 'idle'
+  | 'uploading'
+  | 'profiling'
+  | 'mapping'
+  | 'approving'
+  | 'running'
+  | 'completed'
+  | 'failed';
+
+const AUTO_ETL_STEPS: { key: AutoEtlStage; label: string; description: string }[] = [
+  { key: 'uploading', label: 'Extract', description: 'Store the file and create the governed ETL job.' },
+  { key: 'profiling', label: 'Profile', description: 'Inspect columns, types, missing values and duplicate rows.' },
+  { key: 'mapping', label: 'Transform', description: 'Apply reviewed column decisions to the transformation plan.' },
+  { key: 'running', label: 'Load', description: 'Stage the processed output and complete the real ETL run.' },
+];
+
+const AUTO_ETL_PROGRESS: Record<AutoEtlStage, number> = {
+  idle: 0,
+  uploading: 12,
+  profiling: 38,
+  mapping: 58,
+  approving: 76,
+  running: 92,
+  completed: 100,
+  failed: 100,
+};
 
 interface FormState {
   title: string;
@@ -104,9 +139,12 @@ const formatIcon = (format: FileFormat) => {
 };
 
 export const UploadDataset = () => {
-  const { uploadDataset, notify, logout, user } = useDemo();
+  const { uploadDataset, getSynthMedGeneratedDetail, notify, logout, user, refresh } = useDemo();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const generatedDatasetId = searchParams.get('generatedId') || '';
   const inputRef = useRef<HTMLInputElement>(null);
-  const submitTimer = useRef<number | null>(null);
+  const [generatedDetail, setGeneratedDetail] = useState<SynthMedGeneratedDatasetDetail | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [format, setFormat] = useState<FileFormat | null>(null);
@@ -117,22 +155,44 @@ export const UploadDataset = () => {
   const [dragOver, setDragOver] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitProgress, setSubmitProgress] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [generatedError, setGeneratedError] = useState('');
+  const [autoEtlStage, setAutoEtlStage] = useState<AutoEtlStage>('idle');
+  const [autoEtlJob, setAutoEtlJob] = useState<EtlJob | null>(null);
+  const [autoEtlError, setAutoEtlError] = useState('');
 
   useEffect(() => {
+    if (!generatedDatasetId) return;
+    let active = true;
+    setGeneratedError('');
+    void getSynthMedGeneratedDetail(generatedDatasetId)
+      .then((detail) => {
+        if (!active) return;
+        setGeneratedDetail(detail);
+        setForm((prev) => ({
+          ...prev,
+          title: prev.title || detail.datasetName || 'Synthetic dataset',
+          description:
+            prev.description ||
+            `Synthetic cohort generated from ${detail.sourceDatasetName} using ${detail.selectedModel || detail.modelName || 'SynthMed'}.`,
+          access: 'Controlled',
+          ethicsApproved: true,
+          intendedTasks: ['General clinical research'],
+        }));
+      })
+      .catch((error: unknown) => {
+        if (active) setGeneratedError(error instanceof Error ? error.message : 'Generated dataset could not be loaded.');
+      });
     return () => {
-      if (submitTimer.current) window.clearInterval(submitTimer.current);
+      active = false;
     };
-  }, []);
+  }, [generatedDatasetId, getSynthMedGeneratedDetail]);
 
   const handleFile = useCallback(
     async (candidate: File) => {
       setExtractError('');
       setPreview(null);
       setChecksum('');
-      setCreatedId(null);
       setFile(candidate);
       setExtracting(true);
       try {
@@ -186,7 +246,6 @@ export const UploadDataset = () => {
     setFormat(null);
     setChecksum('');
     setExtractError('');
-    setCreatedId(null);
   };
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
@@ -209,7 +268,7 @@ export const UploadDataset = () => {
 
   const validateForm = () => {
     const next: Record<string, string> = {};
-    if (!file || !preview || !format) next.file = 'Select and validate a dataset file first.';
+    if (!generatedDatasetId && (!file || !preview || !format)) next.file = 'Select and validate a dataset file first.';
     if (form.title.trim().length < 4) next.title = 'Provide a dataset title of at least 4 characters.';
     if (form.description.trim().length < 30) next.description = 'Describe the dataset in at least 30 characters.';
     if (!form.ageRange.trim()) next.ageRange = 'State the age range covered by the dataset.';
@@ -220,66 +279,99 @@ export const UploadDataset = () => {
     return Object.keys(next).length === 0;
   };
 
-  const submit = (event: FormEvent) => {
+  const waitForEtlCompletion = async (jobId: string): Promise<EtlJob> => {
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const job = await api.getJob(jobId);
+      setAutoEtlJob(job);
+      if (job.status === 'Completed') return job;
+      if (['Failed', 'Cancelled', 'Rejected'].includes(job.status)) {
+        throw new Error(job.errorMessage || job.rejectionReason || `ETL job ended as ${job.status}.`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    throw new Error('The ETL job did not finish in time. Open ETL processing to check its status.');
+  };
+
+  const runAutoEtl = async (jobId: string, researchTask: string) => {
+    setAutoEtlStage('profiling');
+    let job = await api.profileJob(jobId);
+    setAutoEtlJob(job);
+
+    setAutoEtlStage('mapping');
+    const decisions: MappingDecisionInput[] = job.mappings.map((mapping) => {
+      const target = (mapping.proposedTarget || mapping.target || '').trim();
+      return {
+        source: mapping.source,
+        decision: target ? 'Approved' : 'Unmapped',
+        target: target || null,
+        note: 'Automatic review from the upload form metadata',
+      };
+    });
+    job = await api.recordMappingDecisions(jobId, decisions);
+    setAutoEtlJob(job);
+
+    setAutoEtlStage('approving');
+    job = await api.approveMappings(jobId, 'Automatic review from the upload form metadata');
+    setAutoEtlJob(job);
+
+    setAutoEtlStage('running');
+    await api.runJob(jobId, researchTask);
+    const completed = await waitForEtlCompletion(jobId);
+    setAutoEtlJob(completed);
+    setAutoEtlStage('completed');
+    await refresh();
+    navigate(
+      `/?uploaded=1&datasetId=${encodeURIComponent(completed.datasetId)}&jobId=${encodeURIComponent(completed.id)}`,
+    );
+  };
+
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!validateForm() || !file || !preview || !format) {
+    if (!validateForm() || (!generatedDatasetId && (!file || !preview || !format))) {
       notify('error', 'Upload not started', 'Fix the highlighted fields and try again.');
       return;
     }
 
+    const input: UploadInput = {
+      file: generatedDatasetId ? undefined : file ?? undefined,
+      checksum: generatedDatasetId ? undefined : checksum,
+      preview: generatedDatasetId ? undefined : preview ?? undefined,
+      format: generatedDatasetId ? undefined : format ?? undefined,
+      generatedDatasetId: generatedDatasetId || undefined,
+      title: form.title,
+      description: form.description,
+      domain: form.domain,
+      access: form.access,
+      tags: form.tags
+        .split(',')
+        .map((tag) => tag.trim().toLowerCase())
+        .filter(Boolean),
+      ageRange: form.ageRange,
+      geography: form.geography,
+      studyDesign: form.studyDesign,
+      license: form.license,
+      ethicsApproved: form.ethicsApproved,
+      dataDictionaryAvailable: form.dataDictionaryAvailable,
+      intendedTasks: form.intendedTasks,
+      labelColumn: form.labelColumn,
+    };
+
     setSubmitting(true);
-    setSubmitProgress(6);
-    let progress = 6;
-    submitTimer.current = window.setInterval(() => {
-      progress = Math.min(100, progress + 14);
-      setSubmitProgress(progress);
-      if (progress >= 100) {
-        if (submitTimer.current) window.clearInterval(submitTimer.current);
-        const input: UploadInput = {
-          file,
-          checksum,
-          preview,
-          format,
-          title: form.title,
-          description: form.description,
-          domain: form.domain,
-          access: form.access,
-          tags: form.tags
-            .split(',')
-            .map((tag) => tag.trim().toLowerCase())
-            .filter(Boolean),
-          ageRange: form.ageRange,
-          geography: form.geography,
-          studyDesign: form.studyDesign,
-          license: form.license,
-          ethicsApproved: form.ethicsApproved,
-          dataDictionaryAvailable: form.dataDictionaryAvailable,
-          intendedTasks: form.intendedTasks,
-          labelColumn: form.labelColumn,
-        };
-        void (async () => {
-          try {
-            const id = await uploadDataset(input);
-            setCreatedId(id);
-            setSubmitting(false);
-            setFile(null);
-            setPreview(null);
-            setFormat(null);
-            setChecksum('');
-            setForm(emptyForm);
-            setErrors({});
-            notify(
-              'success',
-              'Dataset uploaded and queued for ETL',
-              'Review the suggested mappings in the ETL workspace before staging the processed output.',
-            );
-          } catch {
-            setSubmitting(false);
-            setSubmitProgress(0);
-          }
-        })();
-      }
-    }, 260);
+    setAutoEtlError('');
+    setAutoEtlStage('uploading');
+    try {
+      const result = await uploadDataset(input);
+      setFile(null);
+      setPreview(null);
+      setFormat(null);
+      setChecksum('');
+      setErrors({});
+      await runAutoEtl(result.jobId, form.intendedTasks[0] || 'General clinical research');
+    } catch (error) {
+      setAutoEtlStage('failed');
+      setAutoEtlError(error instanceof Error ? error.message : 'The upload pipeline could not be completed.');
+      setSubmitting(false);
+    }
   };
 
   const labelOptions = useMemo(() => preview?.columns.map((column) => column.name) ?? [], [preview]);
@@ -288,47 +380,90 @@ export const UploadDataset = () => {
     <>
       <PageHeader
         eyebrow="Contribute data"
-        title="Upload dataset"
-        description="Validate a CSV, XLSX or JSON file locally, describe the dataset and queue it for the ETL pipeline."
+        title="Upload to Repository"
+        description="Register a local file or a generated synthetic dataset, then extract, transform, validate and load it through the governed ETL pipeline."
         actions={
           <Link to="/repository">
-            <Button variant="secondary">Dataset repository</Button>
+            <Button variant="secondary">My Repository</Button>
           </Link>
         }
       />
 
-      <DemoNotice text="Files are parsed in your browser for immediate feedback, then uploaded to the FastAPI backend for secure storage, checksum persistence and server-side ETL." />
+      <DemoNotice text="Local files are parsed in your browser for immediate feedback. Generated datasets are resolved by ID on the server. Both entry points create the same real ETL job." />
 
-      {createdId ? (
-        <Card className="success-panel">
-          <div className="success-icon"><CheckCircle2 size={26} /></div>
-          <div>
-            <h2>Dataset accepted for processing</h2>
-            <p>
-              <strong>{createdId}</strong> was stored by the backend and its ETL job is queued. Review the suggested
-              mappings, run the pipeline, then submit the processed output for governance review.
-            </p>
-            <div className="success-actions">
-              <Link to={`/datasets/${createdId}`}>
-                <Button icon={<ArrowRight size={16} />}>View dataset record</Button>
-              </Link>
-              <Link to="/etl">
-                <Button variant="secondary">Open ETL processing</Button>
-              </Link>
-              <Button
-                variant="ghost"
-                icon={<RotateCcw size={15} />}
-                onClick={() => setCreatedId(null)}
-              >
-                Upload another
-              </Button>
-            </div>
+      {generatedDatasetId ? (
+        <Card data-testid="upload-generated-banner">
+          <CardHeader title="Generated dataset selected" subtitle="The stored synthetic file will be resolved by ID on the server" />
+          {generatedError ? <Alert tone="danger" title="Generated dataset unavailable">{generatedError}</Alert> : null}
+          <div className="review-grid">
+            <InfoRow label="Generated dataset ID"><code className="code small">{generatedDatasetId}</code></InfoRow>
+            <InfoRow label="Name">{generatedDetail?.datasetName || 'Loading…'}</InfoRow>
+            <InfoRow label="Source">{generatedDetail?.sourceDatasetName || '—'}</InfoRow>
+            <InfoRow label="Model">{generatedDetail?.selectedModel || generatedDetail?.modelName || '—'}</InfoRow>
+            <InfoRow label="Records">{generatedDetail ? formatNumber(generatedDetail.recordCount) : '—'}</InfoRow>
+            <InfoRow label="Storage">Server-side generated file</InfoRow>
           </div>
         </Card>
       ) : null}
 
+      {autoEtlStage !== 'idle' ? (
+        <Card data-testid="auto-etl-panel">
+          <CardHeader
+            title={autoEtlStage === 'failed' ? 'Upload pipeline stopped' : 'Processing your upload'}
+            subtitle="Extract, transform and load are running against the real ETL service."
+          />
+          {autoEtlError ? <Alert tone="danger" title="ETL could not finish">{autoEtlError}</Alert> : null}
+          <ProgressBar
+            value={AUTO_ETL_PROGRESS[autoEtlStage]}
+            tone={autoEtlStage === 'failed' ? 'danger' : autoEtlStage === 'completed' ? 'success' : 'info'}
+            height={10}
+          />
+          <div className="auto-etl-steps">
+            {AUTO_ETL_STEPS.map((step, index) => {
+              const activeIndex = AUTO_ETL_STEPS.findIndex((item) => item.key === autoEtlStage);
+              const currentIndex = autoEtlStage === 'approving' ? 2 : activeIndex;
+              const state = autoEtlStage === 'failed' && index === Math.max(currentIndex, 0)
+                ? 'Failed'
+                : index < currentIndex || autoEtlStage === 'completed'
+                  ? 'Completed'
+                  : index === currentIndex
+                    ? 'Running'
+                    : 'Queued';
+              return (
+                <div key={step.key} className={`auto-etl-step ${state.toLowerCase()}`} data-testid={`auto-etl-step-${step.key}`}>
+                  <span className="auto-etl-step-index">{index + 1}</span>
+                  <div>
+                    <strong>{step.label}</strong>
+                    <span>{step.description}</span>
+                  </div>
+                  <Badge tone={state === 'Completed' ? 'success' : state === 'Failed' ? 'danger' : state === 'Running' ? 'info' : 'neutral'}>
+                    {state}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+          {autoEtlJob ? (
+            <div className="review-grid">
+              <InfoRow label="Dataset ID"><code className="code small">{autoEtlJob.datasetId}</code></InfoRow>
+              <InfoRow label="ETL job ID"><code className="code small">{autoEtlJob.id}</code></InfoRow>
+              <InfoRow label="Backend status">{autoEtlJob.status}</InfoRow>
+              <InfoRow label="Rows out">{formatNumber(autoEtlJob.rowsOut)}</InfoRow>
+            </div>
+          ) : null}
+          {autoEtlStage === 'failed' ? (
+            <div className="form-actions">
+              <Link to="/etl"><Button icon={<ArrowRight size={16} />}>Open ETL processing</Button></Link>
+              <Button variant="secondary" onClick={() => setAutoEtlStage('idle')}>Try another upload</Button>
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
+
+      {autoEtlStage === 'idle' ? (
       <form onSubmit={submit} className="upload-layout">
         <div className="upload-main">
+          {!generatedDatasetId ? (
           <Card>
             <CardHeader title="1 · Select a file" subtitle="CSV, XLSX or JSON · maximum 25 MB" action={<DemoBadge label="Local parse" />} />
             {!file ? (
@@ -426,6 +561,7 @@ export const UploadDataset = () => {
               </>
             ) : null}
           </Card>
+          ) : null}
 
           <Card>
             <CardHeader title="2 · Describe the dataset" subtitle="Metadata is required for discovery, governance and AI-readiness" />
@@ -588,29 +724,26 @@ export const UploadDataset = () => {
           <Card>
             <CardHeader title="3 · Review and submit" subtitle="A dataset ID, checksum and ETL job are created on submit" />
             <div className="review-grid">
-              <InfoRow label="File">{file ? file.name : 'No file selected'}</InfoRow>
-              <InfoRow label="Format">{format ?? '—'}</InfoRow>
-              <InfoRow label="Rows / columns">{preview ? `${formatNumber(preview.rowCount)} / ${preview.columnCount}` : '—'}</InfoRow>
-              <InfoRow label="Missing cells">{preview ? `${preview.missingPct}%` : '—'}</InfoRow>
-              <InfoRow label="Checksum">{checksum ? <code className="code small">{checksum.slice(0, 24)}…</code> : '—'}</InfoRow>
+              <InfoRow label="Source">{generatedDatasetId ? `Generated dataset ${generatedDatasetId}` : file ? file.name : 'No file selected'}</InfoRow>
+              <InfoRow label="Format">{generatedDetail?.fileFormat ?? format ?? '—'}</InfoRow>
+              <InfoRow label="Rows / columns">{generatedDetail ? `${formatNumber(generatedDetail.recordCount)} / ${generatedDetail.columnCount}` : preview ? `${formatNumber(preview.rowCount)} / ${preview.columnCount}` : '—'}</InfoRow>
+              <InfoRow label="Missing cells">{preview ? `${preview.missingPct}%` : 'Server profile on submit'}</InfoRow>
+              <InfoRow label="Checksum">{checksum ? <code className="code small">{checksum.slice(0, 24)}…</code> : generatedDetail ? <code className="code small">server-verified</code> : '—'}</InfoRow>
               <InfoRow label="Access">{form.access}</InfoRow>
               <InfoRow label="Domain">{form.domain}</InfoRow>
               <InfoRow label="Label column">{form.labelColumn || 'None'}</InfoRow>
             </div>
 
             {submitting ? (
-              <div className="submit-progress">
-                <div className="submit-progress-head">
-                  <Loader2 className="spin" size={16} />
-                  <span>Validating metadata and creating ETL job… {submitProgress}%</span>
-                </div>
-                <ProgressBar value={submitProgress} />
+              <div className="submit-progress-head">
+                <Loader2 className="spin" size={16} />
+                <span>Creating the repository record and real ETL job…</span>
               </div>
             ) : null}
 
             <div className="form-actions">
               <Button type="submit" disabled={extracting || submitting} icon={<UploadCloud size={16} />}>
-                {submitting ? 'Submitting…' : 'Submit dataset'}
+                {submitting ? 'Submitting…' : 'Upload to Repository'}
               </Button>
               <Button
                 type="button"
@@ -649,15 +782,15 @@ export const UploadDataset = () => {
           </Card>
 
           <Card className="note-card">
-            <strong>Mock vs real</strong>
+            <strong>Real pipeline</strong>
             <p>
-              File validation and profiling are <strong>real</strong> and run in your browser. ETL progress, quality and
-              readiness scores after submission are <strong>demonstration rules</strong> until the FastAPI ETL engine
-              is connected.
+              Repository records, checksums, ETL jobs, mapping decisions, processed versions and validation reports are
+              created by the FastAPI backend. No upload is published automatically.
             </p>
           </Card>
         </aside>
       </form>
+      ) : null}
       {user ? (
         <Button
           type="button"

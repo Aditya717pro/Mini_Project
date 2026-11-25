@@ -13,13 +13,20 @@ from app.models.enums import (
 from app.models.etl import ETLJob, ETLJobLog, ETLMappingDecision
 from app.models.password_reset import PasswordResetOTP
 from app.models.reports import QualityReport, ReadinessReport, RepresentativenessReport
+from app.models.research_report import ResearchReport
 from app.models.user import User
 from app.synthmed.models import (
+    SynthMedComparison,
+    SynthMedDatasetLineage,
+    SynthMedDatasetVersion,
     SynthMedEvaluationReport,
+    SynthMedExperiment,
     SynthMedGeneratedDataset,
     SynthMedGenerationConfig,
+    SynthMedGenerationConfigurationSnapshot,
     SynthMedGenerationJob,
     SynthMedSourceDataset,
+    SynthMedUtilityEvaluation,
 )
 
 __all__ = [
@@ -40,13 +47,19 @@ __all__ = [
     "QualityReport",
     "ReadinessReport",
     "RepresentativenessReport",
+    "ResearchReport",
     "RequestStatus",
+    "SynthMedComparison",
+    "SynthMedDatasetLineage",
+    "SynthMedDatasetVersion",
     "SynthMedEvaluationReport",
+    "SynthMedExperiment",
     "SynthMedGeneratedDataset",
     "SynthMedGenerationConfig",
+    "SynthMedGenerationConfigurationSnapshot",
     "SynthMedGenerationJob",
     "SynthMedSourceDataset",
-
+    "SynthMedUtilityEvaluation",
     "User",
     "UserRole",
 ]

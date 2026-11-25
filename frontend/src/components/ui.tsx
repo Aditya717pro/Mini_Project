@@ -1,7 +1,7 @@
 import {
   useEffect,
   type ButtonHTMLAttributes,
-  type CSSProperties,
+  type HTMLAttributes,
   type ReactNode,
 } from 'react';
 import {
@@ -10,8 +10,10 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Globe,
   Info,
   Loader2,
+  Lock,
   Search,
   X,
   XCircle,
@@ -54,12 +56,10 @@ export const Card = ({
   className,
   style,
   id,
-}: {
+  ...rest
+}: HTMLAttributes<HTMLElement> & {
   children: ReactNode;
-  className?: string;
-  style?: CSSProperties;
-  id?: string;
-}) => <section className={cx('card', className)} style={style} id={id}>{children}</section>;
+}) => <section className={cx('card', className)} style={style} id={id} {...rest}>{children}</section>;
 
 export const CardHeader = ({
   title,
@@ -107,15 +107,17 @@ export const StatusBadge = ({ status }: { status: DatasetStatus }) => (
   <Badge tone={statusTone[status]}>{status}</Badge>
 );
 
-const accessTone: Record<AccessLevel, Tone> = {
-  Open: 'success',
-  Controlled: 'info',
-  Restricted: 'danger',
+export const AccessBadge = ({ access }: { access: AccessLevel | 'Public' | 'Private' }) => {
+  const isPublic = access === 'Open' || access === 'Public';
+  return (
+    <Badge tone={isPublic ? 'success' : 'neutral'}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        {isPublic ? <Globe size={11} /> : <Lock size={11} />}
+        {isPublic ? 'Public' : 'Private'}
+      </span>
+    </Badge>
+  );
 };
-
-export const AccessBadge = ({ access }: { access: AccessLevel }) => (
-  <Badge tone={accessTone[access]}>{access}</Badge>
-);
 
 const requestTone: Record<RequestStatus, Tone> = {
   Pending: 'warning',
@@ -203,12 +205,13 @@ export const Alert = ({
   tone = 'info',
   title,
   children,
-}: {
+  ...rest
+}: Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   tone?: 'info' | 'warning' | 'success' | 'danger';
   title?: string;
   children: ReactNode;
 }) => (
-  <div className={cx('alert', `alert-${tone}`)} role="status">
+  <div className={cx('alert', `alert-${tone}`)} role="status" {...rest}>
     <div className="alert-icon">{alertIcon[tone]}</div>
     <div>
       {title ? <div className="alert-title">{title}</div> : null}

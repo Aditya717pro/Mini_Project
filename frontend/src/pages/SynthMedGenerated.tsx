@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Download, Eye, RefreshCw, ShieldCheck, UploadCloud, Wand2 } from 'lucide-react';
+import { Database, Download, Eye, RefreshCw, ShieldCheck, Wand2 } from 'lucide-react';
 import { Badge, Button, Card, CardHeader, EmptyState, LoadingState, PageHeader } from '../components/ui';
 import { useDemo } from '../store/DemoStore';
-import { formatBytes, formatDateTime, formatNumber } from '../lib/format';
+import { formatDateTime, formatNumber } from '../lib/format';
 import type { SynthMedGeneratedDataset } from '../types';
 
 export const SynthMedGenerated = () => {
-  const { synthGenerated, downloadSynthMedGenerated, synthSources, synthJobs, refreshSynthMed } = useDemo();
+  const { synthGenerated, downloadSynthMedGenerated, synthJobs, refreshSynthMed } = useDemo();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -52,23 +52,20 @@ export const SynthMedGenerated = () => {
     <>
       <PageHeader
         eyebrow="Synthetic data"
-        title="Generated Datasets"
-        description="Synthetic outputs from CTGAN and SDV models. You can preview, evaluate, and download each generated dataset directly."
+        title="Generated Synthetic Data"
+        description="Review, download and add eligible synthetic outputs to My Repository. Registration is available only after generation is complete."
         actions={
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="table-actions">
             <Button
               variant="secondary"
               icon={<RefreshCw size={15} className={refreshing || loading ? 'spin' : ''} />}
               disabled={refreshing || loading}
               onClick={() => void handleRefresh()}
-              title="Refresh generated datasets"
             >
               Refresh
             </Button>
-            <Link to="/synthmed/generate">
-              <Button variant="primary" icon={<Wand2 size={16} />}>
-                Generate data
-              </Button>
+            <Link to="/synthmed">
+              <Button variant="primary" icon={<Wand2 size={16} />}>Generate data</Button>
             </Link>
           </div>
         }
@@ -86,8 +83,8 @@ export const SynthMedGenerated = () => {
 
       <Card>
         <CardHeader
-          title="Available synthetic datasets"
-          subtitle="All generated synthetic data documents with direct download options on the right."
+          title="Saved synthetic outputs"
+          subtitle="Every row reflects a persisted generation result from SynthMed."
           action={<Badge tone="purple">{synthGenerated.length} datasets</Badge>}
         />
         {loading && synthGenerated.length === 0 ? (
@@ -95,22 +92,8 @@ export const SynthMedGenerated = () => {
         ) : synthGenerated.length === 0 ? (
           <EmptyState
             title="No generated datasets yet"
-            description={
-              synthSources.length === 0
-                ? 'Upload a source dataset first, then start a generation job.'
-                : 'Start a generation job to create synthetic datasets.'
-            }
-            action={
-              synthSources.length === 0 ? (
-                <Link to="/synthmed/upload">
-                  <Button icon={<UploadCloud size={15} />}>Upload source dataset</Button>
-                </Link>
-              ) : (
-                <Link to="/synthmed/generate">
-                  <Button icon={<Wand2 size={15} />}>Generate data</Button>
-                </Link>
-              )
-            }
+            description="Choose an authorised repository dataset and run a real generation job to create the first synthetic output."
+            action={<Link to="/synthmed"><Button icon={<Wand2 size={15} />}>Choose a source dataset</Button></Link>}
           />
         ) : (
           <div className="table-wrap">
@@ -119,60 +102,85 @@ export const SynthMedGenerated = () => {
                 <tr>
                   <th>Generated dataset</th>
                   <th>Source dataset</th>
-                  <th>Mode</th>
                   <th>Model</th>
-                  <th>Method</th>
                   <th className="num">Records</th>
+                  <th className="num">Columns</th>
                   <th>Generated</th>
-                  <th>Format</th>
-                  <th className="num">Size</th>
-                  <th style={{ textAlign: 'right', minWidth: '220px' }}>Download &amp; Actions</th>
+                  <th>Status</th>
+                  <th>Repository status</th>
+                  <th style={{ textAlign: 'right', minWidth: '320px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {synthGenerated.map((dataset) => {
                   const job = jobFor(dataset.id);
-                  const mode = dataset.generationMode ?? job?.generationMode ?? 'Unconditional';
-                  const model = dataset.selectedModel ?? job?.selectedModel ?? '—';
+                  const registrationStatus = dataset.repositoryRegistrationStatus || 'Not registered';
+                  const isRegistered =
+                    registrationStatus === 'Registered in Repository' || Boolean(dataset.repositoryDatasetId);
+                  const isComplete = dataset.status === 'Completed' || job?.status === 'Completed';
+                  const generationStatus = job?.error || job?.status || dataset.status;
                   const isDownloading = downloadingId === dataset.id;
 
                   return (
-                    <tr key={dataset.id}>
+                    <tr key={dataset.id} data-testid={`generated-row-${dataset.id}`}>
                       <td>
                         <strong>{dataset.datasetName}</strong>
-                        <div className="muted small">ID {dataset.id}</div>
+                        <div className="muted small"><code className="code small">{dataset.id}</code></div>
                       </td>
                       <td>{dataset.sourceDatasetName}</td>
+                      <td><Badge tone="purple">{dataset.selectedModel ?? job?.selectedModel ?? dataset.generationMethod ?? '—'}</Badge></td>
+                      <td className="num">{formatNumber(dataset.recordCount)}</td>
+                      <td className="num">{formatNumber(dataset.columnCount)}</td>
+                      <td>{formatDateTime(dataset.generationDate)}</td>
+                      <td><Badge tone={generationStatus === 'Failed' ? 'danger' : 'success'}>{generationStatus}</Badge></td>
                       <td>
-                        <Badge tone={mode === 'Conditional' ? 'purple' : 'neutral'}>{mode}</Badge>
-                        {job?.conditions.length ? (
-                          <div className="muted small">{job.conditions.length} conditions</div>
+                        <Badge tone={isRegistered ? 'success' : 'neutral'}>{registrationStatus}</Badge>
+                        {dataset.repositoryDatasetId ? (
+                          <div>
+                            <Link
+                              className="inline-link"
+                              to={`/datasets/${dataset.repositoryDatasetId}`}
+                              data-testid={`generated-row-registered-${dataset.id}`}
+                            >
+                              View repository dataset
+                            </Link>
+                          </div>
                         ) : null}
                       </td>
-                      <td>{model}</td>
-                      <td>{dataset.generationMethod || '—'}</td>
-                      <td className="num">{formatNumber(dataset.recordCount)}</td>
-                      <td>{formatDateTime(dataset.generationDate)}</td>
-                      <td><Badge tone="purple">{dataset.fileFormat}</Badge></td>
-                      <td className="num">{formatBytes(dataset.fileSizeBytes)}</td>
                       <td style={{ textAlign: 'right' }}>
                         <div className="table-actions" style={{ justifyContent: 'flex-end' }}>
                           <Link to={`/synthmed/generated/${dataset.id}`}>
-                            <Button variant="secondary" size="sm" icon={<Eye size={14} />}>View</Button>
-                          </Link>
-                          <Link to={`/synthmed/evaluation?dataset=${encodeURIComponent(dataset.id)}`}>
-                            <Button variant="ghost" size="sm" icon={<ShieldCheck size={14} />}>Reports</Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={<Eye size={14} />}
+                              data-testid={`generated-row-preview-${dataset.id}`}
+                            >
+                              Preview
+                            </Button>
                           </Link>
                           <Button
                             variant="primary"
                             size="sm"
                             icon={<Download size={14} />}
                             disabled={isDownloading}
-                            title={`Download ${dataset.datasetName} (${dataset.fileFormat})`}
+                            data-testid={`generated-row-download-${dataset.id}`}
                             onClick={() => void handleDownload(dataset)}
                           >
                             {isDownloading ? 'Downloading…' : 'Download'}
                           </Button>
+                          {isComplete && !isRegistered ? (
+                            <Link to={`/upload?generatedId=${encodeURIComponent(dataset.id)}`}>
+                              <Button
+                                variant="success"
+                                size="sm"
+                                icon={<Database size={14} />}
+                                data-testid={`generated-row-upload-${dataset.id}`}
+                              >
+                                Upload to Repository
+                              </Button>
+                            </Link>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -182,6 +190,17 @@ export const SynthMedGenerated = () => {
             </table>
           </div>
         )}
+      </Card>
+
+      <Card>
+        <CardHeader title="Governance" subtitle="Registration is a deliberate release step." />
+        <p className="muted small">
+          Synthetic outputs are research artefacts, not clinically validated records. Once registered, a dataset is
+          visible in My Repository with provenance linking it back to the generated result and its source.
+        </p>
+        <p className="muted small">
+          <ShieldCheck size={14} /> Registration appears only for completed, unregistered generated datasets.
+        </p>
       </Card>
     </>
   );

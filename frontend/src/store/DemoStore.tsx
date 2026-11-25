@@ -24,6 +24,10 @@ import type {
   AccessRequest,
   CurrentUser,
   Dataset,
+  DatasetLineageResponse,
+  DatasetVersionComparison,
+  DatasetVersionRecord,
+  DatasetVersionsResponse,
   Domain,
   EtlJob,
   ExtractPreview,
@@ -32,6 +36,11 @@ import type {
   QualityReport,
   ReadinessReport,
   RepresentativenessReport,
+  ResearchReport,
+  ResearchReportGeneratePayload,
+  ResearchReportListResponse,
+  ResearchReportStatusResponse,
+  ResearchReportType,
   RequestStatus,
   Role,
   SynthMedComparisonCreatePayload,
@@ -41,11 +50,19 @@ import type {
   SynthMedConditionValidationRequest,
   SynthMedConditionValidationResponse,
   SynthMedDatasetColumns,
+  SynthMedConfigSnapshot,
+  SynthMedDatasetLineageResponse,
   SynthMedDownloads,
   SynthMedEvaluationReport,
+  SynthMedExperimentCreatePayload,
+  SynthMedExperimentHistory,
+  SynthMedExperimentReusePayload,
+  SynthMedExperimentReport,
+  SynthMedExperimentResponse,
   SynthMedExportResponse,
   SynthMedGeneratedDataset,
   SynthMedGeneratedDatasetDetail,
+  SynthMedGeneratedDatasetRegisterPayload,
   SynthMedGeneratedEvaluationSummary,
   SynthMedGeneratedPreview,
   SynthMedGenerationAnalysis,
@@ -54,17 +71,23 @@ import type {
   SynthMedMedicalProfileResponse,
   SynthMedModelName,
   SynthMedModelsResponse,
+  SynthMedRegisterResponse,
   SynthMedSourceClinicalValidationResponse,
   SynthMedSourceDataset,
+  SynthMedUtilityEvaluation,
+  SynthMedUtilityEvaluationCreatePayload,
+  SynthMedVersionComparison,
+  SynthMedVersionResponse,
   ThemeMode,
   ToastMessage,
 } from '../types';
 
 export interface UploadInput {
-  file: File;
-  checksum: string;
-  preview: ExtractPreview;
-  format: FileFormat;
+  file?: File;
+  checksum?: string;
+  preview?: ExtractPreview;
+  format?: FileFormat;
+  generatedDatasetId?: string;
   title: string;
   description: string;
   domain: Domain;
@@ -96,6 +119,11 @@ interface DemoStore {
   synthGenerated: SynthMedGeneratedDataset[];
   synthJobs: SynthMedGenerationJob[];
   synthComparisons: SynthMedComparisonListItem[];
+  datasetVersions: Record<string, DatasetVersionsResponse>;
+  datasetLineage: Record<string, DatasetLineageResponse>;
+  synthVersions: Record<string, SynthMedVersionResponse[]>;
+  synthLineage: Record<string, SynthMedDatasetLineageResponse>;
+  synthExperiments: SynthMedExperimentResponse[];
   requests: AccessRequest[];
   qualityReports: Record<string, QualityReport>;
   readinessReports: Record<string, ReadinessReport>;
@@ -109,8 +137,10 @@ interface DemoStore {
   requestPasswordReset: (email: string) => Promise<string>;
   verifyPasswordReset: (email: string, otp: string, newPassword: string) => Promise<void>;
   refresh: () => Promise<void>;
-  uploadDataset: (input: UploadInput) => Promise<string>;
+  uploadDataset: (input: UploadInput) => Promise<{ datasetId: string; jobId: string }>;
   uploadSynthMedSource: (input: SynthMedUploadPayload, onProgress: (percent: number) => void) => Promise<string>;
+  createSynthMedSourceFromRepository: (datasetId: string, versionId?: string) => Promise<SynthMedSourceDataset>;
+  registerGeneratedDataset: (generatedId: string, payload: SynthMedGeneratedDatasetRegisterPayload) => Promise<SynthMedRegisterResponse>;
   refreshSynthMed: () => Promise<SynthMedDownloads>;
   getSynthMedSource: (datasetId: string) => Promise<SynthMedSourceDataset>;
   downloadSynthMedSource: (dataset: SynthMedSourceDataset) => Promise<void>;
@@ -151,6 +181,11 @@ interface DemoStore {
   getSynthMedComparison: (comparisonId: string) => Promise<SynthMedComparisonDetail>;
   createSynthMedComparison: (payload: SynthMedComparisonCreatePayload) => Promise<SynthMedComparisonDetail>;
   downloadSynthMedComparisonReport: (comparisonId: string) => Promise<void>;
+  createSynthMedUtilityEvaluation: (payload: SynthMedUtilityEvaluationCreatePayload) => Promise<string>;
+  listSynthMedUtilityEvaluations: () => Promise<SynthMedUtilityEvaluation[]>;
+  getSynthMedUtilityEvaluation: (evaluationId: string) => Promise<SynthMedUtilityEvaluation>;
+  getSynthMedUtilityEvaluationReport: (evaluationId: string) => Promise<Record<string, unknown>>;
+  downloadSynthMedUtilityEvaluationReport: (evaluationId: string, format?: 'json' | 'csv' | 'pdf') => Promise<void>;
   refreshJob: (jobId: string) => Promise<void>;
   profileJob: (jobId: string) => Promise<void>;
   recordMappingDecisions: (jobId: string, decisions: MappingDecisionInput[]) => Promise<void>;
@@ -168,6 +203,46 @@ interface DemoStore {
   approveDataset: (datasetId: string, reason: string) => Promise<void>;
   rejectDataset: (datasetId: string, reason: string) => Promise<void>;
   downloadDataset: (dataset: Dataset) => Promise<void>;
+  listDatasetVersions: (datasetId: string) => Promise<DatasetVersionsResponse>;
+  getDatasetVersion: (datasetId: string, versionId: string) => Promise<DatasetVersionRecord>;
+  getDatasetLineage: (datasetId: string) => Promise<DatasetLineageResponse>;
+  compareDatasetVersions: (
+    datasetId: string,
+    versionAId: string,
+    versionBId: string,
+  ) => Promise<DatasetVersionComparison>;
+  restoreDatasetVersion: (datasetId: string, versionId: string) => Promise<DatasetVersionRecord>;
+  downloadDatasetVersion: (datasetId: string, versionId: string, filename: string) => Promise<void>;
+  createDatasetVersion: (datasetId: string, note?: string) => Promise<DatasetVersionRecord>;
+  listSynthMedVersions: (datasetId: string) => Promise<SynthMedVersionResponse[]>;
+  getSynthMedVersion: (datasetId: string, versionId: string) => Promise<SynthMedVersionResponse>;
+  getSynthMedDatasetLineage: (datasetId: string) => Promise<SynthMedDatasetLineageResponse>;
+  compareSynthMedVersions: (
+    datasetId: string,
+    versionAId: string,
+    versionBId: string,
+  ) => Promise<SynthMedVersionComparison>;
+  restoreSynthMedVersion: (datasetId: string, versionId: string) => Promise<SynthMedVersionResponse>;
+  downloadSynthMedVersion: (datasetId: string, versionId: string, filename: string) => Promise<void>;
+  listSynthMedExperiments: () => Promise<SynthMedExperimentResponse[]>;
+  getSynthMedExperiment: (experimentId: string) => Promise<SynthMedExperimentResponse>;
+  createSynthMedExperiment: (payload: SynthMedExperimentCreatePayload) => Promise<SynthMedExperimentResponse>;
+  reuseSynthMedExperimentConfiguration: (
+    experimentId: string,
+    payload?: SynthMedExperimentReusePayload,
+  ) => Promise<SynthMedGenerationJob>;
+  getSynthMedExperimentReport: (experimentId: string) => Promise<SynthMedExperimentReport>;
+  downloadSynthMedExperimentReport: (experimentId: string) => Promise<void>;
+  getSynthMedExperimentHistory: (experimentId: string) => Promise<SynthMedExperimentHistory>;
+  getSynthMedExperimentConfigurations: (experimentId: string) => Promise<SynthMedConfigSnapshot[]>;
+  listResearchReports: (reportType?: ResearchReportType) => Promise<ResearchReportListResponse>;
+  getResearchReport: (reportId: string) => Promise<ResearchReport>;
+  getResearchReportStatus: (reportId: string) => Promise<ResearchReportStatusResponse>;
+  createResearchReport: (
+    reportType: ResearchReportType,
+    payload: ResearchReportGeneratePayload,
+  ) => Promise<ResearchReport>;
+  downloadResearchReport: (reportId: string) => Promise<void>;
 }
 
 const DemoContext = createContext<DemoStore | null>(null);
@@ -183,7 +258,7 @@ const initialTheme = (): ThemeMode => {
   } catch {
     return 'default';
   }
-  return 'default';
+  return 'light';
 };
 
 export const DemoProvider = ({ children }: { children: ReactNode }) => {
@@ -197,6 +272,11 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
   const [synthGenerated, setSynthGenerated] = useState<SynthMedGeneratedDataset[]>([]);
   const [synthJobs, setSynthJobs] = useState<SynthMedGenerationJob[]>([]);
   const [synthComparisons, setSynthComparisons] = useState<SynthMedComparisonListItem[]>([]);
+  const [datasetVersions, setDatasetVersions] = useState<Record<string, DatasetVersionsResponse>>({});
+  const [datasetLineage, setDatasetLineage] = useState<Record<string, DatasetLineageResponse>>({});
+  const [synthVersions, setSynthVersions] = useState<Record<string, SynthMedVersionResponse[]>>({});
+  const [synthLineage, setSynthLineage] = useState<Record<string, SynthMedDatasetLineageResponse>>({});
+  const [synthExperiments, setSynthExperiments] = useState<SynthMedExperimentResponse[]>([]);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [qualityReports, setQualityReports] = useState<Record<string, QualityReport>>({});
   const [readinessReports, setReadinessReports] = useState<Record<string, ReadinessReport>>({});
@@ -292,6 +372,11 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     setSynthGenerated([]);
     setSynthJobs([]);
     setSynthComparisons([]);
+    setDatasetVersions({});
+    setDatasetLineage({});
+    setSynthVersions({});
+    setSynthLineage({});
+    setSynthExperiments([]);
     setRequests([]);
     setQualityReports({});
     setReadinessReports({});
@@ -502,6 +587,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
         const result = await api.uploadDataset({
           file: input.file,
           format: input.format,
+          generatedDatasetId: input.generatedDatasetId,
           title: input.title,
           description: input.description,
           domain: input.domain,
@@ -523,7 +609,7 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
         setDatasets((prev) => [result.dataset, ...prev.filter((item) => item.id !== result.dataset.id)]);
         const job = await api.getJob(result.jobId);
         setJobs((prev) => [job, ...prev.filter((item) => item.id !== job.id)]);
-        return result.dataset.id;
+        return { datasetId: result.dataset.id, jobId: result.jobId };
       } catch (error) {
         notify('error', 'Upload failed', errorMessage(error));
         throw error;
@@ -544,6 +630,36 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       }
     },
     [notify],
+  );
+
+  const createSynthMedSourceFromRepository = useCallback(
+    async (datasetId: string, versionId?: string) => {
+      try {
+        const dataset = await api.createSynthMedSourceFromRepository(datasetId, versionId);
+        setSynthSources((prev) => [dataset, ...prev.filter((item) => item.id !== dataset.id)]);
+        return dataset;
+      } catch (error) {
+        notify('error', 'Could not prepare repository dataset', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const registerGeneratedDataset = useCallback(
+    async (generatedId: string, payload: SynthMedGeneratedDatasetRegisterPayload) => {
+      try {
+        const response = await api.registerGeneratedDataset(generatedId, payload);
+        setDatasets((prev) => [response.dataset, ...prev.filter((item) => item.id !== response.dataset.id)]);
+        await refresh();
+        notify('success', 'Synthetic dataset added to repository', response.message || response.dataset.title);
+        return response;
+      } catch (error) {
+        notify('error', 'Could not add generated dataset to repository', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify, refresh],
   );
 
   const refreshSynthMed = useCallback(async () => {
@@ -889,6 +1005,12 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     [notify],
   );
 
+  const createSynthMedUtilityEvaluation = useCallback(async (payload: SynthMedUtilityEvaluationCreatePayload) => { try { const row = await api.createSynthMedUtilityEvaluation(payload); notify('success','ML utility evaluation started',row.evaluationName||'Utility evaluation'); return row.id; } catch (error) { notify('error','ML utility evaluation failed to start',errorMessage(error)); throw error; } }, [notify]);
+  const listSynthMedUtilityEvaluations = useCallback(async () => api.listSynthMedUtilityEvaluations(), []);
+  const getSynthMedUtilityEvaluation = useCallback(async (id: string) => api.getSynthMedUtilityEvaluation(id), []);
+  const getSynthMedUtilityEvaluationReport = useCallback(async (id: string) => api.getSynthMedUtilityEvaluationReport(id), []);
+  const downloadSynthMedUtilityEvaluationReport = useCallback(async (id: string, format: 'json'|'csv'|'pdf'='json') => { try { await api.downloadSynthMedUtilityEvaluationReport(id, format); } catch (error) { notify('error','Utility report download failed',errorMessage(error)); } }, [notify]);
+
   const replaceJob = useCallback((updated: EtlJob) => {
     setJobs((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
   }, []);
@@ -1076,6 +1198,369 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     [notify],
   );
 
+  const listDatasetVersions = useCallback(
+    async (datasetId: string) => {
+      try {
+        const result = await api.listDatasetVersions(datasetId);
+        setDatasetVersions((prev) => ({ ...prev, [datasetId]: result }));
+        return result;
+      } catch (error) {
+        notify('error', 'Could not load dataset versions', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const getDatasetVersion = useCallback(
+    async (datasetId: string, versionId: string) => {
+      try {
+        const version = await api.getDatasetVersion(datasetId, versionId);
+        setDatasetVersions((prev) => {
+          const current = prev[datasetId];
+          if (!current) return prev;
+          const versions = current.versions.some((item) => item.id === version.id)
+            ? current.versions.map((item) => (item.id === version.id ? version : item))
+            : [version, ...current.versions];
+          return { ...prev, [datasetId]: { ...current, versions } };
+        });
+        return version;
+      } catch (error) {
+        notify('error', 'Could not load dataset version', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const getDatasetLineage = useCallback(
+    async (datasetId: string) => {
+      try {
+        const lineage = await api.getDatasetLineage(datasetId);
+        setDatasetLineage((prev) => ({ ...prev, [datasetId]: lineage }));
+        return lineage;
+      } catch (error) {
+        notify('error', 'Could not load dataset lineage', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const compareDatasetVersions = useCallback(
+    async (datasetId: string, versionAId: string, versionBId: string) => {
+      try {
+        return await api.compareDatasetVersions(datasetId, versionAId, versionBId);
+      } catch (error) {
+        notify('error', 'Version comparison failed', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const restoreDatasetVersion = useCallback(
+    async (datasetId: string, versionId: string) => {
+      try {
+        const version = await api.restoreDatasetVersion(datasetId, versionId);
+        const refreshed = await api.listDatasetVersions(datasetId);
+        setDatasetVersions((prev) => ({ ...prev, [datasetId]: refreshed }));
+        notify('success', 'Version restored', `${version.versionLabel} is now the current version.`);
+        return version;
+      } catch (error) {
+        notify('error', 'Version restore failed', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const downloadDatasetVersion = useCallback(
+    async (datasetId: string, versionId: string, filename: string) => {
+      try {
+        await api.downloadDatasetVersion(datasetId, versionId, filename);
+      } catch (error) {
+        notify('error', 'Version download failed', errorMessage(error));
+      }
+    },
+    [notify],
+  );
+
+  const createDatasetVersion = useCallback(
+    async (datasetId: string, note?: string) => {
+      try {
+        const version = await api.createDatasetVersion(datasetId, note);
+        const refreshed = await api.listDatasetVersions(datasetId);
+        setDatasetVersions((prev) => ({ ...prev, [datasetId]: refreshed }));
+        notify('success', 'Version created', `${version.versionLabel} was stored by the backend.`);
+        return version;
+      } catch (error) {
+        notify('error', 'Version creation failed', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const listSynthMedVersions = useCallback(
+    async (datasetId: string) => {
+      try {
+        const versions = await api.listSynthMedVersions(datasetId);
+        setSynthVersions((prev) => ({ ...prev, [datasetId]: versions }));
+        return versions;
+      } catch (error) {
+        notify('error', 'Could not load SynthMed versions', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const getSynthMedVersion = useCallback(
+    async (datasetId: string, versionId: string) => {
+      try {
+        const version = await api.getSynthMedVersion(datasetId, versionId);
+        setSynthVersions((prev) => {
+          const current = prev[datasetId] ?? [];
+          const versions = current.some((item) => item.id === version.id)
+            ? current.map((item) => (item.id === version.id ? version : item))
+            : [version, ...current];
+          return { ...prev, [datasetId]: versions };
+        });
+        return version;
+      } catch (error) {
+        notify('error', 'Could not load SynthMed version', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const getSynthMedDatasetLineage = useCallback(
+    async (datasetId: string) => {
+      try {
+        const lineage = await api.getSynthMedDatasetLineage(datasetId);
+        setSynthLineage((prev) => ({ ...prev, [datasetId]: lineage }));
+        return lineage;
+      } catch (error) {
+        notify('error', 'Could not load SynthMed lineage', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const compareSynthMedVersions = useCallback(
+    async (datasetId: string, versionAId: string, versionBId: string) => {
+      try {
+        return await api.compareSynthMedVersions(datasetId, versionAId, versionBId);
+      } catch (error) {
+        notify('error', 'SynthMed version comparison failed', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const restoreSynthMedVersion = useCallback(
+    async (datasetId: string, versionId: string) => {
+      try {
+        const version = await api.restoreSynthMedVersion(datasetId, versionId);
+        const refreshed = await api.listSynthMedVersions(datasetId);
+        setSynthVersions((prev) => ({ ...prev, [datasetId]: refreshed }));
+        notify('success', 'SynthMed version restored', `${version.versionLabel} is now the active version.`);
+        return version;
+      } catch (error) {
+        notify('error', 'SynthMed version restore failed', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const downloadSynthMedVersion = useCallback(
+    async (datasetId: string, versionId: string, filename: string) => {
+      try {
+        await api.downloadSynthMedVersion(datasetId, versionId, filename);
+      } catch (error) {
+        notify('error', 'SynthMed version download failed', errorMessage(error));
+      }
+    },
+    [notify],
+  );
+
+  const listSynthMedExperiments = useCallback(async () => {
+    try {
+      const experiments = await api.listSynthMedExperiments();
+      setSynthExperiments(experiments);
+      return experiments;
+    } catch (error) {
+      notify('error', 'Could not load experiments', errorMessage(error));
+      throw error;
+    }
+  }, [notify]);
+
+  const getSynthMedExperiment = useCallback(
+    async (experimentId: string) => {
+      try {
+        const experiment = await api.getSynthMedExperiment(experimentId);
+        setSynthExperiments((prev) =>
+          prev.some((item) => item.id === experiment.id)
+            ? prev.map((item) => (item.id === experiment.id ? experiment : item))
+            : [experiment, ...prev],
+        );
+        return experiment;
+      } catch (error) {
+        notify('error', 'Could not load experiment', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const createSynthMedExperiment = useCallback(
+    async (payload: SynthMedExperimentCreatePayload) => {
+      try {
+        const experiment = await api.createSynthMedExperiment(payload);
+        setSynthExperiments((prev) => [experiment, ...prev.filter((item) => item.id !== experiment.id)]);
+        notify('success', 'Experiment created', experiment.name);
+        return experiment;
+      } catch (error) {
+        notify('error', 'Experiment could not be created', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const reuseSynthMedExperimentConfiguration = useCallback(
+    async (experimentId: string, payload: SynthMedExperimentReusePayload = {}) => {
+      try {
+        const job = await api.reuseSynthMedExperimentConfiguration(experimentId, payload);
+        setSynthJobs((prev) => [job, ...prev.filter((item) => item.id !== job.id)]);
+        const warnings = (job.config as { reuseWarnings?: unknown }).reuseWarnings;
+        notify(
+          Array.isArray(warnings) && warnings.length > 0 ? 'info' : 'success',
+          'Generation job started from snapshot',
+          `${job.id} · ${job.status.toLowerCase()}`,
+        );
+        return job;
+      } catch (error) {
+        notify('error', 'Configuration could not be reused', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const getSynthMedExperimentReport = useCallback(
+    async (experimentId: string) => {
+      try {
+        return await api.getSynthMedExperimentReport(experimentId);
+      } catch (error) {
+        notify('error', 'Could not load experiment report', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const downloadSynthMedExperimentReport = useCallback(
+    async (experimentId: string) => {
+      try {
+        await api.downloadSynthMedExperimentReport(experimentId);
+      } catch (error) {
+        notify('error', 'Experiment report download failed', errorMessage(error));
+      }
+    },
+    [notify],
+  );
+
+  const getSynthMedExperimentHistory = useCallback(
+    async (experimentId: string) => {
+      try {
+        return await api.getSynthMedExperimentHistory(experimentId);
+      } catch (error) {
+        notify('error', 'Could not load experiment history', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const getSynthMedExperimentConfigurations = useCallback(
+    async (experimentId: string) => {
+      try {
+        return await api.getSynthMedExperimentConfigurations(experimentId);
+      } catch (error) {
+        notify('error', 'Could not load configuration snapshots', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const listResearchReports = useCallback(
+    async (reportType?: ResearchReportType) => {
+      try {
+        return await api.listResearchReports(reportType);
+      } catch (error) {
+        notify('error', 'Could not load research reports', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const getResearchReport = useCallback(
+    async (reportId: string) => {
+      try {
+        return await api.getResearchReport(reportId);
+      } catch (error) {
+        notify('error', 'Could not load research report', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const getResearchReportStatus = useCallback(
+    async (reportId: string) => {
+      try {
+        return await api.getResearchReportStatus(reportId);
+      } catch (error) {
+        notify('error', 'Could not load report status', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const createResearchReport = useCallback(
+    async (reportType: ResearchReportType, payload: ResearchReportGeneratePayload) => {
+      try {
+        const report = await api.createResearchReport(reportType, payload);
+        notify('success', 'Research report queued', report.reportId);
+        return report;
+      } catch (error) {
+        notify('error', 'Research report could not be generated', errorMessage(error));
+        throw error;
+      }
+    },
+    [notify],
+  );
+
+  const downloadResearchReport = useCallback(
+    async (reportId: string) => {
+      try {
+        await api.downloadResearchReport(reportId);
+      } catch (error) {
+        notify('error', 'Research report download failed', errorMessage(error));
+      }
+    },
+    [notify],
+  );
+
   const value = useMemo<DemoStore | null>(() => {
     if (!user) return null;
     return {
@@ -1089,6 +1574,11 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       synthGenerated,
       synthJobs,
       synthComparisons,
+      datasetVersions,
+      datasetLineage,
+      synthVersions,
+      synthLineage,
+      synthExperiments,
       requests,
       qualityReports,
       readinessReports,
@@ -1104,6 +1594,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       refresh,
       uploadDataset,
       uploadSynthMedSource,
+      createSynthMedSourceFromRepository,
+      registerGeneratedDataset,
       refreshSynthMed,
       getSynthMedSource,
       downloadSynthMedSource,
@@ -1133,6 +1625,11 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       getSynthMedComparison,
       createSynthMedComparison,
       downloadSynthMedComparisonReport,
+      createSynthMedUtilityEvaluation,
+      listSynthMedUtilityEvaluations,
+      getSynthMedUtilityEvaluation,
+      getSynthMedUtilityEvaluationReport,
+      downloadSynthMedUtilityEvaluationReport,
       refreshJob,
       profileJob,
       recordMappingDecisions,
@@ -1146,6 +1643,32 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
       approveDataset,
       rejectDataset,
       downloadDataset,
+      listDatasetVersions,
+      getDatasetVersion,
+      getDatasetLineage,
+      compareDatasetVersions,
+      restoreDatasetVersion,
+      downloadDatasetVersion,
+      createDatasetVersion,
+      listSynthMedVersions,
+      getSynthMedVersion,
+      getSynthMedDatasetLineage,
+      compareSynthMedVersions,
+      restoreSynthMedVersion,
+      downloadSynthMedVersion,
+      listSynthMedExperiments,
+      getSynthMedExperiment,
+      createSynthMedExperiment,
+      reuseSynthMedExperimentConfiguration,
+      getSynthMedExperimentReport,
+      downloadSynthMedExperimentReport,
+      getSynthMedExperimentHistory,
+      getSynthMedExperimentConfigurations,
+      listResearchReports,
+      getResearchReport,
+      getResearchReportStatus,
+      createResearchReport,
+      downloadResearchReport,
     };
   }, [
     user,
@@ -1157,6 +1680,11 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     synthGenerated,
     synthJobs,
     synthComparisons,
+    datasetVersions,
+    datasetLineage,
+    synthVersions,
+    synthLineage,
+    synthExperiments,
     requests,
     qualityReports,
     readinessReports,
@@ -1172,6 +1700,8 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     refresh,
     uploadDataset,
     uploadSynthMedSource,
+    createSynthMedSourceFromRepository,
+    registerGeneratedDataset,
     refreshSynthMed,
     getSynthMedSource,
     downloadSynthMedSource,
@@ -1201,6 +1731,11 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     getSynthMedComparison,
     createSynthMedComparison,
     downloadSynthMedComparisonReport,
+    createSynthMedUtilityEvaluation,
+    listSynthMedUtilityEvaluations,
+    getSynthMedUtilityEvaluation,
+    getSynthMedUtilityEvaluationReport,
+    downloadSynthMedUtilityEvaluationReport,
     refreshJob,
     profileJob,
     recordMappingDecisions,
@@ -1214,6 +1749,32 @@ export const DemoProvider = ({ children }: { children: ReactNode }) => {
     approveDataset,
     rejectDataset,
     downloadDataset,
+    listDatasetVersions,
+    getDatasetVersion,
+    getDatasetLineage,
+    compareDatasetVersions,
+    restoreDatasetVersion,
+    downloadDatasetVersion,
+    createDatasetVersion,
+    listSynthMedVersions,
+    getSynthMedVersion,
+    getSynthMedDatasetLineage,
+    compareSynthMedVersions,
+    restoreSynthMedVersion,
+    downloadSynthMedVersion,
+    listSynthMedExperiments,
+    getSynthMedExperiment,
+    createSynthMedExperiment,
+    reuseSynthMedExperimentConfiguration,
+    getSynthMedExperimentReport,
+    downloadSynthMedExperimentReport,
+    getSynthMedExperimentHistory,
+    getSynthMedExperimentConfigurations,
+    listResearchReports,
+    getResearchReport,
+    getResearchReportStatus,
+    createResearchReport,
+    downloadResearchReport,
   ]);
 
   if (booting) {

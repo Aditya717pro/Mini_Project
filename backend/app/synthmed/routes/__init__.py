@@ -5,14 +5,16 @@ from pathlib import Path
 from typing import Annotated, Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, get_app_settings
 from app.core.config import Settings
 from app.db.session import get_db
 from app.services.audit_service import log_audit
+from app.services.dataset_service import to_summary
+from app.services.generated_ingestion_service import ingest_generated_dataset
 from app.synthmed.schemas import (
     SynthMedClinicalReferenceListResponse,
     SynthMedClinicalValidationRequest,
@@ -23,11 +25,16 @@ from app.synthmed.schemas import (
     SynthMedConditionValidationRequest,
     SynthMedConditionValidationResponse,
     SynthMedDatasetColumnsResponse,
+    SynthMedDatasetLineageResponse,
     SynthMedDownloadsResponse,
     SynthMedEvaluationReportResponse,
+    SynthMedExperimentCreateRequest,
+    SynthMedExperimentResponse,
     SynthMedExportRequest,
     SynthMedExportResponse,
     SynthMedGeneratedDatasetDetailResponse,
+    SynthMedGeneratedDatasetRegisterRequest,
+    SynthMedGeneratedDatasetRegisterResponse,
     SynthMedGeneratedDatasetResponse,
     SynthMedGeneratedPreviewResponse,
     SynthMedGenerationAnalysisResponse,
@@ -37,19 +44,28 @@ from app.synthmed.schemas import (
     SynthMedModelCapabilityListResponse,
     SynthMedSourceDatasetResponse,
     SynthMedSourceUploadResponse,
+    SynthMedUtilityEvaluationCreateRequest,
+    SynthMedUtilityEvaluationResponse,
+    SynthMedVersionCompareRequest,
+    SynthMedVersionResponse,
 )
 from app.synthmed.services import (
     clinical_reference_service,
     comparison_service,
+    experiment_service,
     generation_service,
     medical_schema_service,
+    utility_evaluation_service,
+    versioning_service,
 )
 from app.synthmed.services.dataset_service import read_source_dataframe
 from app.synthmed.services.source_service import (
+    create_source_from_repository,
     create_source_upload,
     downloads_payload,
     ensure_generated_access,
     ensure_source_access,
+    generated_registration_map,
     get_generated,
     get_source,
     list_generated,
@@ -120,6 +136,30 @@ def upload_source_dataset(
             "Source dataset uploaded and stored successfully. The original file was preserved without modification."
         ),
     )
+
+
+@router.post(
+    "/sources/from-repository/{dataset_id}",
+    response_model=SynthMedSourceDatasetResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def register_repository_source(
+    dataset_id: str,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+    version_id: str | None = Query(default=None),
+) -> SynthMedSourceDatasetResponse:
+    source = create_source_from_repository(
+        db,
+        settings=settings,
+        user=user,
+        dataset_id=dataset_id,
+        version_id=version_id,
+        request=request,
+    )
+    return to_source_response(source)
 
 
 @router.get("/sources", response_model=list[SynthMedSourceDatasetResponse])
@@ -274,7 +314,9 @@ def get_downloads(db: Annotated[Session, Depends(get_db)], user: CurrentUser) ->
 def get_generated_datasets(
     db: Annotated[Session, Depends(get_db)], user: CurrentUser
 ) -> list[SynthMedGeneratedDatasetResponse]:
-    return [to_generated_response(item) for item in list_generated(db, user=user)]
+    generated = list_generated(db, user=user)
+    registrations = generated_registration_map(db, [item.id for item in generated])
+    return [to_generated_response(item, registrations.get(item.id)) for item in generated]
 
 
 @router.get("/generated/{dataset_id}/download")
@@ -425,6 +467,36 @@ def get_generated_detail(
     generation_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser
 ) -> SynthMedGeneratedDatasetDetailResponse:
     return generation_service.generated_detail(db, generation_id, user)
+
+
+@router.post(
+    "/generated/{dataset_id}/register-in-repository",
+    response_model=SynthMedGeneratedDatasetRegisterResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def register_generated_in_repository(
+    dataset_id: str,
+    payload: SynthMedGeneratedDatasetRegisterRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> SynthMedGeneratedDatasetRegisterResponse:
+    dataset, job = ingest_generated_dataset(
+        db,
+        settings=settings,
+        user=user,
+        generated_dataset_id=dataset_id,
+        metadata=payload,
+        request=request,
+    )
+    return SynthMedGeneratedDatasetRegisterResponse(
+        dataset=to_summary(dataset),
+        message=(
+            "Generated dataset queued for the shared repository ETL pipeline. "
+            f"Complete ETL job {job.id} before governance review."
+        ),
+    )
 
 
 @router.get("/generated/{generation_id}/preview", response_model=SynthMedGeneratedPreviewResponse)
@@ -592,3 +664,245 @@ def download_comparison_report(
     )
     db.commit()
     return _stream_file(path, "application/json", "comparison_report.json")
+
+
+@router.post(
+    "/utility-evaluations", response_model=SynthMedUtilityEvaluationResponse, status_code=status.HTTP_201_CREATED
+)
+def create_utility_evaluation(
+    payload: SynthMedUtilityEvaluationCreateRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+) -> SynthMedUtilityEvaluationResponse:
+    row = utility_evaluation_service.create_utility_evaluation(
+        db, user=user, settings=settings, payload=payload.model_dump(), request=request
+    )
+    return SynthMedUtilityEvaluationResponse.model_validate(utility_evaluation_service.to_response(row))
+
+
+@router.get("/utility-evaluations", response_model=list[SynthMedUtilityEvaluationResponse])
+def list_utility_evaluations(
+    db: Annotated[Session, Depends(get_db)], user: CurrentUser
+) -> list[SynthMedUtilityEvaluationResponse]:
+    return [
+        SynthMedUtilityEvaluationResponse.model_validate(utility_evaluation_service.to_response(row))
+        for row in utility_evaluation_service.list_utility_evaluations(db, user)
+    ]
+
+
+@router.get("/utility-evaluations/{evaluation_id}", response_model=SynthMedUtilityEvaluationResponse)
+def get_utility_evaluation(
+    evaluation_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser
+) -> SynthMedUtilityEvaluationResponse:
+    row = utility_evaluation_service.get_utility_evaluation(db, evaluation_id, user)
+    return SynthMedUtilityEvaluationResponse.model_validate(utility_evaluation_service.to_response(row))
+
+
+@router.get("/utility-evaluations/{evaluation_id}/status", response_model=SynthMedUtilityEvaluationResponse)
+def get_utility_evaluation_status(
+    evaluation_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser
+) -> SynthMedUtilityEvaluationResponse:
+    row = utility_evaluation_service.get_utility_evaluation(db, evaluation_id, user)
+    return SynthMedUtilityEvaluationResponse.model_validate(utility_evaluation_service.to_response(row))
+
+
+@router.get("/utility-evaluations/{evaluation_id}/report")
+def get_utility_evaluation_report(
+    evaluation_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser
+) -> dict[str, Any]:
+    row = utility_evaluation_service.get_utility_evaluation(db, evaluation_id, user)
+    payload = utility_evaluation_service.to_response(row)
+    if not payload.get("report"):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utility report not available.")
+    return payload["report"]
+
+
+@router.get("/utility-evaluations/{evaluation_id}/download")
+def download_utility_evaluation_report(
+    evaluation_id: str,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+    format: str = Query(default="json"),
+):
+    row = utility_evaluation_service.get_utility_evaluation(db, evaluation_id, user)
+    path, media_type, name = utility_evaluation_service.report_download_path(row, settings, format)
+    log_audit(
+        db,
+        action="synthmed.utility_report_downloaded",
+        resource_type="synthmed_utility_evaluation",
+        resource_id=row.id,
+        actor_id=user.id,
+        details={"format": format},
+        request=request,
+    )
+    db.commit()
+    return _stream_file(path, media_type, name)
+
+
+# --- P5 Versioning & Experiments ---
+
+
+@router.get("/datasets/{dataset_id}/versions", response_model=list[SynthMedVersionResponse])
+def list_dataset_versions(
+    dataset_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+):
+    rows = versioning_service.list_versions(db, user=user, settings=settings, dataset_id=dataset_id)
+    return [SynthMedVersionResponse.model_validate(versioning_service.to_version_response(r)) for r in rows]
+
+
+@router.get("/datasets/{dataset_id}/versions/{version_id}", response_model=SynthMedVersionResponse)
+def get_dataset_version(dataset_id: str, version_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser):
+    row = versioning_service.get_version(db, user=user, version_id=version_id)
+    if not versioning_service.version_belongs_to_dataset(row, dataset_id):
+        raise HTTPException(status_code=404, detail="Version not found for dataset.")
+
+    return SynthMedVersionResponse.model_validate(versioning_service.to_version_response(row))
+
+
+@router.get("/datasets/{dataset_id}/versions/{version_id}/download")
+def download_dataset_version(
+    dataset_id: str,
+    version_id: str,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+):
+    version, path = versioning_service.version_download_path(
+        db, user=user, settings=settings, dataset_id=dataset_id, version_id=version_id
+    )
+    log_audit(
+        db,
+        action="synthmed.version_downloaded",
+        resource_type="synthmed_dataset_version",
+        resource_id=version.id,
+        actor_id=user.id,
+        details={"datasetId": dataset_id, "versionLabel": version.version_label, "checksum": version.checksum_sha256},
+        request=request,
+    )
+    db.commit()
+    media = {
+        "CSV": "text/csv",
+        "JSON": "application/json",
+        "XLSX": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }.get(version.file_format, "application/octet-stream")
+    return FileResponse(path, media_type=media, filename=path.name)
+
+
+@router.get("/datasets/{dataset_id}/lineage", response_model=SynthMedDatasetLineageResponse)
+def get_dataset_lineage(
+    dataset_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+):
+    payload = versioning_service.lineage_for_dataset(db, user=user, settings=settings, dataset_id=dataset_id)
+    return SynthMedDatasetLineageResponse.model_validate(payload)
+
+
+@router.post("/datasets/{dataset_id}/versions/compare")
+def compare_dataset_versions(
+    dataset_id: str,
+    payload: SynthMedVersionCompareRequest,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+):
+    return versioning_service.compare_versions(
+        db,
+        user=user,
+        settings=settings,
+        dataset_id=dataset_id,
+        version_a_id=payload.versionAId,
+        version_b_id=payload.versionBId,
+    )
+
+
+@router.post("/datasets/{dataset_id}/versions/{version_id}/restore", response_model=SynthMedVersionResponse)
+def restore_dataset_version(
+    dataset_id: str,
+    version_id: str,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+):
+    row = versioning_service.restore_version(
+        db, user=user, settings=settings, dataset_id=dataset_id, version_id=version_id, request=request
+    )
+    return SynthMedVersionResponse.model_validate(versioning_service.to_version_response(row))
+
+
+@router.post("/experiments", response_model=SynthMedExperimentResponse, status_code=status.HTTP_201_CREATED)
+def create_experiment(
+    payload: SynthMedExperimentCreateRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+):
+    row = experiment_service.create_experiment(
+        db, user=user, settings=settings, payload=payload.model_dump(by_alias=False), request=request
+    )
+    return SynthMedExperimentResponse.model_validate(versioning_service.to_experiment_response(db, row))
+
+
+@router.get("/experiments", response_model=list[SynthMedExperimentResponse])
+def list_experiments(db: Annotated[Session, Depends(get_db)], user: CurrentUser):
+    rows = experiment_service.list_experiments(db, user=user)
+    return [
+        SynthMedExperimentResponse.model_validate(versioning_service.to_experiment_response(db, row)) for row in rows
+    ]
+
+
+@router.get("/experiments/{experiment_id}", response_model=SynthMedExperimentResponse)
+def get_experiment(experiment_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser):
+    row = experiment_service.get_experiment(db, user=user, experiment_id=experiment_id)
+    return SynthMedExperimentResponse.model_validate(versioning_service.to_experiment_response(db, row))
+
+
+@router.post("/experiments/{experiment_id}/reuse-configuration", response_model=SynthMedGenerationJobResponse)
+def reuse_experiment_configuration(
+    experiment_id: str,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+    payload: Annotated[dict[str, Any] | None, Body()] = None,
+):
+    job = experiment_service.reuse_configuration(
+        db, user=user, settings=settings, experiment_id=experiment_id, payload=payload, request=request
+    )
+    return SynthMedGenerationJobResponse.model_validate(generation_service.job_response(job))
+
+
+@router.get("/experiments/{experiment_id}/history")
+def get_experiment_history(experiment_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser):
+    return experiment_service.experiment_history(db, user=user, experiment_id=experiment_id)
+
+
+@router.get("/experiments/{experiment_id}/configurations")
+def get_experiment_configurations(experiment_id: str, db: Annotated[Session, Depends(get_db)], user: CurrentUser):
+    return experiment_service.experiment_configurations(db, user=user, experiment_id=experiment_id)
+
+
+@router.get("/experiments/{experiment_id}/report")
+def get_experiment_report(
+    experiment_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_app_settings)],
+):
+    row = experiment_service.get_experiment(db, user=user, experiment_id=experiment_id)
+    payload = {
+        "experiment": versioning_service.to_experiment_response(db, row),
+        "generatedAt": versioning_service._iso(versioning_service._now()),
+    }
+    return JSONResponse(payload)

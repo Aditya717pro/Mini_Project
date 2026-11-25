@@ -1,0 +1,22 @@
+{
+  "METADATA_SPEC_VERSION": "V2",
+  "relationships": [],
+  "tables": {
+    "synthmed": {
+      "columns": {
+        "Age": {
+          "sdtype": "numerical"
+        },
+        "BS": {
+          "sdtype": "numerical"
+        },
+        "DiastolicBP": {
+          "sdtype": "numerical"
+        },
+        "SystolicBP": {
+          "sdtype": "numerical"
+        }
+      }
+    }
+  }
+}

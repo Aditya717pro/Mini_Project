@@ -3,6 +3,10 @@ import type {
   AccessRequest,
   CurrentUser,
   Dataset,
+  DatasetLineageResponse,
+  DatasetVersionComparison,
+  DatasetVersionRecord,
+  DatasetVersionsResponse,
   Domain,
   EtlJob,
   FileFormat,
@@ -10,6 +14,11 @@ import type {
   QualityReport,
   ReadinessReport,
   RepresentativenessReport,
+  ResearchReport,
+  ResearchReportGeneratePayload,
+  ResearchReportListResponse,
+  ResearchReportStatusResponse,
+  ResearchReportType,
   Role,
   SynthMedComparisonCreatePayload,
   SynthMedComparisonDetail,
@@ -20,11 +29,19 @@ import type {
   SynthMedConditionValidationRequest,
   SynthMedConditionValidationResponse,
   SynthMedDatasetColumns,
+  SynthMedDatasetLineageResponse,
   SynthMedDownloads,
   SynthMedEvaluationReport,
+  SynthMedConfigSnapshot,
+  SynthMedExperimentCreatePayload,
+  SynthMedExperimentHistory,
+  SynthMedExperimentReusePayload,
+  SynthMedExperimentResponse,
+  SynthMedExperimentReport,
   SynthMedExportResponse,
   SynthMedGeneratedDataset,
   SynthMedGeneratedDatasetDetail,
+  SynthMedGeneratedDatasetRegisterPayload,
   SynthMedGeneratedEvaluationSummary,
   SynthMedGeneratedPreview,
   SynthMedGenerationAnalysis,
@@ -35,8 +52,13 @@ import type {
   SynthMedModelName,
   SynthMedModelsResponse,
   SynthMedReferenceOverride,
+  SynthMedRegisterResponse,
   SynthMedSourceClinicalValidationResponse,
   SynthMedSourceDataset,
+  SynthMedUtilityEvaluation,
+  SynthMedUtilityEvaluationCreatePayload,
+  SynthMedVersionComparison,
+  SynthMedVersionResponse,
 } from '../types';
 
 const RAW_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000')
@@ -250,8 +272,9 @@ export interface SynthMedSourceClinicalValidationPayload {
 }
 
 export interface UploadPayload {
-  file: File;
-  format: FileFormat;
+  file?: File;
+  format?: FileFormat;
+  generatedDatasetId?: string;
   title: string;
   description: string;
   domain: Domain;
@@ -281,6 +304,16 @@ const toDataset = (dataset: ApiDataset): Dataset => ({ ...dataset, domain: datas
 
 const toReportKeyed = <T extends { datasetId: string }>(items: T[]): Record<string, T> =>
   Object.fromEntries(items.map((item) => [item.datasetId, item]));
+
+const RESEARCH_REPORT_ENDPOINTS: Record<ResearchReportType, string> = {
+  'dataset-profile': '/reports/dataset-profile',
+  etl: '/reports/etl',
+  'synthmed-generation': '/reports/synthmed/generation',
+  'synthmed-comparison': '/reports/synthmed/comparison',
+  'synthmed-privacy': '/reports/synthmed/privacy',
+  'synthmed-utility': '/reports/synthmed/utility',
+  'synthmed-experiment': '/reports/synthmed/experiment',
+};
 
 export const api = {
   login: async (email: string, password: string): Promise<CurrentUser> => {
@@ -364,7 +397,8 @@ export const api = {
 
   uploadDataset: async (payload: UploadPayload): Promise<{ dataset: Dataset; jobId: string }> => {
     const form = new FormData();
-    form.append('file', payload.file);
+    if (payload.file) form.append('file', payload.file);
+    if (payload.generatedDatasetId) form.append('generated_dataset_id', payload.generatedDatasetId);
     form.append(
       'metadata',
       JSON.stringify({
@@ -479,6 +513,45 @@ export const api = {
       `${dataset.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.${dataset.format.toLowerCase()}`,
     ),
 
+  listDatasetVersions: async (datasetId: string): Promise<DatasetVersionsResponse> =>
+    request<DatasetVersionsResponse>(`/datasets/${encodeURIComponent(datasetId)}/versions`),
+
+  getDatasetVersion: async (datasetId: string, versionId: string): Promise<DatasetVersionRecord> =>
+    request<DatasetVersionRecord>(
+      `/datasets/${encodeURIComponent(datasetId)}/versions/${encodeURIComponent(versionId)}`,
+    ),
+
+  getDatasetLineage: async (datasetId: string): Promise<DatasetLineageResponse> =>
+    request<DatasetLineageResponse>(`/datasets/${encodeURIComponent(datasetId)}/lineage`),
+
+  compareDatasetVersions: async (
+    datasetId: string,
+    versionAId: string,
+    versionBId: string,
+  ): Promise<DatasetVersionComparison> =>
+    request<DatasetVersionComparison>(`/datasets/${encodeURIComponent(datasetId)}/versions/compare`, {
+      method: 'POST',
+      body: JSON.stringify({ versionAId, versionBId }),
+    }),
+
+  restoreDatasetVersion: async (datasetId: string, versionId: string): Promise<DatasetVersionRecord> =>
+    request<DatasetVersionRecord>(
+      `/datasets/${encodeURIComponent(datasetId)}/versions/${encodeURIComponent(versionId)}/restore`,
+      { method: 'POST' },
+    ),
+
+  downloadDatasetVersion: async (datasetId: string, versionId: string, filename: string): Promise<void> =>
+    downloadBlob(
+      `/datasets/${encodeURIComponent(datasetId)}/versions/${encodeURIComponent(versionId)}/download`,
+      filename,
+    ),
+
+  createDatasetVersion: async (datasetId: string, note?: string): Promise<DatasetVersionRecord> =>
+    request<DatasetVersionRecord>(`/datasets/${encodeURIComponent(datasetId)}/versions`, {
+      method: 'POST',
+      body: JSON.stringify(note?.trim() ? { note: note.trim() } : {}),
+    }),
+
   uploadSynthMedSource: async (
     payload: SynthMedUploadPayload,
     onProgress: (percent: number) => void,
@@ -493,6 +566,26 @@ export const api = {
       onProgress,
     );
     return response.dataset;
+  },
+
+  createSynthMedSourceFromRepository: async (datasetId: string, versionId?: string): Promise<SynthMedSourceDataset> => {
+    const suffix = versionId ? `?version_id=${encodeURIComponent(versionId)}` : '';
+    const response = await request<{ dataset?: SynthMedSourceDataset } & SynthMedSourceDataset>(
+      `/synthmed/sources/from-repository/${encodeURIComponent(datasetId)}${suffix}`,
+      { method: 'POST' },
+    );
+    return response.dataset ?? response;
+  },
+
+  registerGeneratedDataset: async (
+    generatedId: string,
+    payload: SynthMedGeneratedDatasetRegisterPayload,
+  ): Promise<SynthMedRegisterResponse> => {
+    const response = await request<SynthMedRegisterResponse>(
+      `/synthmed/generated/${encodeURIComponent(generatedId)}/register-in-repository`,
+      { method: 'POST', body: JSON.stringify(payload) },
+    );
+    return { ...response, dataset: toDataset(response.dataset as unknown as ApiDataset) };
   },
 
   listSynthMedSources: async (): Promise<SynthMedSourceDataset[]> => request<SynthMedSourceDataset[]>('/synthmed/sources'),
@@ -628,6 +721,119 @@ export const api = {
       `/synthmed/comparisons/${encodeURIComponent(comparisonId)}/report/download`,
       'comparison_report.json',
     ),
+
+  createSynthMedUtilityEvaluation: async (payload: SynthMedUtilityEvaluationCreatePayload): Promise<SynthMedUtilityEvaluation> =>
+    request<SynthMedUtilityEvaluation>('/synthmed/utility-evaluations', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  listSynthMedUtilityEvaluations: async (): Promise<SynthMedUtilityEvaluation[]> =>
+    request<SynthMedUtilityEvaluation[]>('/synthmed/utility-evaluations'),
+
+  getSynthMedUtilityEvaluation: async (evaluationId: string): Promise<SynthMedUtilityEvaluation> =>
+    request<SynthMedUtilityEvaluation>(`/synthmed/utility-evaluations/${encodeURIComponent(evaluationId)}`),
+
+  getSynthMedUtilityEvaluationReport: async (evaluationId: string): Promise<Record<string, unknown>> =>
+    request<Record<string, unknown>>(`/synthmed/utility-evaluations/${encodeURIComponent(evaluationId)}/report`),
+
+  downloadSynthMedUtilityEvaluationReport: async (evaluationId: string, format: 'json' | 'csv' | 'pdf' = 'json'): Promise<void> =>
+    downloadBlob(
+      `/synthmed/utility-evaluations/${encodeURIComponent(evaluationId)}/download?format=${encodeURIComponent(format)}`,
+      `utility_report.${format}`,
+    ),
+
+  listSynthMedVersions: async (datasetId: string): Promise<SynthMedVersionResponse[]> =>
+    request<SynthMedVersionResponse[]>(`/synthmed/datasets/${encodeURIComponent(datasetId)}/versions`),
+
+  getSynthMedVersion: async (datasetId: string, versionId: string): Promise<SynthMedVersionResponse> =>
+    request<SynthMedVersionResponse>(
+      `/synthmed/datasets/${encodeURIComponent(datasetId)}/versions/${encodeURIComponent(versionId)}`,
+    ),
+
+  getSynthMedDatasetLineage: async (datasetId: string): Promise<SynthMedDatasetLineageResponse> =>
+    request<SynthMedDatasetLineageResponse>(`/synthmed/datasets/${encodeURIComponent(datasetId)}/lineage`),
+
+  compareSynthMedVersions: async (
+    datasetId: string,
+    versionAId: string,
+    versionBId: string,
+  ): Promise<SynthMedVersionComparison> =>
+    request<SynthMedVersionComparison>(`/synthmed/datasets/${encodeURIComponent(datasetId)}/versions/compare`, {
+      method: 'POST',
+      body: JSON.stringify({ versionAId, versionBId }),
+    }),
+
+  restoreSynthMedVersion: async (datasetId: string, versionId: string): Promise<SynthMedVersionResponse> =>
+    request<SynthMedVersionResponse>(
+      `/synthmed/datasets/${encodeURIComponent(datasetId)}/versions/${encodeURIComponent(versionId)}/restore`,
+      { method: 'POST' },
+    ),
+
+  downloadSynthMedVersion: async (datasetId: string, versionId: string, filename: string): Promise<void> =>
+    downloadBlob(
+      `/synthmed/datasets/${encodeURIComponent(datasetId)}/versions/${encodeURIComponent(versionId)}/download`,
+      filename,
+    ),
+
+  listSynthMedExperiments: async (): Promise<SynthMedExperimentResponse[]> =>
+    request<SynthMedExperimentResponse[]>('/synthmed/experiments'),
+
+  createSynthMedExperiment: async (
+    payload: SynthMedExperimentCreatePayload,
+  ): Promise<SynthMedExperimentResponse> =>
+    request<SynthMedExperimentResponse>('/synthmed/experiments', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  getSynthMedExperiment: async (experimentId: string): Promise<SynthMedExperimentResponse> =>
+    request<SynthMedExperimentResponse>(`/synthmed/experiments/${encodeURIComponent(experimentId)}`),
+
+  reuseSynthMedExperimentConfiguration: async (
+    experimentId: string,
+    payload: SynthMedExperimentReusePayload = {},
+  ): Promise<SynthMedGenerationJob> =>
+    request<SynthMedGenerationJob>(
+      `/synthmed/experiments/${encodeURIComponent(experimentId)}/reuse-configuration`,
+      { method: 'POST', body: JSON.stringify(payload) },
+    ),
+
+  getSynthMedExperimentReport: async (experimentId: string): Promise<SynthMedExperimentReport> =>
+    request<SynthMedExperimentReport>(`/synthmed/experiments/${encodeURIComponent(experimentId)}/report`),
+
+  downloadSynthMedExperimentReport: async (experimentId: string): Promise<void> =>
+    downloadBlob(
+      `/synthmed/experiments/${encodeURIComponent(experimentId)}/report`,
+      `experiment_${experimentId.slice(0, 8)}_report.json`,
+    ),
+
+  getSynthMedExperimentHistory: async (experimentId: string): Promise<SynthMedExperimentHistory> =>
+    request<SynthMedExperimentHistory>(`/synthmed/experiments/${encodeURIComponent(experimentId)}/history`),
+
+  getSynthMedExperimentConfigurations: async (experimentId: string): Promise<SynthMedConfigSnapshot[]> =>
+    request<SynthMedConfigSnapshot[]>(`/synthmed/experiments/${encodeURIComponent(experimentId)}/configurations`),
+
+  listResearchReports: async (reportType?: ResearchReportType): Promise<ResearchReportListResponse> =>
+    request<ResearchReportListResponse>(`/reports${reportType ? `?reportType=${encodeURIComponent(reportType)}` : ''}`),
+
+  getResearchReport: async (reportId: string): Promise<ResearchReport> =>
+    request<ResearchReport>(`/reports/${encodeURIComponent(reportId)}`),
+
+  getResearchReportStatus: async (reportId: string): Promise<ResearchReportStatusResponse> =>
+    request<ResearchReportStatusResponse>(`/reports/${encodeURIComponent(reportId)}/status`),
+
+  createResearchReport: async (
+    reportType: ResearchReportType,
+    payload: ResearchReportGeneratePayload,
+  ): Promise<ResearchReport> =>
+    request<ResearchReport>(RESEARCH_REPORT_ENDPOINTS[reportType], {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  downloadResearchReport: async (reportId: string): Promise<void> =>
+    downloadBlob(`/reports/${encodeURIComponent(reportId)}/download`, `${reportId}.pdf`),
 };
 
 export const reportMaps = {

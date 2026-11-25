@@ -14,9 +14,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
-from app.models.enums import UserRole
+from app.models.dataset import Dataset, DatasetVersion
+from app.models.enums import DatasetStatus, UserRole
 from app.models.user import User
 from app.services.audit_service import log_audit
+from app.services.dataset_service import get_dataset
+from app.services.storage_service import StorageService
 from app.synthmed.models import SynthMedGeneratedDataset, SynthMedSourceDataset
 from app.synthmed.schemas import (
     SynthMedDownloadsResponse,
@@ -26,6 +29,11 @@ from app.synthmed.schemas import (
 from app.synthmed.services.storage_service import SynthMedStorageService
 
 ALLOWED_EXTENSIONS = {".csv": "CSV", ".xlsx": "XLSX", ".json": "JSON"}
+CONTENT_TYPES_BY_FORMAT = {
+    "CSV": "text/csv",
+    "XLSX": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "JSON": "application/json",
+}
 UUID_PATTERN = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 ALLOWED_MIME_TYPES = {
@@ -151,7 +159,7 @@ def _xlsx_stats(content: bytes) -> tuple[int, int]:
                     if name.startswith("xl/worksheets/sheet") and name.endswith(".xml")
                 ),
                 None,
-            )
+    )
 
             if sheet_name is None:
                 raise ValueError("missing sheet")
@@ -226,7 +234,43 @@ def to_source_response(dataset: SynthMedSourceDataset) -> SynthMedSourceDatasetR
     )
 
 
-def to_generated_response(dataset: SynthMedGeneratedDataset) -> SynthMedGeneratedDatasetResponse:
+def generated_registration_map(db: Session, generated_ids: list[str]) -> dict[str, dict[str, str]]:
+    if not generated_ids:
+        return {}
+    rows = db.scalars(
+        select(Dataset).where(Dataset.source_generated_dataset_id.in_(generated_ids))
+    ).unique()
+    result: dict[str, dict[str, str]] = {}
+    for row in rows:
+        if not row.source_generated_dataset_id:
+            continue
+        if row.status == DatasetStatus.AVAILABLE:
+            registration_status = "Registered in Repository"
+        elif row.status in {
+            DatasetStatus.PROCESSING,
+            DatasetStatus.PENDING_REVIEW,
+            DatasetStatus.CHANGES_REQUESTED,
+        }:
+            registration_status = "In Repository ETL"
+        else:
+            registration_status = "Repository record pending"
+        result[str(row.source_generated_dataset_id)] = {
+            "repositoryRegistrationStatus": registration_status,
+            "repositoryDatasetId": str(row.id),
+            "repositoryDatasetTitle": row.title,
+        }
+    return result
+
+
+def to_generated_response(
+    dataset: SynthMedGeneratedDataset,
+    registration: dict[str, str] | None = None,
+) -> SynthMedGeneratedDatasetResponse:
+    status_fields: dict[str, str] = {
+        "repositoryRegistrationStatus": "Not registered",
+    }
+    if registration:
+        status_fields.update(registration)
     return SynthMedGeneratedDatasetResponse(
         id=dataset.id,
         sourceDatasetId=dataset.source_dataset_id,
@@ -244,8 +288,9 @@ def to_generated_response(dataset: SynthMedGeneratedDataset) -> SynthMedGenerate
         fileSizeBytes=dataset.file_size_bytes,
         fileName=Path(dataset.stored_path).name if dataset.stored_path else "",
         status=dataset.status,
-
+        **status_fields,
     )
+
 
 
 def create_source_upload(
@@ -303,6 +348,18 @@ def create_source_upload(
             content_type=mime,
         )
         db.add(dataset)
+        db.flush()
+        from app.synthmed.services import versioning_service
+
+        versioning_service.create_dataset_version(
+            db,
+            user=user,
+            settings=settings,
+            kind="source",
+            source=dataset,
+            metadata={"origin": "upload"},
+            request=request,
+        )
         log_audit(
             db,
             action="synthmed.source_uploaded",
@@ -320,6 +377,7 @@ def create_source_upload(
         db.commit()
         db.refresh(dataset)
         return dataset
+
     except Exception:
         db.rollback()
         try:
@@ -328,6 +386,162 @@ def create_source_upload(
             pass
         raise
 
+
+
+def create_source_from_repository(
+    db: Session,
+    *,
+    settings: Settings,
+    user: User,
+    dataset_id: str,
+    version_id: str | None = None,
+    request: Request | None = None,
+) -> SynthMedSourceDataset:
+    dataset = get_dataset(db, dataset_id)
+    is_owner = dataset.owner_id == user.id
+    is_admin = user.role == UserRole.ADMINISTRATOR
+    if not (is_owner or is_admin or dataset.status == DatasetStatus.AVAILABLE):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You cannot use this repository dataset.")
+
+    version: DatasetVersion | None = None
+    if version_id:
+        if not UUID_PATTERN.fullmatch(version_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset version not found.")
+        version = db.scalar(
+            select(DatasetVersion).where(
+                DatasetVersion.id == version_id,
+                DatasetVersion.dataset_id == dataset.id,
+            )
+        )
+        if version is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset version not found.")
+
+    file_format = getattr(dataset.format, "value", str(dataset.format)).upper()
+    if version is not None and version.processed_file_path:
+        file_format = "CSV"
+    if file_format not in CONTENT_TYPES_BY_FORMAT:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Repository dataset has an unsupported file format.",
+        )
+
+    if version is None:
+        reference = dataset.original_path
+        storage_kind = "raw"
+    elif version.processed_file_path:
+        reference = version.processed_file_path
+        storage_kind = "processed"
+    else:
+        reference = version.raw_file_path
+        storage_kind = "raw"
+
+    try:
+        path = StorageService(settings).resolve(reference, kind=storage_kind)
+    except (ValueError, FileNotFoundError, OSError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Repository file not found on disk."
+        ) from error
+    if not path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository file not found on disk.")
+    try:
+        content = path.read_bytes()
+    except OSError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Repository file could not be read."
+        ) from error
+
+    if not content:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Repository file is empty.")
+    if len(content) > settings.max_upload_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"File exceeds the {settings.max_upload_bytes // (1024 * 1024)} MB upload limit.",
+        )
+    checksum = _checksum(content)
+    expected_checksum = version.checksum_sha256 if version is not None else dataset.checksum_sha256
+    expected_size = version.file_size_bytes if version is not None else dataset.file_size_bytes
+    expected_rows = version.record_count if version is not None else dataset.record_count
+    expected_columns = version.column_count if version is not None else dataset.column_count
+    filename = dataset.original_filename if version is None else Path(reference).name or dataset.original_filename
+    if len(content) != expected_size or checksum != expected_checksum:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Repository file checksum or size mismatch.")
+
+    existing = db.scalar(
+        select(SynthMedSourceDataset)
+        .where(
+            SynthMedSourceDataset.owner_id == user.id,
+            SynthMedSourceDataset.checksum_sha256 == checksum,
+            SynthMedSourceDataset.original_filename == filename,
+            SynthMedSourceDataset.row_count == expected_rows,
+            SynthMedSourceDataset.column_count == expected_columns,
+        )
+        .order_by(SynthMedSourceDataset.created_at.desc())
+    )
+    if existing is not None:
+        return existing
+
+    source_id = str(uuid4())
+    storage = SynthMedStorageService(settings)
+    relative_path = ""
+    try:
+        _, relative_path = storage.save_source(source_id, filename, content)
+        source = SynthMedSourceDataset(
+            id=source_id,
+            owner_id=user.id,
+            dataset_name=dataset.title,
+            description=dataset.description or "",
+            original_filename=filename,
+            stored_path=relative_path,
+            file_format=file_format,
+            file_size_bytes=len(content),
+            checksum_sha256=checksum,
+            row_count=expected_rows,
+            column_count=expected_columns,
+            upload_status="Uploaded",
+            content_type=CONTENT_TYPES_BY_FORMAT[file_format],
+        )
+        db.add(source)
+        db.flush()
+        from app.synthmed.services import versioning_service
+
+        versioning_service.create_dataset_version(
+            db,
+            user=user,
+            settings=settings,
+            kind="source",
+            source=source,
+            metadata={
+                "origin": "repository",
+                "repositoryDatasetId": dataset.id,
+                **({"repositoryVersionId": version.id} if version is not None else {}),
+            },
+            request=request,
+        )
+        log_audit(
+            db,
+            action="synthmed.source_created_from_repository",
+            resource_type="synthmed_source_dataset",
+            resource_id=source.id,
+            actor_id=user.id,
+            details={
+                "repositoryDatasetId": dataset.id,
+                **({"repositoryVersionId": version.id} if version is not None else {}),
+                "format": file_format,
+                "sizeBytes": len(content),
+                "checksum": checksum,
+            },
+            request=request,
+        )
+        db.commit()
+        db.refresh(source)
+        return source
+    except Exception:
+        db.rollback()
+        try:
+            storage.remove_source(relative_path)
+        except Exception:
+            pass
+        raise
 
 
 def list_sources(db: Session, *, user: User) -> list[SynthMedSourceDataset]:
@@ -375,7 +589,9 @@ def ensure_generated_access(dataset: SynthMedGeneratedDataset, user: User) -> No
 
 
 def downloads_payload(db: Session, *, user: User) -> SynthMedDownloadsResponse:
+    generated = list_generated(db, user=user)
+    registrations = generated_registration_map(db, [item.id for item in generated])
     return SynthMedDownloadsResponse(
         sources=[to_source_response(item) for item in list_sources(db, user=user)],
-        generated=[to_generated_response(item) for item in list_generated(db, user=user)],
+        generated=[to_generated_response(item, registrations.get(item.id)) for item in generated],
     )

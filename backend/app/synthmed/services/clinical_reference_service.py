@@ -471,9 +471,9 @@ CATALOGUE: tuple[ReferenceRange, ...] = (
     ReferenceRange(
         "bmi_adult",
         "BMI",
-        "kg/m²",
-        "",
+        "kg/m^2",
         "Adult",
+        "standard",
         WHO,
         WHO_URL,
         WHO_CITATION,
@@ -485,7 +485,10 @@ CATALOGUE: tuple[ReferenceRange, ...] = (
         upper_inclusive=False,
         plausible_lower=10,
         plausible_upper=80,
-        notes=("WHO healthy BMI range is 18.5 to <25 kg/m².",),
+        notes=(
+            "WHO healthy BMI range is 18.5 to <25 kg/m^2 for adults; paediatric interpretation is not applied "
+            "without verified growth-reference support.",
+        ),
     ),
     ReferenceRange(
         "cholesterol_total",
@@ -1128,9 +1131,9 @@ def validate_relationships(
             expected = weight / (height_m * height_m).replace(0, np.nan)
             add(
                 "bmi_consistency",
-                "BMI must agree with weight / height² within 0.5 kg/m² when height and weight are present.",
-                "Arithmetic identity of the BMI formula.",
-                (expected.notna() & bmi.notna() & ((expected - bmi).abs() > 0.5)),
+                "BMI must agree with weight / height^2 within 0.1 kg/m^2 when height and weight are present.",
+                "Arithmetic identity of the BMI formula; tolerance 0.1 allows rounding.",
+                (expected.notna() & bmi.notna() & ((expected - bmi).abs() > 0.1)),
             )
         else:
             add(

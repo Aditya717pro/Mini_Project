@@ -49,6 +49,17 @@ def run_pipeline(
         "review_count": transformed.review_count,
         "profile_issues": extracted.profile.issues,
         "ambiguous_date_columns": extracted.profile.ambiguous_date_columns,
+        "unit_conversions": [
+            {
+                "action": item.get("action"),
+                "sourceColumn": item.get("field"),
+                "targetColumn": approved_mapping.get(str(item.get("field"))),
+                "note": item.get("detail"),
+                "level": item.get("level", "INFO"),
+            }
+            for item in transformed.logs
+            if item.get("action") in {"unit_conversion", "unit_not_stated"}
+        ],
         "preservation_policy": "Original uploaded file retained; source values preserved in original__ columns.",
     }
     processed_path, log_path = publish_processed_output(

@@ -7,6 +7,7 @@ import {
   BrainCircuit,
   Check,
   Database,
+  FileText,
   FlaskConical,
   GitCompare,
   KeyRound,
@@ -19,6 +20,7 @@ import {
   Sun,
   ShieldCheck,
   UploadCloud,
+  User,
   Users,
   Workflow,
   X,
@@ -41,7 +43,10 @@ const mainNavGroups = [
   },
   {
     label: 'Data',
-    items: [{ to: '/repository', label: 'Dataset Repository', icon: Database, end: false }],
+    items: [
+      { to: '/repository', label: 'My Repository', icon: Database, end: false },
+      { to: '/upload', label: 'Upload to Repository', icon: UploadCloud, end: false },
+    ],
   },
   {
     label: 'Assessment',
@@ -56,6 +61,8 @@ const mainNavGroups = [
     label: 'Governance',
     items: [
       { to: '/access-requests', label: 'Access Requests', icon: KeyRound, end: false },
+      { to: '/reports', label: 'Research Reports', icon: FileText, end: false },
+      { to: '/profile', label: 'Profile', icon: User, end: false },
       { to: '/settings', label: 'Settings', icon: Settings, end: false },
     ],
   },
@@ -67,7 +74,7 @@ const synthMedNavGroups = [
     items: [
       { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
       { to: '/synthmed', label: 'SynthMed Overview', icon: FlaskConical, end: true },
-      { to: '/synthmed/upload', label: 'Upload Source Dataset', icon: UploadCloud, end: false },
+      { to: '/synthmed/upload', label: 'Upload Source Data', icon: UploadCloud, end: false },
       { to: '/synthmed/generated', label: 'Generated Datasets', icon: FlaskConical, end: false },
       { to: '/synthmed/comparison', label: 'Comparison Dashboard', icon: GitCompare, end: false },
       { to: '/synthmed/evaluation', label: 'Quality & Privacy', icon: ShieldCheck, end: false },
@@ -76,9 +83,7 @@ const synthMedNavGroups = [
 ];
 
 export const AppLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth > 1024 : true,
-  );
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const themeMenuRef = useRef<HTMLDivElement>(null);
@@ -127,25 +132,28 @@ export const AppLayout = () => {
   const currentTitle = location.pathname.startsWith('/datasets/')
     ? 'Dataset Details'
     : [...activeNavGroups.flatMap((group) => group.items)].find((item) =>
-        item.end ? location.pathname === item.to : location.pathname.startsWith(item.to),
-      )?.label ?? 'MedDataHub';
+      item.end ? location.pathname === item.to : location.pathname.startsWith(item.to),
+    )?.label ?? 'MedDataHub';
 
   return (
     <div className={`app-shell ${sidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
       <div
-        className={`sidebar-overlay ${sidebarOpen ? 'visible' : ''}`}
+        className={`sidebar-backdrop ${sidebarOpen ? 'visible' : ''}`}
         onClick={() => setSidebarOpen(false)}
         aria-hidden="true"
       />
-      <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <div className="brand">
-          <div className="brand-mark">
-            <Activity size={22} />
-          </div>
-          <div>
-            <div className="brand-name">MedDataHub</div>
-            <div className="brand-sub">Research Data Platform</div>
-          </div>
+
+      <aside className={`sidebar ${sidebarOpen ? 'open sidebar-open' : ''}`}>
+        <div className="sidebar-header">
+          <NavLink to="/" className="brand">
+            <span className="brand-icon">
+              <Activity size={20} />
+            </span>
+            <div className="brand-text">
+              <span className="brand-title">MedDataHub</span>
+              <span className="brand-subtitle">RESEARCH DATA PLATFORM</span>
+            </div>
+          </NavLink>
           <button
             type="button"
             className="icon-btn sidebar-close"
@@ -156,10 +164,10 @@ export const AppLayout = () => {
           </button>
         </div>
 
-        <nav className="nav">
+        <nav className="sidebar-nav">
           {activeNavGroups.map((group) => (
-            <div className="nav-group" key={group.label}>
-              <div className="nav-label">{group.label}</div>
+            <div key={group.label} className="nav-group">
+              <span className="nav-group-label">{group.label}</span>
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const count = badgeFor(item.to);
@@ -169,11 +177,7 @@ export const AppLayout = () => {
                     to={item.to}
                     end={item.end}
                     className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : ''}`}
-                    onClick={() => {
-                      if (window.innerWidth <= 1024) {
-                        setSidebarOpen(false);
-                      }
-                    }}
+                    onClick={() => setSidebarOpen(false)}
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
@@ -203,16 +207,14 @@ export const AppLayout = () => {
 
       <div className="main">
         <header className="topbar">
-          {!sidebarOpen ? (
-            <button
-              type="button"
-              className="icon-btn menu-btn"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open navigation"
-            >
-              <Menu size={20} />
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className="icon-btn menu-btn"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            aria-label="Toggle navigation"
+          >
+            <Menu size={20} />
+          </button>
           <span className="topbar-title">{currentTitle}</span>
 
           <form className="topbar-search" onSubmit={submitSearch} role="search">
@@ -273,7 +275,7 @@ export const AppLayout = () => {
               <Bell size={18} />
               {pendingIncoming > 0 ? <span className="bell-dot">{pendingIncoming}</span> : null}
             </button>
-            <NavLink to="/settings" className="user-chip">
+            <NavLink to="/profile" className="user-chip" aria-label="User profile" data-testid="nav-profile">
               <div className="avatar avatar-sm">{initials(user.name)}</div>
               <div className="user-chip-text">
                 <strong>{user.name.replace(/^(Dr\.|Prof\.)\s/, '')}</strong>
@@ -294,8 +296,8 @@ export const AppLayout = () => {
             <Outlet />
           </Suspense>
         </main>
-      </div>
+      </div >
       <ToastViewport />
-    </div>
+    </div >
   );
 };

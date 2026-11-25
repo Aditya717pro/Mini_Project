@@ -438,7 +438,9 @@ export const SynthMedComparison = () => {
                   <h4>Original records</h4>
                   <div className="info-list">
                     <InfoRow label="Measurements">
-                      {formatNumber(clinical.sourceMedicalProfile.clinicalMeasurementColumns.length)}
+                      {formatNumber(Array.isArray((clinical.sourceMedicalProfile as Record<string, unknown>).clinicalMeasurementColumns)
+                        ? ((clinical.sourceMedicalProfile as Record<string, unknown>).clinicalMeasurementColumns as unknown[]).length
+                        : 0)}
                     </InfoRow>
                     <InfoRow label="Records checked">
                       {formatNumber(clinical.sourceValidation.totalRecords ?? 0)}
@@ -452,7 +454,9 @@ export const SynthMedComparison = () => {
                   <h4>Synthetic records</h4>
                   <div className="info-list">
                     <InfoRow label="Measurements">
-                      {formatNumber(clinical.syntheticMedicalProfile.clinicalMeasurementColumns.length)}
+                      {formatNumber(Array.isArray((clinical.syntheticMedicalProfile as Record<string, unknown>).clinicalMeasurementColumns)
+                        ? ((clinical.syntheticMedicalProfile as Record<string, unknown>).clinicalMeasurementColumns as unknown[]).length
+                        : 0)}
                     </InfoRow>
                     <InfoRow label="Records checked">
                       {formatNumber(clinical.syntheticValidation.totalRecords ?? 0)}
@@ -510,6 +514,19 @@ export const SynthMedComparison = () => {
                     <li key={limitation}><Stethoscope size={14} />{limitation}</li>
                   ))}
                 </ul>
+              ) : null}
+              {clinical.sourcePreservation ? (
+                <div className="info-list">
+                  <InfoRow label="Source preservation">
+                    {String((clinical.sourcePreservation as Record<string, unknown>).mode ?? ((clinical.sourcePreservation as Record<string, unknown>).enabled ? 'Enabled' : 'Disabled'))}
+                  </InfoRow>
+                  <InfoRow label="Age within tolerance">
+                    {(() => {
+                      const age = ((clinical.sourcePreservation as Record<string, unknown>).ageWithinTolerance ?? {}) as Record<string, unknown>;
+                      return age.percentage == null ? '—' : `${String(age.percentage)}%`;
+                    })()}
+                  </InfoRow>
+                </div>
               ) : null}
             </Card>
           ) : null}
